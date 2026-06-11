@@ -5,7 +5,7 @@ import { createRoot } from "@opentui/react"
 import packageJson from "../package.json"
 import { App } from "./App"
 import { helpText, parseArgs } from "./cli"
-import { loadGitModel, resolveRepoRoot } from "./git"
+import { loadChangedFiles, resolveRepoRoot, type GitModel } from "./git"
 import { createSyntaxConfig } from "./syntax"
 
 try {
@@ -21,9 +21,13 @@ try {
     process.exit(0)
   }
 
-  const model = await loadGitModel(resolveRepoRoot(process.cwd()), options.scope)
-  const syntax = await createSyntaxConfig()
-  const renderer = await createCliRenderer({ exitOnCtrlC: true })
+  const repoRoot = resolveRepoRoot(process.cwd())
+  const [changedResult, syntax, renderer] = await Promise.all([
+    loadChangedFiles(repoRoot, options.scope),
+    createSyntaxConfig(),
+    createCliRenderer({ exitOnCtrlC: true }),
+  ])
+  const model: GitModel = { repoRoot, ...changedResult, repoFiles: [], repoFilesKey: "" }
   createRoot(renderer).render(<App model={model} scope={options.scope} syntax={syntax} />)
 } catch (error) {
   console.error(error instanceof Error ? error.message : String(error))

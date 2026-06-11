@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/jimmy-guzman/sideye/compare/sideye-v0.1.2...sideye-v0.1.3) (2026-06-11)
+
+
+### Bug Fixes
+
+* 🐛 pass NPM_TOKEN to npm publish step ([#6](https://github.com/jimmy-guzman/sideye/issues/6)) ([81014cf](https://github.com/jimmy-guzman/sideye/commit/81014cf503058f9fc9da641a03c52aaa196745f0))
+
 ## [0.1.2](https://github.com/jimmy-guzman/sideye/compare/sideye-v0.1.1...sideye-v0.1.2) (2026-06-11)
 
 

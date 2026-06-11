@@ -27,6 +27,7 @@ try {
     createSyntaxConfig(),
     createCliRenderer({ exitOnCtrlC: true }),
   ])
+  // oxlint-disable-next-line react-perf/jsx-no-new-object-as-prop -- one-time startup render, not inside a component
   const model: GitModel = { repoRoot, ...changedResult, repoFiles: [], repoFilesKey: "" }
   createRoot(renderer).render(<App model={model} scope={options.scope} syntax={syntax} />)
 } catch (error) {

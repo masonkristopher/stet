@@ -1,6 +1,6 @@
 import { RGBA, type DiffRenderable, type LineColorConfig, type ScrollBoxRenderable } from "@opentui/core"
 import { useKeyboard, useRenderer, useTerminalDimensions } from "@opentui/react"
-import { memo, useEffect, useMemo, useRef, useState } from "react"
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { emptyActivityLog, lastChangedAt, latestActivity, recordActivity, recencyLevel, RECENT_MS, type RecencyLevel } from "./activity"
 import { nextScope, scopeLabel, type DiffScope } from "./cli"
 import { copyToClipboard, formatCopyReference } from "./copy-reference"
@@ -708,20 +708,25 @@ export function App({ model: initialModel, scope: initialScope, syntax }: AppPro
     renderer.destroy()
   }
 
-  function selectFile(path: string) {
+  const selectFile = useCallback((path: string) => {
     setSelectedPath(path)
     setFileView(false)
     setExpandedDirectories((current) => expandAncestorsForPath(current, path))
-  }
+  }, [])
 
-  function pickPaletteResult() {
+  const handlePaletteInput = useCallback((value: string) => {
+    setPaletteQuery(value)
+    setPaletteIndex(0)
+  }, [])
+
+  const pickPaletteResult = useCallback(() => {
     const path = paletteResults[paletteIndex]
     if (path !== undefined) {
       selectFile(path)
       setFocusedPane("diff")
     }
     setPaletteOpen(false)
-  }
+  }, [paletteResults, paletteIndex, selectFile])
 
   const sidebarWidth = Math.max(34, Math.min(54, Math.floor(width * 0.34)))
   const paletteWidth = Math.max(30, Math.min(70, width - 8))
@@ -895,10 +900,7 @@ export function App({ model: initialModel, scope: initialScope, syntax }: AppPro
             focusedBackgroundColor="#111113"
             textColor="#e4e4e7"
             cursorColor="#ff4fb8"
-            onInput={(value: string) => {
-              setPaletteQuery(value)
-              setPaletteIndex(0)
-            }}
+            onInput={handlePaletteInput}
             onSubmit={pickPaletteResult}
           />
           <scrollbox ref={paletteRef} width="100%" height={Math.min(12, Math.max(1, paletteResults.length))} scrollY viewportCulling>
@@ -912,6 +914,7 @@ export function App({ model: initialModel, scope: initialScope, syntax }: AppPro
                 const recency = recencyLevel(recencyByPath.get(path), now)
                 // key and id both by index: reordering results must never
                 // change a live renderable's id or the scrollbox loses rows
+                // oxlint-disable react/no-array-index-key -- intentional: stable id-by-index required by scrollbox
                 return (
                   <box
                     key={`palette-${index}`}
@@ -932,6 +935,7 @@ export function App({ model: initialModel, scope: initialScope, syntax }: AppPro
                     {changed === undefined ? null : <text fg={stageColor(changed.stage)}>{kindLetter(changed.kind)}</text>}
                   </box>
                 )
+                // oxlint-enable react/no-array-index-key
               })
             )}
           </scrollbox>

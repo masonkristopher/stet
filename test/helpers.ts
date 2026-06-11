@@ -37,7 +37,9 @@ export function makeSettleUntil({ renderOnce, captureCharFrame }: FrameSource) {
   return async (label: string, predicate: (frame: string) => boolean, minAttempts = 1) => {
     let frame = ""
     for (let attempt = 0; attempt < 100; attempt += 1) {
+      // oxlint-disable-next-line no-await-in-loop -- polling retry: each tick must complete before the next check
       await new Promise((resolve) => setTimeout(resolve, 10))
+      // oxlint-disable-next-line no-await-in-loop -- polling retry: each tick must complete before the next check
       await renderOnce()
       frame = captureCharFrame()
       if (attempt + 1 >= minAttempts && predicate(frame)) {

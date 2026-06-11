@@ -55,7 +55,9 @@ async function renderDiffSpans(path: string, lines: string[], sentinel: string, 
   // until the sentinel span reaches its highlighted color
   let spans: { text: string; fg: string }[] = []
   for (let attempt = 0; attempt < 100; attempt += 1) {
+    // oxlint-disable-next-line no-await-in-loop -- polling retry: render then wait for syntax highlight to stream in
     await renderOnce()
+    // oxlint-disable-next-line no-await-in-loop -- polling retry: render then wait for syntax highlight to stream in
     await new Promise((resolve) => setTimeout(resolve, 50))
     spans = captureSpans().lines.flatMap((line) => line.spans.map((span) => ({ text: span.text, fg: hex(span.fg) })))
     if (spans.some((span) => span.text.includes(sentinel) && span.fg === sentinelFg)) {

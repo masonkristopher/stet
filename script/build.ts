@@ -48,8 +48,10 @@ const built: string[] = []
 for (const target of targets) {
   const name = `${pkg.name}-${target.os}-${target.arch}`
   console.log(`building ${name}`)
+  // oxlint-disable-next-line no-await-in-loop -- sequential cross-compilation: each target must complete before the next
   await $`mkdir -p dist/${name}/bin`
 
+  // oxlint-disable-next-line no-await-in-loop -- sequential cross-compilation: each target must complete before the next
   const result = await Bun.build({
     conditions: ["bun", "node"],
     tsconfig: "./tsconfig.json",
@@ -78,6 +80,7 @@ for (const target of targets) {
   }
 
   if (target.os === process.platform && target.arch === process.arch) {
+    // oxlint-disable-next-line no-await-in-loop -- sequential cross-compilation: each target must complete before the next
     const version = await $`dist/${name}/bin/${pkg.name} --version`.text()
     if (version.trim() !== pkg.version) {
       console.error(`smoke test failed: expected ${pkg.version}, got ${version.trim()}`)
@@ -86,6 +89,7 @@ for (const target of targets) {
     console.log(`smoke test passed: ${version.trim()}`)
   }
 
+  // oxlint-disable-next-line no-await-in-loop -- sequential cross-compilation: each target must complete before the next
   await Bun.file(`dist/${name}/package.json`).write(
     JSON.stringify(
       {
@@ -136,9 +140,11 @@ if (archive) {
     // every platform ships tar.gz so the format never needs to be re-derived
     // by install.sh, release.yml, or the homebrew formula
     const archiveName = `${name}.tar.gz`
+    // oxlint-disable-next-line no-await-in-loop -- sequential archiving: each archive must complete before computing its checksum
     await $`tar -czf ../../${archiveName} ${pkg.name}`.cwd(`dist/${name}/bin`)
 
     const hasher = new Bun.CryptoHasher("sha256")
+    // oxlint-disable-next-line no-await-in-loop -- sequential archiving: each archive must complete before computing its checksum
     hasher.update(await Bun.file(`dist/${archiveName}`).arrayBuffer())
     sums.push(`${hasher.digest("hex")}  ${archiveName}`)
   }

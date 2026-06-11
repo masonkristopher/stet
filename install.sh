@@ -8,6 +8,46 @@ set -euo pipefail
 REPO="jimmy-guzman/sideye"
 APP="sideye"
 
+shell_config_file() {
+  shell_name="${SHELL##*/}"
+  case "$shell_name" in
+    zsh) echo "$HOME/.zshrc" ;;
+    bash)
+      if [ "$(uname -s)" = "Darwin" ]; then
+        echo "$HOME/.bash_profile"
+      else
+        echo "$HOME/.bashrc"
+      fi
+      ;;
+    *) echo "$HOME/.profile" ;;
+  esac
+}
+
+print_path_fallback() {
+  echo
+  echo "add $APP to your PATH:"
+  echo "  export PATH=\"$install_dir:\$PATH\""
+}
+
+configure_path() {
+  shell_config="$(shell_config_file)"
+
+  if [ -f "$shell_config" ] && grep -Fqs "$install_dir" "$shell_config"; then
+    echo
+    echo "$install_dir is already configured in $shell_config"
+    echo "restart your shell or run: source $shell_config"
+    return
+  fi
+
+  if printf '\nexport PATH="%s:$PATH"\n' "$install_dir" >>"$shell_config" 2>/dev/null; then
+    echo
+    echo "added $install_dir to PATH in $shell_config"
+    echo "restart your shell or run: source $shell_config"
+  else
+    print_path_fallback
+  fi
+}
+
 requested_version=""
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -105,14 +145,10 @@ echo "installed $APP to $install_dir/$APP"
 
 if [ -n "${GITHUB_PATH:-}" ]; then
   echo "$install_dir" >>"$GITHUB_PATH"
-elif ! command -v "$APP" >/dev/null 2>&1; then
+else
   case ":$PATH:" in
     *":$install_dir:"*) ;;
-    *)
-      echo
-      echo "add $APP to your PATH:"
-      echo "  export PATH=\"$install_dir:\$PATH\""
-      ;;
+    *) configure_path ;;
   esac
 fi
 

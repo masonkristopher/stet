@@ -8,6 +8,7 @@ import {
   allFindings,
   checkerNames,
   checkerSummary,
+  directorySummary,
   countBySeverity,
   findingsLineMap,
   initialCheckerState,
@@ -957,8 +958,11 @@ const TreeRow = memo(function TreeRow({ row, focused, selectedPath, expandedDire
   const background = focused ? CURSOR_BG_HEX : "#09090b"
 
   if (node.type === "directory") {
-    const chevron = expandedDirectories.has(node.id) ? "▾" : "▸"
+    const isExpanded = expandedDirectories.has(node.id)
+    const chevron = isExpanded ? "▾" : "▸"
     const recency = directoryRecency(node, expandedDirectories, recencyByPath, now)
+    const summary = isExpanded ? null : directorySummary(node.path, checkerState)
+    const nameFg = focused ? "#ffffff" : node.changedCount > 0 ? "#e4e4e7" : "#d4d4d8"
     return (
       <box
         id={node.id}
@@ -970,10 +974,26 @@ const TreeRow = memo(function TreeRow({ row, focused, selectedPath, expandedDire
         backgroundColor={background}
       >
         <box flexDirection="row">
-          <text fg={focused ? "#ffffff" : "#d4d4d8"}>{`${indent}${chevron} ${node.name}/`}</text>
+          <text fg={nameFg}>{`${indent}${chevron} ${node.name}/`}</text>
           <RecencyDot level={recency} />
         </box>
-        {node.changedCount > 0 ? <text fg="#71717a">{`+${node.additions} -${node.deletions}`}</text> : null}
+        <box flexDirection="row">
+          {summary?.failed ? <text fg="#ff5c8a">fail </text> : null}
+          {summary !== null && summary.errors > 0 ? <text fg="#ff5c8a">{`✖${summary.errors} `}</text> : null}
+          {summary !== null && summary.errors === 0 && summary.warnings > 0 ? <text fg="#fbbf24">{`⚠${summary.warnings} `}</text> : null}
+          {summary?.pending ? <text fg="#71717a">… </text> : null}
+          {summary !== null &&
+          node.changedCount > 0 &&
+          !summary.failed &&
+          !summary.pending &&
+          summary.errors === 0 &&
+          summary.warnings === 0 ? (
+            <text fg="#3ddc84">✓ </text>
+          ) : null}
+          {node.changedCount > 0 ? (
+            <text fg={node.stage !== undefined ? stageColor(node.stage) : "#71717a"}>{`+${node.additions} -${node.deletions}`}</text>
+          ) : null}
+        </box>
       </box>
     )
   }

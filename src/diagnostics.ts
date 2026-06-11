@@ -70,6 +70,22 @@ export function markPending(state: CheckerState, files: ChangedFile[], changedPa
   return next
 }
 
+export function directorySummary(path: string, state: CheckerState) {
+  const prefix = path === "" ? "" : `${path}/`
+  let pending = false
+  let failed = false
+  const diagnostics: Diagnostic[] = []
+  for (const checker of checkerNames) {
+    for (const [filePath, fileState] of state[checker]) {
+      if (!filePath.startsWith(prefix)) continue
+      pending = pending || fileState.status === "pending"
+      failed = failed || fileState.status === "failed"
+      diagnostics.push(...fileState.diagnostics)
+    }
+  }
+  return { pending, failed, ...countBySeverity(diagnostics) }
+}
+
 export function checkerSummary(path: string, state: CheckerState) {
   let pending = false
   let failed = false

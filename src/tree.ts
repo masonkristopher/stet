@@ -1,4 +1,4 @@
-import type { ChangedFile, RepoFile } from "./git"
+import type { ChangedFile, RepoFile, StageState } from "./git"
 
 export type FileNode = {
   type: "file"
@@ -18,6 +18,7 @@ export type DirectoryNode = {
   deletions: number
   fileCount: number
   changedCount: number
+  stage: StageState | undefined
   warnings: string[]
   children: FileTreeNode[]
 }
@@ -158,6 +159,7 @@ function makeDirectory(name: string, path: string): DirectoryNode {
     deletions: 0,
     fileCount: 0,
     changedCount: 0,
+    stage: undefined,
     warnings: [],
     children: [],
   }
@@ -165,6 +167,7 @@ function makeDirectory(name: string, path: string): DirectoryNode {
 
 function aggregateDirectory(directory: DirectoryNode) {
   const warnings = new Set<string>()
+  const stages = new Set<StageState>()
   let additions = 0
   let deletions = 0
   let fileCount = 0
@@ -177,6 +180,9 @@ function aggregateDirectory(directory: DirectoryNode) {
       deletions += child.deletions
       fileCount += child.fileCount
       changedCount += child.changedCount
+      if (child.stage !== undefined) {
+        stages.add(child.stage)
+      }
       for (const warning of child.warnings) {
         warnings.add(warning)
       }
@@ -188,6 +194,7 @@ function aggregateDirectory(directory: DirectoryNode) {
       changedCount += 1
       additions += child.changed.additions
       deletions += child.changed.deletions
+      stages.add(child.changed.stage)
       for (const warning of child.changed.warnings) {
         warnings.add(warning)
       }
@@ -198,6 +205,7 @@ function aggregateDirectory(directory: DirectoryNode) {
   directory.deletions = deletions
   directory.fileCount = fileCount
   directory.changedCount = changedCount
+  directory.stage = stages.size === 0 ? undefined : stages.size === 1 ? [...stages][0] : "mixed"
   directory.warnings = Array.from(warnings)
 }
 

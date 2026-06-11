@@ -51,6 +51,8 @@ jobs:
           node-version: 24
           registry-url: https://registry.npmjs.org
       - name: publish npm packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           for dir in dist/sideye-*/ dist/sideye/; do
             (

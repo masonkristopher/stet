@@ -1,7 +1,9 @@
 import type { DiffRenderable, LineColorConfig, RGBA } from "@opentui/core"
+import { useAtomSet, useAtomValue } from "@effect/atom-react"
 import { useRenderer } from "@opentui/react"
 import type { Dispatch, SetStateAction } from "react"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef } from "react"
+import { cursorIndexAtom, jumpTargetAtom } from "../atoms/diff"
 import { DIFF_ID } from "../constants"
 import type { Diagnostic } from "../diagnostics"
 import type { ChangedFile } from "../git"
@@ -12,14 +14,6 @@ import { nearestNavigableIndex } from "../ui-helpers"
 interface ScrollablePane {
   scrollY: number
   maxScrollY: number
-}
-
-// Escalate lets a jump switch into file view to find its exact line; without
-// It a miss lands on the nearest line in the current view
-export interface JumpTarget {
-  path: string
-  line: number
-  escalate: boolean
 }
 
 interface UseDiffCursorArgs {
@@ -51,8 +45,10 @@ export function useDiffCursor({
 }: UseDiffCursorArgs) {
   const renderer = useRenderer()
   const theme = useTheme()
-  const [cursorIndex, setCursorIndex] = useState(0)
-  const [jumpTarget, setJumpTarget] = useState<JumpTarget | undefined>(undefined)
+  const cursorIndex = useAtomValue(cursorIndexAtom)
+  const setCursorIndex = useAtomSet(cursorIndexAtom)
+  const jumpTarget = useAtomValue(jumpTargetAtom)
+  const setJumpTarget = useAtomSet(jumpTargetAtom)
   const diffRef = useRef<DiffRenderable>(null)
 
   useEffect(() => {
@@ -91,7 +87,19 @@ export function useDiffCursor({
       setCursorIndex(nearest)
     }
     setJumpTarget(undefined)
-  }, [fileView, fullContentPaths, jumpTarget, navigableLines, selectedFile, selectedPath, truncated, setFileView, setFullContentPaths])
+  }, [
+    fileView,
+    fullContentPaths,
+    jumpTarget,
+    navigableLines,
+    selectedFile,
+    selectedPath,
+    truncated,
+    setFileView,
+    setFullContentPaths,
+    setCursorIndex,
+    setJumpTarget,
+  ])
 
   // The add/remove/diagnostic tints only change with the content, so a cursor
   // Move just copies this map and overlays the cursor row
@@ -153,7 +161,7 @@ export function useDiffCursor({
     }
 
     renderer.requestRender()
-  }, [baseLineColors, cursorIndex, navigableLines, viewerHeight, renderer, theme])
+  }, [baseLineColors, cursorIndex, navigableLines, viewerHeight, renderer, theme, setCursorIndex])
 
-  return { cursorIndex, diffRef, jumpTarget, setCursorIndex, setJumpTarget }
+  return { cursorIndex, diffRef, setCursorIndex, setJumpTarget }
 }

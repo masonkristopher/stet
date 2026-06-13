@@ -2,9 +2,53 @@ import { execFileSync } from "node:child_process"
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
+import { RegistryProvider } from "@effect/atom-react"
+import { Effect, Layer } from "effect"
+import { createElement, type ReactElement } from "react"
+import type { DiffScope } from "../src/cli"
+import type { ChangedFile } from "../src/git"
+import { Git, GitLive } from "../src/services/git"
+import { ProcessLive } from "../src/services/process"
 import type { SyntaxConfig } from "../src/syntax"
 
 export const disabledSyntax: SyntaxConfig = { enabled: false, status: "syntax disabled for tests" }
+
+const GitTestLive = GitLive.pipe(Layer.provide(ProcessLive))
+
+// Run the Git service against a fixture repo, the same path the app uses, so
+// Tests exercise the production load instead of a mock.
+export function loadModel(repoRoot: string, scope: DiffScope) {
+  return Effect.runPromise(
+    Git.pipe(
+      Effect.flatMap((git) => git.loadModel(repoRoot, scope)),
+      Effect.provide(GitTestLive),
+    ),
+  )
+}
+
+export function loadWorktrees(repoRoot: string) {
+  return Effect.runPromise(
+    Git.pipe(
+      Effect.flatMap((git) => git.worktrees(repoRoot)),
+      Effect.provide(GitTestLive),
+    ),
+  )
+}
+
+export function loadFileDiff(repoRoot: string, scope: DiffScope, changed: ChangedFile) {
+  return Effect.runPromise(
+    Git.pipe(
+      Effect.flatMap((git) => git.fileDiff(repoRoot, scope, changed)),
+      Effect.provide(GitTestLive),
+    ),
+  )
+}
+
+// Each render test gets its own atom registry so module-global atoms (the git
+// Model, etc.) do not leak between tests sharing the default registry.
+export function withRegistry(node: ReactElement) {
+  return createElement(RegistryProvider, null, node)
+}
 
 export function runGit(repoRoot: string, args: string[]) {
   execFileSync("git", ["-c", "user.name=Sideye Test", "-c", "user.email=sideye-test@example.com", ...args], {

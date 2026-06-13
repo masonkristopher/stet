@@ -24,6 +24,7 @@
     "max-params": "off",
     "id-length": "off",
     "func-style": ["error", "declaration"],
+    "new-cap": ["error", { "capIsNewExceptions": ["Data.TaggedError", "Context.Service"] }],
     "prefer-destructuring": "off",
     "init-declarations": "off"
   },

@@ -1,9 +1,52 @@
 import { existsSync } from "node:fs"
 import packageJson from "../package.json"
+import { RegistryContext, useAtomInitialValues, useAtomMount, useAtomSet, useAtomValue } from "@effect/atom-react"
 import type { ScrollBoxRenderable } from "@opentui/core"
 import { useKeyboard, useRenderer, useTerminalDimensions } from "@opentui/react"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useContext, useEffect, useRef } from "react"
 import { emptyActivityLog, latestActivity, recordActivity, RECENT_MS } from "./activity"
+import { activityLogAtom, nowAtom, recencyByPathAtom } from "./atoms/activity"
+import { copyAtom } from "./atoms/clipboard"
+import {
+  allProblemItemsAtom,
+  checkerStateAtom,
+  countsAtom,
+  lineMapAtom,
+  quietRerunAtom,
+  runChecksAtom,
+  statusAtom,
+} from "./atoms/diagnostics"
+import { gitModelAtom, gitPollAtom, lastChangeAtom, repoRootAtom } from "./atoms/git"
+import { paletteResultsAtom } from "./atoms/palette"
+import { focusedRowIndexAtom, treeRowsAtom } from "./atoms/tree"
+import { loadModelAtom, loadWorktreesAtom } from "./atoms/worktree"
+import {
+  fileContentAtom,
+  navigableLinesAtom,
+  renderedPatchAtom,
+  selectedFileAtom,
+  showFileContentAtom,
+  truncatedAtom,
+} from "./atoms/viewer"
+import {
+  expandedDirectoriesAtom,
+  fileViewAtom,
+  focusedNodeIdAtom,
+  focusedPaneAtom,
+  fullContentPathsAtom,
+  helpOpenAtom,
+  paletteIndexAtom,
+  paletteOpenAtom,
+  paletteQueryAtom,
+  problemIndexAtom,
+  problemsOpenAtom,
+  scopeAtom,
+  selectedPathAtom,
+  sidebarOpenAtom,
+  worktreeIndexAtom,
+  worktreeOpenAtom,
+  worktreesAtom,
+} from "./atoms/ui"
 import type { DiffScope } from "./cli"
 import { HeaderBar } from "./components/HeaderBar"
 import { HelpOverlay } from "./components/HelpOverlay"
@@ -14,20 +57,13 @@ import { StatusBar } from "./components/StatusBar"
 import { Viewer } from "./components/Viewer"
 import { WorktreePicker } from "./components/WorktreePicker"
 import { PROBLEMS_HEIGHT } from "./constants"
-import { findingsLineMap, markPending, type Diagnostic } from "./diagnostics"
-import { contentToContextPatch, loadFileContent, type FileContent } from "./file-view"
-import { rankFiles } from "./fuzzy"
-import type { GitModel, Worktree } from "./git"
-import { loadFileDiff, loadGitModel } from "./git"
-import { useActivity } from "./hooks/useActivity"
-import { useDiagnostics } from "./hooks/useDiagnostics"
+import { initialCheckerState, markPending } from "./diagnostics"
+import type { ChangedFile, GitModel, Worktree } from "./git"
 import { useDiffCursor } from "./hooks/useDiffCursor"
-import { useGitModel } from "./hooks/useGitModel"
 import { createKeyHandler } from "./keymap"
-import { renderPatch } from "./patch"
 import type { SyntaxConfig } from "./syntax"
 import { useTheme } from "./theme/context"
-import { buildFileTree, defaultExpandedDirectories, expandAncestorsForPath, findRowIndexForPath, flattenTree } from "./tree"
+import { defaultExpandedDirectories, expandAncestorsForPath } from "./tree"
 import { truncate, worktreeLabel } from "./ui-helpers"
 
 interface AppProps {
@@ -39,115 +75,91 @@ interface AppProps {
 export function App({ model: initialModel, scope: initialScope, syntax }: AppProps) {
   const renderer = useRenderer()
   const theme = useTheme()
+  const registry = useContext(RegistryContext)
   const { width, height } = useTerminalDimensions()
-  const [scope, setScope] = useState(initialScope)
-  const { lastChangeRef, model, previousChangedRef, previousScopeKeyRef, setModel } = useGitModel(initialModel, scope)
-  const [changesOnly, setChangesOnly] = useState(false)
-  const [selectedPath, setSelectedPath] = useState<string | undefined>(initialModel.changed[0]?.path ?? initialModel.repoFiles[0]?.path)
-  const [focusedRowIndex, setFocusedRowIndex] = useState(0)
-  const [expandedDirectories, setExpandedDirectories] = useState(() => {
-    const expanded = defaultExpandedDirectories(initialModel.changed.map((file) => file.path))
-    const selected = initialModel.changed[0]?.path ?? initialModel.repoFiles[0]?.path
-    return selected === undefined ? expanded : expandAncestorsForPath(expanded, selected)
-  })
-  const [fullContentPaths, setFullContentPaths] = useState<Set<string>>(() => new Set())
-  const [fileView, setFileView] = useState(false)
-  const [focusedPane, setFocusedPane] = useState<"tree" | "diff" | "problems">("tree")
-  const [problemsOpen, setProblemsOpen] = useState(false)
-  const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [problemIndex, setProblemIndex] = useState(0)
-  const [paletteOpen, setPaletteOpen] = useState(false)
-  const [paletteQuery, setPaletteQuery] = useState("")
-  const [paletteIndex, setPaletteIndex] = useState(0)
-  const [worktreeOpen, setWorktreeOpen] = useState(false)
-  const [worktreeIndex, setWorktreeIndex] = useState(0)
-  const [worktrees, setWorktrees] = useState<Worktree[] | undefined>(undefined)
-  const [helpOpen, setHelpOpen] = useState(false)
-  const { activityLog, setActivityLog, now, recencyByPath } = useActivity()
-  const {
-    abortRef,
-    allProblemItems,
-    checkerState,
-    checksInFlight,
-    counts,
-    problems,
-    runChecks,
-    runChecksRef,
-    setCheckerState,
-    setStatus,
-    status,
-  } = useDiagnostics(model, activityLog, syntax.status)
+
+  const initialSelectedPath = initialModel.changed[0]?.path ?? initialModel.repoFiles[0]?.path
+  const baseExpanded = defaultExpandedDirectories(initialModel.changed.map((file) => file.path))
+  const initialExpanded = initialSelectedPath === undefined ? baseExpanded : expandAncestorsForPath(baseExpanded, initialSelectedPath)
+  useAtomInitialValues([
+    [gitModelAtom, initialModel],
+    [repoRootAtom, initialModel.repoRoot],
+    [lastChangeAtom, Date.now()],
+    [scopeAtom, initialScope],
+    [selectedPathAtom, initialSelectedPath],
+    [focusedNodeIdAtom, initialSelectedPath === undefined ? "" : `file:${initialSelectedPath}`],
+    [expandedDirectoriesAtom, initialExpanded],
+    [checkerStateAtom, initialCheckerState(initialModel.changed)],
+    [statusAtom, syntax.status],
+  ])
+
+  const scope = useAtomValue(scopeAtom)
+  const setGitModel = useAtomSet(gitModelAtom)
+  const model = useAtomValue(gitModelAtom)
+  const previousChangedRef = useRef<ChangedFile[]>(initialModel.changed)
+  const previousScopeKeyRef = useRef(initialModel.scopeKey)
+  const setLastChange = useAtomSet(lastChangeAtom)
+  const setRepoRoot = useAtomSet(repoRootAtom)
+  useAtomMount(gitPollAtom)
+  useAtomMount(quietRerunAtom)
+  const selectedPath = useAtomValue(selectedPathAtom)
+  const setSelectedPath = useAtomSet(selectedPathAtom)
+  const focusedRowIndex = useAtomValue(focusedRowIndexAtom)
+  const setFocusedNodeId = useAtomSet(focusedNodeIdAtom)
+  const expandedDirectories = useAtomValue(expandedDirectoriesAtom)
+  const setExpandedDirectories = useAtomSet(expandedDirectoriesAtom)
+  const fullContentPaths = useAtomValue(fullContentPathsAtom)
+  const setFullContentPaths = useAtomSet(fullContentPathsAtom)
+  const fileView = useAtomValue(fileViewAtom)
+  const setFileView = useAtomSet(fileViewAtom)
+  const focusedPane = useAtomValue(focusedPaneAtom)
+  const setFocusedPane = useAtomSet(focusedPaneAtom)
+  const problemsOpen = useAtomValue(problemsOpenAtom)
+  const sidebarOpen = useAtomValue(sidebarOpenAtom)
+  const problemIndex = useAtomValue(problemIndexAtom)
+  const setProblemIndex = useAtomSet(problemIndexAtom)
+  const paletteOpen = useAtomValue(paletteOpenAtom)
+  const setPaletteOpen = useAtomSet(paletteOpenAtom)
+  const setPaletteQuery = useAtomSet(paletteQueryAtom)
+  const paletteIndex = useAtomValue(paletteIndexAtom)
+  const setPaletteIndex = useAtomSet(paletteIndexAtom)
+  const worktreeOpen = useAtomValue(worktreeOpenAtom)
+  const setWorktreeOpen = useAtomSet(worktreeOpenAtom)
+  const worktreeIndex = useAtomValue(worktreeIndexAtom)
+  const worktrees = useAtomValue(worktreesAtom)
+  const helpOpen = useAtomValue(helpOpenAtom)
+  const activityLog = useAtomValue(activityLogAtom)
+  const setActivityLog = useAtomSet(activityLogAtom)
+  const now = useAtomValue(nowAtom)
+  const recencyByPath = useAtomValue(recencyByPathAtom)
+  const checkerState = useAtomValue(checkerStateAtom)
+  const setCheckerState = useAtomSet(checkerStateAtom)
+  const status = useAtomValue(statusAtom)
+  const setStatus = useAtomSet(statusAtom)
+  const runChecks = useAtomSet(runChecksAtom)
+  const checksRunning = useAtomValue(runChecksAtom).waiting
+  const counts = useAtomValue(countsAtom)
+  const allProblemItems = useAtomValue(allProblemItemsAtom)
   const sidebarRef = useRef<ScrollBoxRenderable>(null)
   const problemsRef = useRef<ScrollBoxRenderable>(null)
   const paletteRef = useRef<ScrollBoxRenderable>(null)
   const worktreeRef = useRef<ScrollBoxRenderable>(null)
-  // Bumped on every picker open/close so a slow listWorktrees from an earlier
-  // Open cannot repopulate or close a newer picker
-  const worktreeRequestRef = useRef(0)
+  const loadModel = useAtomSet(loadModelAtom, { mode: "promise" })
+  // The keymap dispatches these fn atoms through the registry, which only runs
+  // Their effect while the atom is mounted; mount them here so a keypress fires
+  // (the same reason runChecksAtom runs: App reads it).
+  useAtomMount(loadWorktreesAtom)
+  useAtomMount(copyAtom)
 
-  const selectedFile = selectedPath === undefined ? undefined : model.changedByPath.get(selectedPath)
-  const showFileContent = selectedPath !== undefined && (selectedFile === undefined || fileView)
-  const tree = useMemo(
-    () => buildFileTree(model.repoFiles, model.changedByPath, { changesOnly }),
-    [changesOnly, model.changedByPath, model.repoFiles],
-  )
-  const treeRows = useMemo(() => flattenTree(tree, expandedDirectories), [expandedDirectories, tree])
-  const changedPathSet = useMemo(() => new Set(model.changedByPath.keys()), [model.changedByPath])
-  // Hoisted out of paletteResults so a keystroke only pays for ranking
-  const allPaths = useMemo(
-    () => [...new Set([...model.repoFiles.map((file) => file.path), ...model.changedByPath.keys()])],
-    [model.changedByPath, model.repoFiles],
-  )
-  const paletteResults = useMemo(() => {
-    if (!paletteOpen) {
-      return []
-    }
-
-    return rankFiles(paletteQuery, allPaths, { changed: changedPathSet, lastChangedAt: recencyByPath, limit: 50 })
-  }, [allPaths, changedPathSet, paletteOpen, paletteQuery, recencyByPath])
-  const lineMap = useMemo(
-    () => (selectedPath === undefined ? new Map<number, Diagnostic[]>() : findingsLineMap(selectedPath, checkerState)),
-    [checkerState, selectedPath],
-  )
-
-  const fileContent = useMemo<FileContent | undefined>(() => {
-    if (!showFileContent || selectedPath === undefined) {
-      return undefined
-    }
-
-    const gitSpec =
-      selectedFile?.kind === "deleted" ? (scope.kind === "unstaged" ? `:${selectedPath}` : `${scope.ref}:${selectedPath}`) : undefined
-    return loadFileContent(model.repoRoot, selectedPath, { full: fullContentPaths.has(selectedPath), gitSpec })
-    // Model identity changes whenever git state changes, keeping live content fresh
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showFileContent, selectedPath, selectedFile, scope, model, fullContentPaths])
-
-  const selectedDiff = useMemo(() => {
-    if (selectedPath === undefined) {
-      return ""
-    }
-
-    if (showFileContent) {
-      return fileContent?.kind === "text" ? contentToContextPatch(selectedPath, fileContent.content) : ""
-    }
-
-    return selectedFile === undefined ? "" : loadFileDiff(model.repoRoot, scope, selectedFile)
-  }, [fileContent, model.repoRoot, scope, selectedFile, selectedPath, showFileContent])
-
-  const renderedPatch = useMemo(
-    () =>
-      renderPatch(selectedDiff, {
-        full: showFileContent || (selectedPath !== undefined && fullContentPaths.has(selectedPath)),
-        maxLines: 1600,
-      }),
-    [fullContentPaths, selectedDiff, selectedPath, showFileContent],
-  )
-  // Clamp navigation to the lines renderPatch actually emitted, not the full parse
-  const navigableLines = useMemo(
-    () => renderedPatch.parsed.hunks.flatMap((hunk) => hunk.lines).slice(0, renderedPatch.bodyLineCount),
-    [renderedPatch],
-  )
-  const truncated = renderedPatch.truncated || (fileContent?.kind === "text" && fileContent.truncated)
+  const selectedFile = useAtomValue(selectedFileAtom)
+  const showFileContent = useAtomValue(showFileContentAtom)
+  const treeRows = useAtomValue(treeRowsAtom)
+  const paletteResults = useAtomValue(paletteResultsAtom)
+  const lineMap = useAtomValue(lineMapAtom)
+  const fileContent = useAtomValue(fileContentAtom)
+  const renderedPatch = useAtomValue(renderedPatchAtom)
+  const navigableLines = useAtomValue(navigableLinesAtom)
+  const truncated = useAtomValue(truncatedAtom)
 
   useEffect(() => {
     const previousByPath = new Map(previousChangedRef.current.map((file) => [file.path, file]))
@@ -158,7 +170,7 @@ export function App({ model: initialModel, scope: initialScope, syntax }: AppPro
     // A scope switch swaps the changed set wholesale; that is not agent
     // Activity, but the new set still needs checker state, so re-run checks
     if (previousScopeKey !== model.scopeKey) {
-      runChecksRef.current()
+      runChecks(model)
       return
     }
 
@@ -179,7 +191,7 @@ export function App({ model: initialModel, scope: initialScope, syntax }: AppPro
     }
 
     if (entries.length > 0) {
-      lastChangeRef.current = Date.now()
+      setLastChange(Date.now())
       setCheckerState((current) =>
         markPending(
           current,
@@ -189,18 +201,15 @@ export function App({ model: initialModel, scope: initialScope, syntax }: AppPro
       )
       setActivityLog((current) => recordActivity(current, entries, Date.now()))
     }
-  }, [model.changed, model.scopeKey, lastChangeRef, previousChangedRef, previousScopeKeyRef, runChecksRef, setActivityLog, setCheckerState])
+  }, [model, setLastChange, previousChangedRef, previousScopeKeyRef, runChecks, setActivityLog, setCheckerState])
 
   useEffect(() => {
-    if (selectedPath === undefined) {
-      return
-    }
-
-    const rowIndex = findRowIndexForPath(treeRows, selectedPath)
-    if (rowIndex >= 0) {
-      setFocusedRowIndex(rowIndex)
-    }
-  }, [selectedPath, treeRows])
+    runChecks(model)
+    // Mount-only: a fresh run for the initial model; later runs come from scope
+    // Switches, the quiet-period timer, and the r key. The fiber is interrupted
+    // When the atom is disposed on unmount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     const focusedRow = treeRows[focusedRowIndex]
@@ -232,7 +241,7 @@ export function App({ model: initialModel, scope: initialScope, syntax }: AppPro
   // The viewer pane spends one extra row on its path header
   const viewerHeight = Math.max(1, paneHeight - 1)
 
-  const { cursorIndex, diffRef, setCursorIndex, setJumpTarget } = useDiffCursor({
+  const { cursorIndex, diffRef, setJumpTarget } = useDiffCursor({
     fileView,
     fullContentPaths,
     lineMap,
@@ -245,69 +254,23 @@ export function App({ model: initialModel, scope: initialScope, syntax }: AppPro
     viewerHeight,
   })
 
-  const selectFile = useCallback((path: string) => {
-    setSelectedPath(path)
-    setFileView(false)
-    setExpandedDirectories((current) => expandAncestorsForPath(current, path))
-  }, [])
-
-  useKeyboard(
-    createKeyHandler({
-      activityLog,
-      allProblemItems,
-      cursorIndex,
-      focusedPane,
-      focusedRowIndex,
-      helpOpen,
-      model,
-      navigableLines,
-      paletteOpen,
-      paletteResults,
-      problemIndex,
-      problems,
-      problemsOpen,
-      quit,
-      runChecks,
-      selectFile,
-      selectedFile,
-      selectedPath,
-      setChangesOnly,
-      setCursorIndex,
-      setExpandedDirectories,
-      setFileView,
-      setFocusedPane,
-      setFocusedRowIndex,
-      setFullContentPaths,
-      setHelpOpen,
-      setJumpTarget,
-      setPaletteIndex,
-      setPaletteOpen,
-      setPaletteQuery,
-      setProblemIndex,
-      setProblemsOpen,
-      setScope,
-      setSidebarOpen,
-      setStatus,
-      setWorktreeIndex,
-      setWorktreeOpen,
-      setWorktrees,
-      switchWorktree,
-      treeRows,
-      viewerHeight,
-      worktreeIndex,
-      worktreeOpen,
-      worktreeRequestRef,
-      worktrees,
-    }),
+  const selectFile = useCallback(
+    (path: string) => {
+      setSelectedPath(path)
+      setFocusedNodeId(`file:${path}`)
+      setFileView(false)
+      setExpandedDirectories((current) => expandAncestorsForPath(current, path))
+    },
+    [setSelectedPath, setFocusedNodeId, setFileView, setExpandedDirectories],
   )
 
+  useKeyboard(createKeyHandler(registry, { quit, selectFile, switchWorktree, viewerHeight }))
+
   function quit() {
-    abortRef.current?.abort()
     renderer.destroy()
   }
 
   async function switchWorktree(worktree: Worktree) {
-    worktreeRequestRef.current += 1
     setWorktreeOpen(false)
     if (worktree.path === model.repoRoot) {
       return
@@ -319,17 +282,17 @@ export function App({ model: initialModel, scope: initialScope, syntax }: AppPro
     }
 
     try {
-      const fresh = await loadGitModel(worktree.path, scope)
-      abortRef.current?.abort()
+      const fresh = await loadModel({ repoRoot: worktree.path, scope })
       // Prime the activity refs so the swap is not mistaken for agent edits;
       // ScopeKey matches across worktrees, so that effect will not re-run checks
       previousChangedRef.current = fresh.changed
       previousScopeKeyRef.current = fresh.scopeKey
-      lastChangeRef.current = Date.now()
-      setModel(fresh)
+      setLastChange(Date.now())
+      setRepoRoot(fresh.repoRoot)
+      setGitModel(fresh)
       const selected = fresh.changed[0]?.path ?? fresh.repoFiles[0]?.path
       setSelectedPath(selected)
-      setFocusedRowIndex(0)
+      setFocusedNodeId(selected === undefined ? "" : `file:${selected}`)
       setExpandedDirectories(() => {
         const expanded = defaultExpandedDirectories(fresh.changed.map((file) => file.path))
         return selected === undefined ? expanded : expandAncestorsForPath(expanded, selected)
@@ -341,16 +304,19 @@ export function App({ model: initialModel, scope: initialScope, syntax }: AppPro
       setActivityLog(emptyActivityLog)
       setFocusedPane("tree")
       setStatus(`worktree: ${worktreeLabel(worktree)}`)
-      void runChecksRef.current(fresh)
+      runChecks(fresh)
     } catch (error) {
       setStatus(error instanceof Error ? (error.message.split("\n")[0] ?? "") : String(error))
     }
   }
 
-  const handlePaletteInput = useCallback((value: string) => {
-    setPaletteQuery(value)
-    setPaletteIndex(0)
-  }, [])
+  const handlePaletteInput = useCallback(
+    (value: string) => {
+      setPaletteQuery(value)
+      setPaletteIndex(0)
+    },
+    [setPaletteQuery, setPaletteIndex],
+  )
 
   const pickPaletteResult = useCallback(() => {
     const path = paletteResults[paletteIndex]
@@ -359,7 +325,7 @@ export function App({ model: initialModel, scope: initialScope, syntax }: AppPro
       setFocusedPane("diff")
     }
     setPaletteOpen(false)
-  }, [paletteResults, paletteIndex, selectFile])
+  }, [paletteResults, paletteIndex, selectFile, setFocusedPane, setPaletteOpen])
 
   const sidebarWidth = sidebarOpen ? Math.max(34, Math.min(54, Math.floor(width * 0.34))) : 0
   const paletteWidth = Math.max(30, Math.min(70, width - 8))
@@ -370,7 +336,7 @@ export function App({ model: initialModel, scope: initialScope, syntax }: AppPro
   const latest = latestActivity(activityLog)
   const activityText =
     latest === undefined || now - latest.at >= RECENT_MS ? "" : `${Math.max(0, Math.round((now - latest.at) / 1000))}s ago ${latest.path}`
-  const displayStatus = checksInFlight > 0 ? "running checks…" : status
+  const displayStatus = checksRunning ? "running checks…" : status
   const hints = "? keys · q quit"
   // The hints are navigation; the status is transient and yields on narrow terminals
   const statusRight = truncate(

@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test"
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import { Effect, Layer, Stream } from "effect"
 import {
   allFindings,
   checkerSummary,
@@ -12,12 +13,29 @@ import {
   parseLintOutput,
   parsePrettierList,
   parseTypeScriptOutput,
-  runDiagnostics,
   stateForResolvedChecker,
+  type CheckerFileState,
+  type CheckerName,
   type CheckerState,
   type Diagnostic,
 } from "../src/diagnostics"
 import type { ChangedFile } from "../src/git"
+import { Diagnostics, DiagnosticsLive } from "../src/services/diagnostics"
+import { ProcessLive } from "../src/services/process"
+
+// Run the diagnostics service to completion, collecting each checker's final
+// State, the streaming equivalent of the old runDiagnostics callback.
+function collectStates(repoRoot: string, files: ChangedFile[]) {
+  return Effect.runPromise(
+    Diagnostics.pipe(
+      Effect.flatMap((diagnostics) => Stream.runCollect(diagnostics.run(repoRoot, files))),
+      Effect.map(
+        (updates) => new Map<CheckerName, Map<string, CheckerFileState>>([...updates].map((update) => [update.checker, update.state])),
+      ),
+      Effect.provide(DiagnosticsLive.pipe(Layer.provide(ProcessLive))),
+    ),
+  )
+}
 
 const file: ChangedFile = {
   additions: 1,
@@ -143,15 +161,12 @@ describe("diagnostic parsers", () => {
   })
 })
 
-describe("runDiagnostics", () => {
+describe("the diagnostics service", () => {
   async function lintStatuses(lintScript: string) {
     const dir = mkdtempSync(join(tmpdir(), "sideye-diagnostics-"))
     try {
       writeFileSync(join(dir, "package.json"), JSON.stringify({ scripts: { lint: lintScript } }))
-      const states = new Map<string, Map<string, { status: string }>>()
-      await runDiagnostics(dir, [file], (checker, state) => {
-        states.set(checker, state)
-      })
+      const states = await collectStates(dir, [file])
       return states.get("lint")
     } finally {
       rmSync(dir, { force: true, recursive: true })
@@ -161,17 +176,14 @@ describe("runDiagnostics", () => {
   test("unconfigured checkers resolve as unavailable instead of clean or failed", async () => {
     // Deleted-only changes leave no paths to lint or format
     const deleted: ChangedFile = { ...file, kind: "deleted" }
-    const states = new Map<string, string>()
     const dir = mkdtempSync(join(tmpdir(), "sideye-diagnostics-"))
     try {
-      await runDiagnostics(dir, [deleted], (checker, state) => {
-        states.set(checker, state.get("src/a.ts")?.status ?? "missing")
-      })
+      const states = await collectStates(dir, [deleted])
+      expect(states.get("lint")?.get("src/a.ts")?.status).toBe("unavailable")
+      expect(states.get("prettier")?.get("src/a.ts")?.status).toBe("unavailable")
     } finally {
       rmSync(dir, { force: true, recursive: true })
     }
-    expect(states.get("lint")).toBe("unavailable")
-    expect(states.get("prettier")).toBe("unavailable")
   })
 
   test("a lint script that crashes resolves as failed", async () => {
@@ -236,10 +248,7 @@ describe("workspace typecheck discovery", () => {
         { ...file, path: "packages/core/src/a.ts" },
         { ...file, path: "packages/ui/src/a.ts" },
       ]
-      const states = new Map<string, Map<string, { status: string; diagnostics: Diagnostic[] }>>()
-      await runDiagnostics(dir, files, (checker, state) => {
-        states.set(checker, state as Map<string, { status: string; diagnostics: Diagnostic[] }>)
-      })
+      const states = await collectStates(dir, files)
       const typecheck = states.get("typecheck")
       // Both packages reported errors; paths should be monorepo-relative
       const allPaths = [...(typecheck?.keys() ?? [])]

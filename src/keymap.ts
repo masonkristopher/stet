@@ -1,141 +1,84 @@
 import type { KeyEvent } from "@opentui/core"
-import type { Dispatch, RefObject, SetStateAction } from "react"
-import type { ActivityLog } from "./activity"
+import type { Atom, AtomRegistry } from "effect/unstable/reactivity"
 import { latestActivity } from "./activity"
-import { nextScope, scopeLabel, type DiffScope } from "./cli"
-import { copyToClipboard, formatCopyReference } from "./copy-reference"
-import type { Diagnostic } from "./diagnostics"
-import type { ChangedFile, GitModel, Worktree } from "./git"
-import { listWorktrees } from "./git"
-import type { ProblemItem } from "./hooks/useDiagnostics"
-import type { JumpTarget } from "./hooks/useDiffCursor"
-import { lineReference, type ParsedDiffLine } from "./patch"
-import { firstFileInNode, type FileTreeRow } from "./tree"
+import { activityLogAtom } from "./atoms/activity"
+import { copyAtom } from "./atoms/clipboard"
+import { allProblemItemsAtom, problemsAtom, runChecksAtom, statusAtom } from "./atoms/diagnostics"
+import { cursorIndexAtom, jumpTargetAtom } from "./atoms/diff"
+import { gitModelAtom } from "./atoms/git"
+import { paletteResultsAtom } from "./atoms/palette"
+import { focusedRowIndexAtom, treeRowsAtom } from "./atoms/tree"
+import { loadWorktreesAtom } from "./atoms/worktree"
+import {
+  changesOnlyAtom,
+  expandedDirectoriesAtom,
+  fileViewAtom,
+  focusedPaneAtom,
+  fullContentPathsAtom,
+  helpOpenAtom,
+  paletteIndexAtom,
+  paletteOpenAtom,
+  paletteQueryAtom,
+  problemIndexAtom,
+  problemsOpenAtom,
+  scopeAtom,
+  selectedPathAtom,
+  sidebarOpenAtom,
+  worktreeIndexAtom,
+  worktreeOpenAtom,
+  worktreesAtom,
+} from "./atoms/ui"
+import { navigableLinesAtom, selectedFileAtom } from "./atoms/viewer"
+import { nextScope, scopeLabel } from "./cli"
+import { formatCopyReference } from "./copy-reference"
+import type { Worktree } from "./git"
+import { lineReference } from "./patch"
+import { firstFileInNode } from "./tree"
 import { nextFindingPath, orderedFindingPaths } from "./ui-helpers"
 
-type FocusedPane = "tree" | "diff" | "problems"
-
-export interface KeyHandlerCtx {
-  helpOpen: boolean
-  worktreeOpen: boolean
-  worktrees: Worktree[] | undefined
-  worktreeIndex: number
-  paletteOpen: boolean
-  paletteResults: string[]
-  problemsOpen: boolean
-  focusedPane: FocusedPane
-  model: GitModel
-  activityLog: ActivityLog
-  selectedFile: ChangedFile | undefined
-  selectedPath: string | undefined
-  navigableLines: ParsedDiffLine[]
-  cursorIndex: number
-  problems: Diagnostic[]
-  allProblemItems: ProblemItem[]
-  problemIndex: number
-  treeRows: FileTreeRow[]
-  focusedRowIndex: number
+interface KeyHandlerCtx {
   viewerHeight: number
-  worktreeRequestRef: RefObject<number>
   quit: () => void
   switchWorktree: (worktree: Worktree) => Promise<void> | void
   selectFile: (path: string) => void
-  runChecks: () => void
-  setHelpOpen: Dispatch<SetStateAction<boolean>>
-  setWorktreeOpen: Dispatch<SetStateAction<boolean>>
-  setWorktreeIndex: Dispatch<SetStateAction<number>>
-  setWorktrees: Dispatch<SetStateAction<Worktree[] | undefined>>
-  setPaletteOpen: Dispatch<SetStateAction<boolean>>
-  setPaletteQuery: Dispatch<SetStateAction<string>>
-  setPaletteIndex: Dispatch<SetStateAction<number>>
-  setProblemsOpen: Dispatch<SetStateAction<boolean>>
-  setProblemIndex: Dispatch<SetStateAction<number>>
-  setFocusedPane: Dispatch<SetStateAction<FocusedPane>>
-  setSidebarOpen: Dispatch<SetStateAction<boolean>>
-  setStatus: Dispatch<SetStateAction<string>>
-  setScope: Dispatch<SetStateAction<DiffScope>>
-  setChangesOnly: Dispatch<SetStateAction<boolean>>
-  setJumpTarget: Dispatch<SetStateAction<JumpTarget | undefined>>
-  setFileView: Dispatch<SetStateAction<boolean>>
-  setFullContentPaths: Dispatch<SetStateAction<Set<string>>>
-  setCursorIndex: Dispatch<SetStateAction<number>>
-  setFocusedRowIndex: Dispatch<SetStateAction<number>>
-  setExpandedDirectories: Dispatch<SetStateAction<Set<string>>>
 }
 
 // One handler routes every key through the modal-precedence chain
 // (help > worktree > palette > global > pane-specific). The order of the early
 // Returns is load-bearing: an open overlay must swallow keys before any later
-// Branch can act on them. App rebuilds ctx each render so the closure stays fresh.
-export function createKeyHandler(ctx: KeyHandlerCtx) {
-  const {
-    helpOpen,
-    worktreeOpen,
-    worktrees,
-    worktreeIndex,
-    paletteOpen,
-    paletteResults,
-    problemsOpen,
-    focusedPane,
-    model,
-    activityLog,
-    selectedFile,
-    selectedPath,
-    navigableLines,
-    cursorIndex,
-    problems,
-    allProblemItems,
-    problemIndex,
-    treeRows,
-    focusedRowIndex,
-    viewerHeight,
-    worktreeRequestRef,
-    quit,
-    switchWorktree,
-    selectFile,
-    runChecks,
-    setHelpOpen,
-    setWorktreeOpen,
-    setWorktreeIndex,
-    setWorktrees,
-    setPaletteOpen,
-    setPaletteQuery,
-    setPaletteIndex,
-    setProblemsOpen,
-    setProblemIndex,
-    setFocusedPane,
-    setSidebarOpen,
-    setStatus,
-    setScope,
-    setChangesOnly,
-    setJumpTarget,
-    setFileView,
-    setFullContentPaths,
-    setCursorIndex,
-    setFocusedRowIndex,
-    setExpandedDirectories,
-  } = ctx
+// Branch can act on them. State is read and written through the atom registry,
+// So every keypress sees the latest values, not a render-time snapshot.
+export function createKeyHandler(registry: AtomRegistry.AtomRegistry, ctx: KeyHandlerCtx) {
+  const { viewerHeight, quit, switchWorktree, selectFile } = ctx
+
+  function get<A>(atom: Atom.Atom<A>) {
+    return registry.get(atom)
+  }
+
+  function set<R, W>(atom: Atom.Writable<R, W>, value: W) {
+    registry.set(atom, value)
+  }
 
   return (key: KeyEvent) => {
-    if (helpOpen) {
+    if (get(helpOpenAtom)) {
       if (key.name === "escape" || key.name === "?" || key.name === "q") {
-        setHelpOpen(false)
+        set(helpOpenAtom, false)
       }
       // Every other key belongs to the help overlay
       return
     }
 
-    if (worktreeOpen) {
+    if (get(worktreeOpenAtom)) {
+      const worktrees = get(worktreesAtom)
       const lastIndex = Math.max(0, (worktrees?.length ?? 1) - 1)
       if (key.name === "escape" || key.name === "w") {
-        worktreeRequestRef.current += 1
-        setWorktreeOpen(false)
+        set(worktreeOpenAtom, false)
       } else if (key.name === "j" || key.name === "down") {
-        setWorktreeIndex((current) => Math.min(current + 1, lastIndex))
+        set(worktreeIndexAtom, Math.min(get(worktreeIndexAtom) + 1, lastIndex))
       } else if (key.name === "k" || key.name === "up") {
-        setWorktreeIndex((current) => Math.max(current - 1, 0))
+        set(worktreeIndexAtom, Math.max(get(worktreeIndexAtom) - 1, 0))
       } else if (key.name === "return") {
-        const worktree = worktrees?.[worktreeIndex]
+        const worktree = worktrees?.[get(worktreeIndexAtom)]
         if (worktree !== undefined) {
           void switchWorktree(worktree)
         }
@@ -144,22 +87,22 @@ export function createKeyHandler(ctx: KeyHandlerCtx) {
       return
     }
 
-    if (paletteOpen) {
+    if (get(paletteOpenAtom)) {
       if (key.name === "escape") {
-        setPaletteOpen(false)
+        set(paletteOpenAtom, false)
       } else if (key.name === "down" || (key.ctrl && key.name === "n")) {
-        setPaletteIndex((current) => Math.min(current + 1, Math.max(0, paletteResults.length - 1)))
+        set(paletteIndexAtom, Math.min(get(paletteIndexAtom) + 1, Math.max(0, get(paletteResultsAtom).length - 1)))
       } else if (key.name === "up" || (key.ctrl && key.name === "p")) {
-        setPaletteIndex((current) => Math.max(current - 1, 0))
+        set(paletteIndexAtom, Math.max(get(paletteIndexAtom) - 1, 0))
       }
       // Every other key belongs to the palette input
       return
     }
 
     if (key.ctrl && key.name === "p") {
-      setPaletteOpen(true)
-      setPaletteQuery("")
-      setPaletteIndex(0)
+      set(paletteOpenAtom, true)
+      set(paletteQueryAtom, "")
+      set(paletteIndexAtom, 0)
       return
     }
 
@@ -169,9 +112,11 @@ export function createKeyHandler(ctx: KeyHandlerCtx) {
     }
 
     if (key.name === "escape") {
-      if (problemsOpen) {
-        setProblemsOpen(false)
-        setFocusedPane((current) => (current === "problems" ? "tree" : current))
+      if (get(problemsOpenAtom)) {
+        set(problemsOpenAtom, false)
+        if (get(focusedPaneAtom) === "problems") {
+          set(focusedPaneAtom, "tree")
+        }
       } else {
         quit()
       }
@@ -179,102 +124,76 @@ export function createKeyHandler(ctx: KeyHandlerCtx) {
     }
 
     if (key.name === "tab") {
-      setFocusedPane((current) => (current === "diff" ? "tree" : "diff"))
+      set(focusedPaneAtom, get(focusedPaneAtom) === "diff" ? "tree" : "diff")
       return
     }
 
     if (key.name === "p") {
-      setProblemsOpen((open) => {
-        setFocusedPane(open ? "tree" : "problems")
-        return !open
-      })
+      const open = get(problemsOpenAtom)
+      set(focusedPaneAtom, open ? "tree" : "problems")
+      set(problemsOpenAtom, !open)
       return
     }
 
     if (key.name === "b") {
-      setSidebarOpen((open) => {
-        if (open && focusedPane === "tree") {
-          setFocusedPane("diff")
-        }
-        return !open
-      })
+      const open = get(sidebarOpenAtom)
+      if (open && get(focusedPaneAtom) === "tree") {
+        set(focusedPaneAtom, "diff")
+      }
+      set(sidebarOpenAtom, !open)
       return
     }
 
     if (key.name === "?") {
-      setHelpOpen(true)
+      set(helpOpenAtom, true)
       return
     }
 
     if (key.name === "w") {
-      const request = worktreeRequestRef.current + 1
-      worktreeRequestRef.current = request
-      setWorktreeOpen(true)
-      setWorktreeIndex(0)
-      setWorktrees(undefined)
-      void listWorktrees(model.repoRoot)
-        .then((list) => {
-          if (worktreeRequestRef.current !== request) {
-            return
-          }
-          // Bare entries have no files to review
-          const selectable = list.filter((worktree) => !worktree.bare)
-          setWorktrees(selectable)
-          setWorktreeIndex(
-            Math.max(
-              0,
-              selectable.findIndex((worktree) => worktree.path === model.repoRoot),
-            ),
-          )
-        })
-        .catch((error: unknown) => {
-          if (worktreeRequestRef.current !== request) {
-            return
-          }
-          setWorktreeOpen(false)
-          setStatus(error instanceof Error ? (error.message.split("\n")[0] ?? "") : String(error))
-        })
+      set(worktreeOpenAtom, true)
+      set(worktreeIndexAtom, 0)
+      set(worktreesAtom, undefined)
+      set(loadWorktreesAtom, get(gitModelAtom).repoRoot)
       return
     }
 
     if (key.name === "s") {
-      setScope((current) => {
-        const next = { ...current, kind: nextScope(current.kind) }
-        setStatus(`scope: ${scopeLabel(next)}`)
-        return next
-      })
+      const current = get(scopeAtom)
+      const next = { ...current, kind: nextScope(current.kind) }
+      set(scopeAtom, next)
+      set(statusAtom, `scope: ${scopeLabel(next)}`)
       return
     }
 
     if (key.name === "c") {
-      setChangesOnly((current) => {
-        setStatus(current ? "showing all files" : "showing changes only")
-        return !current
-      })
+      const current = get(changesOnlyAtom)
+      set(changesOnlyAtom, !current)
+      set(statusAtom, current ? "showing all files" : "showing changes only")
       return
     }
 
     if (key.name === ".") {
-      const latest = latestActivity(activityLog)
+      const latest = latestActivity(get(activityLogAtom))
       if (latest !== undefined) {
         selectFile(latest.path)
       }
       return
     }
 
-    if (key.name === "v" && selectedFile !== undefined && selectedPath !== undefined) {
-      const line = navigableLines[cursorIndex]
+    const selectedPath = get(selectedPathAtom)
+
+    if (key.name === "v" && get(selectedFileAtom) !== undefined && selectedPath !== undefined) {
+      const line = get(navigableLinesAtom)[get(cursorIndexAtom)]
       const lineNumber = line?.newLine ?? line?.oldLine
       if (lineNumber !== undefined) {
-        setJumpTarget({ escalate: false, line: lineNumber, path: selectedPath })
+        set(jumpTargetAtom, { escalate: false, line: lineNumber, path: selectedPath })
       }
-      setFileView((current) => !current)
+      set(fileViewAtom, !get(fileViewAtom))
       return
     }
 
     if (key.name === "n") {
-      const paths = orderedFindingPaths(problems)
-      const next = nextFindingPath(paths, selectedPath)
+      const next = nextFindingPath(orderedFindingPaths(get(problemsAtom)), selectedPath)
       if (next !== undefined) {
         selectFile(next)
       }
@@ -282,84 +201,85 @@ export function createKeyHandler(ctx: KeyHandlerCtx) {
     }
 
     if (key.name === "r") {
-      void runChecks()
+      set(runChecksAtom, get(gitModelAtom))
       return
     }
 
     if (key.name === "f" && selectedPath !== undefined) {
-      setFullContentPaths((current) => new Set(current).add(selectedPath))
-      setStatus(`loaded full content for ${selectedPath}`)
+      set(fullContentPathsAtom, new Set(get(fullContentPathsAtom)).add(selectedPath))
+      set(statusAtom, `loaded full content for ${selectedPath}`)
       return
     }
 
     if (key.name === "y" && selectedPath !== undefined) {
-      try {
-        const line = navigableLines[cursorIndex]
-        const reference = line === undefined ? { path: selectedPath } : lineReference(selectedPath, line)
-        copyToClipboard(formatCopyReference(reference))
-        setStatus(`copied ${formatCopyReference(reference).split("\n")[0]}`)
-      } catch (error) {
-        setStatus(error instanceof Error ? error.message : String(error))
-      }
+      const line = get(navigableLinesAtom)[get(cursorIndexAtom)]
+      const reference = line === undefined ? { path: selectedPath } : lineReference(selectedPath, line)
+      set(copyAtom, formatCopyReference(reference))
       return
     }
 
+    const focusedPane = get(focusedPaneAtom)
+
     if (focusedPane === "problems") {
+      const allProblemItems = get(allProblemItemsAtom)
       if (key.name === "j" || key.name === "down") {
-        setProblemIndex((current) => Math.min(current + 1, Math.max(0, allProblemItems.length - 1)))
+        set(problemIndexAtom, Math.min(get(problemIndexAtom) + 1, Math.max(0, allProblemItems.length - 1)))
       } else if (key.name === "k" || key.name === "up") {
-        setProblemIndex((current) => Math.max(current - 1, 0))
+        set(problemIndexAtom, Math.max(get(problemIndexAtom) - 1, 0))
       } else if (key.name === "return") {
-        const item = allProblemItems[problemIndex]
+        const item = allProblemItems[get(problemIndexAtom)]
         if (item?.kind === "problem") {
           const { problem } = item
           selectFile(problem.path)
           if (problem.line !== undefined) {
-            setJumpTarget({ escalate: true, line: problem.line, path: problem.path })
+            set(jumpTargetAtom, { escalate: true, line: problem.line, path: problem.path })
           }
-          setFocusedPane("diff")
+          set(focusedPaneAtom, "diff")
         }
       }
       return
     }
 
     if (focusedPane === "diff") {
-      const last = navigableLines.length - 1
+      const last = get(navigableLinesAtom).length - 1
       const halfPage = Math.max(1, Math.floor(viewerHeight / 2))
 
       if (key.name === "j" || key.name === "down") {
-        setCursorIndex((current) => Math.max(0, Math.min(current + 1, last)))
+        set(cursorIndexAtom, Math.max(0, Math.min(get(cursorIndexAtom) + 1, last)))
       } else if (key.name === "k" || key.name === "up") {
-        setCursorIndex((current) => Math.max(current - 1, 0))
+        set(cursorIndexAtom, Math.max(get(cursorIndexAtom) - 1, 0))
       } else if (key.ctrl && key.name === "d") {
-        setCursorIndex((current) => Math.max(0, Math.min(current + halfPage, last)))
+        set(cursorIndexAtom, Math.max(0, Math.min(get(cursorIndexAtom) + halfPage, last)))
       } else if (key.ctrl && key.name === "u") {
-        setCursorIndex((current) => Math.max(current - halfPage, 0))
+        set(cursorIndexAtom, Math.max(get(cursorIndexAtom) - halfPage, 0))
       } else if (key.name === "g" && !key.shift) {
-        setCursorIndex(0)
+        set(cursorIndexAtom, 0)
       } else if (key.name === "g" || key.name === "G") {
-        setCursorIndex(Math.max(0, last))
+        set(cursorIndexAtom, Math.max(0, last))
       } else if (key.name === "h" || key.name === "left") {
-        setFocusedPane("tree")
+        set(focusedPaneAtom, "tree")
       }
 
       return
     }
 
     if (key.name === "j" || key.name === "down") {
-      moveFocus(1, treeRows, setFocusedRowIndex, selectFile)
+      set(focusedRowIndexAtom, 1)
       return
     }
 
     if (key.name === "k" || key.name === "up") {
-      moveFocus(-1, treeRows, setFocusedRowIndex, selectFile)
+      set(focusedRowIndexAtom, -1)
       return
     }
+
+    const treeRows = get(treeRowsAtom)
+    const focusedRowIndex = get(focusedRowIndexAtom)
 
     if (key.name === "l" || key.name === "right") {
       const row = treeRows[focusedRowIndex]
       if (row?.node.type === "directory") {
-        setExpandedDirectories((current) => new Set(current).add(row.node.id))
+        set(expandedDirectoriesAtom, new Set(get(expandedDirectoriesAtom)).add(row.node.id))
       } else if (row?.node.type === "file") {
         selectFile(row.node.path)
       }
@@ -369,11 +289,9 @@ export function createKeyHandler(ctx: KeyHandlerCtx) {
     if (key.name === "h" || key.name === "left") {
       const row = treeRows[focusedRowIndex]
       if (row?.node.type === "directory") {
-        setExpandedDirectories((current) => {
-          const next = new Set(current)
-          next.delete(row.node.id)
-          return next
-        })
+        const next = new Set(get(expandedDirectoriesAtom))
+        next.delete(row.node.id)
+        set(expandedDirectoriesAtom, next)
       }
       return
     }
@@ -388,20 +306,4 @@ export function createKeyHandler(ctx: KeyHandlerCtx) {
       }
     }
   }
-}
-
-function moveFocus(
-  direction: -1 | 1,
-  rows: FileTreeRow[],
-  setFocusedRowIndex: (updater: (current: number) => number) => void,
-  selectFile: (path: string) => void,
-) {
-  setFocusedRowIndex((current) => {
-    const next = Math.max(0, Math.min(current + direction, rows.length - 1))
-    const row = rows[next]
-    if (row?.node.type === "file") {
-      selectFile(row.node.path)
-    }
-    return next
-  })
 }

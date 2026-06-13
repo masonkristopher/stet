@@ -1,7 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs"
-import { isAbsolute, join } from "node:path"
+import { join } from "node:path"
 import type { ChangedFile } from "./git"
-import { runCommandAsync } from "./process"
 
 export const checkerNames = ["lint", "prettier", "typecheck"] as const
 export type CheckerName = (typeof checkerNames)[number]
@@ -29,7 +28,7 @@ interface PackageJson {
   workspaces?: string[] | { packages: string[] }
 }
 
-interface CheckerCommand {
+export interface CheckerCommand {
   checker: CheckerName
   command?: string[]
   cwd?: string
@@ -160,67 +159,6 @@ export function findingsLineMap(path: string, state: CheckerState) {
   }
 
   return byLine
-}
-
-export async function runDiagnostics(
-  repoRoot: string,
-  files: ChangedFile[],
-  onCheckerDone: (checker: CheckerName, state: Map<string, CheckerFileState>) => void,
-  signal?: AbortSignal,
-) {
-  const commands = discoverCheckerCommands(repoRoot, files)
-
-  // Group by checker; most have one command, typecheck may have one per workspace package
-  const byChecker = new Map<CheckerName, CheckerCommand[]>()
-  for (const command of commands) {
-    const list = byChecker.get(command.checker)
-    if (list === undefined) {
-      byChecker.set(command.checker, [command])
-    } else {
-      list.push(command)
-    }
-  }
-
-  await Promise.all(
-    [...byChecker.entries()].map(async ([checker, checkerCommands]) => {
-      if (checkerCommands.length === 1 && checkerCommands[0].command === undefined) {
-        const message = checkerCommands[0].unavailableMessage ?? `${checker} is not configured`
-        onCheckerDone(checker, stateForEveryFile(files, "unavailable", message))
-        return
-      }
-
-      const allDiagnostics: Diagnostic[] = []
-      let firstFailure: Error | undefined
-
-      await Promise.all(
-        checkerCommands
-          .filter((c) => c.command !== undefined)
-          .map(async (command) => {
-            try {
-              const cwd = command.cwd ?? repoRoot
-              // Biome-ignore lint/style/noNonNullAssertion: filtered above
-              const result = await runCommandAsync(command.command!, cwd, command.allowedExitCodes, signal)
-              const diagnostics = command.parser(result)
-              for (const d of diagnostics) {
-                // Resolve paths from per-package cwd to absolute so stateForResolvedChecker can relativize them
-                const resolvedPath = command.cwd !== undefined && !isAbsolute(d.path) ? join(command.cwd, d.path) : d.path
-                allDiagnostics.push({ ...d, path: resolvedPath })
-              }
-            } catch (error) {
-              if (firstFailure === undefined) {
-                firstFailure = error instanceof Error ? error : new Error(String(error))
-              }
-            }
-          }),
-      )
-
-      if (firstFailure !== undefined && allDiagnostics.length === 0) {
-        onCheckerDone(checker, stateForEveryFile(files, "failed", firstFailure.message))
-      } else {
-        onCheckerDone(checker, stateForResolvedChecker(checker, files, allDiagnostics, repoRoot))
-      }
-    }),
-  )
 }
 
 export function discoverCheckerCommands(repoRoot: string, files: ChangedFile[]): CheckerCommand[] {
@@ -525,7 +463,7 @@ export function stateForResolvedChecker(checker: CheckerName, files: ChangedFile
   return state
 }
 
-function stateForEveryFile(files: ChangedFile[], status: "failed" | "unavailable", message: string) {
+export function stateForEveryFile(files: ChangedFile[], status: "failed" | "unavailable", message: string) {
   return new Map(
     files.map((file) => [
       file.path,

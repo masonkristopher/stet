@@ -10,7 +10,8 @@
     "strict": true,
     "skipLibCheck": true,
     "types": ["bun"],
-    "noEmit": true
+    "noEmit": true,
+    "plugins": [{ "name": "@effect/language-service" }]
   },
   "include": ["src/**/*.ts", "src/**/*.tsx", "test/**/*.ts", "script/**/*.ts"]
 }

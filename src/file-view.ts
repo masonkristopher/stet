@@ -1,5 +1,4 @@
 import { readFileSync, statSync } from "node:fs"
-import { runCommand } from "./process"
 
 export type FileContent =
   | { kind: "text"; content: string; lineCount: number; truncated: boolean }
@@ -15,15 +14,9 @@ export interface LoadFileContentOptions {
   gitSpec?: string
 }
 
-export function loadFileContent(repoRoot: string, path: string, options: LoadFileContentOptions): FileContent {
-  if (options.gitSpec !== undefined) {
-    try {
-      return textContent(runCommand(["git", "show", options.gitSpec], repoRoot).stdout, options.full)
-    } catch {
-      return { kind: "missing" }
-    }
-  }
-
+// Local-file reads only; the File service intercepts the gitSpec (git show) path
+// And routes it through the Process service for interruptibility.
+export function loadFileContent(repoRoot: string, path: string, options: { full: boolean }): FileContent {
   const absolutePath = `${repoRoot}/${path}`
   let size: number
   try {

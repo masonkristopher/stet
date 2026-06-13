@@ -3,9 +3,6 @@ import { renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 import {
   diffArgs,
-  listWorktrees,
-  loadFileDiff,
-  loadGitModel,
   mergeModel,
   nameStatusArgs,
   numstatArgs,
@@ -17,7 +14,7 @@ import {
   type ChangedFile,
   type GitModel,
 } from "../src/git"
-import { createFixtureRepo, runGit } from "../test/helpers"
+import { createFixtureRepo, loadFileDiff, loadModel, loadWorktrees, runGit } from "../test/helpers"
 
 function file(path: string, overrides: Partial<ChangedFile> = {}): ChangedFile {
   return { additions: 1, binary: false, deletions: 0, kind: "modified", mtimeMs: 0, path, stage: "unstaged", warnings: [], ...overrides }
@@ -172,12 +169,12 @@ describe("parseWorktreeList", () => {
   })
 })
 
-describe("listWorktrees in a fixture repo", () => {
+describe("worktrees in a fixture repo", () => {
   test("lists the main and a linked worktree with their branches", async () => {
     const repoRoot = createFixtureRepo("sideye-git-worktree-", { "a.ts": "const a = 1\n" })
     try {
       runGit(repoRoot, ["worktree", "add", "-b", "side", join(repoRoot, ".wt")])
-      const worktrees = await listWorktrees(repoRoot)
+      const worktrees = await loadWorktrees(repoRoot)
       expect(worktrees).toHaveLength(2)
       expect(worktrees[1]).toMatchObject({ bare: false, branch: "side", detached: false })
       expect(worktrees[1]?.path.endsWith(".wt")).toBe(true)
@@ -188,12 +185,12 @@ describe("listWorktrees in a fixture repo", () => {
   })
 })
 
-describe("loadGitModel in a fixture repo", () => {
+describe("loadModel in a fixture repo", () => {
   test("survives a dangling untracked symlink instead of crashing", async () => {
     const repoRoot = createFixtureRepo("sideye-git-symlink-", { "a.ts": "const a = 1\n" })
     try {
       symlinkSync("/nonexistent-target", join(repoRoot, "broken-link"))
-      const loaded = await loadGitModel(repoRoot, { kind: "all", ref: "HEAD" })
+      const loaded = await loadModel(repoRoot, { kind: "all", ref: "HEAD" })
       expect(loaded.changedByPath.get("broken-link")).toMatchObject({ additions: 0, kind: "untracked" })
     } finally {
       rmSync(repoRoot, { force: true, recursive: true })
@@ -204,7 +201,7 @@ describe("loadGitModel in a fixture repo", () => {
     const repoRoot = createFixtureRepo("sideye-git-unicode-", { "src/café.ts": "const a = 1\n" })
     try {
       writeFileSync(join(repoRoot, "src", "café.ts"), "const a = 2\n")
-      const loaded = await loadGitModel(repoRoot, { kind: "all", ref: "HEAD" })
+      const loaded = await loadModel(repoRoot, { kind: "all", ref: "HEAD" })
       const changed = loaded.changedByPath.get("src/café.ts")
       expect(changed).toMatchObject({ additions: 1, deletions: 1, kind: "modified" })
       expect(loaded.changed).toHaveLength(1)
@@ -212,7 +209,7 @@ describe("loadGitModel in a fixture repo", () => {
         throw new Error("unicode file missing from model")
       }
 
-      const diff = loadFileDiff(loaded.repoRoot, { kind: "all", ref: "HEAD" }, changed)
+      const diff = await loadFileDiff(loaded.repoRoot, { kind: "all", ref: "HEAD" }, changed)
       expect(diff).toContain("+const a = 2")
     } finally {
       rmSync(repoRoot, { force: true, recursive: true })
@@ -228,14 +225,14 @@ describe("loadGitModel in a fixture repo", () => {
       runGit(repoRoot, ["add", "-A"])
 
       const scope = { kind: "all", ref: "HEAD" } as const
-      const loaded = await loadGitModel(repoRoot, scope)
+      const loaded = await loadModel(repoRoot, scope)
       const renamed = loaded.changedByPath.get("src/new.ts")
       expect(renamed).toMatchObject({ kind: "renamed", oldPath: "src/old.ts" })
       if (renamed === undefined) {
         throw new Error("renamed file missing from model")
       }
 
-      const diff = loadFileDiff(loaded.repoRoot, scope, renamed)
+      const diff = await loadFileDiff(loaded.repoRoot, scope, renamed)
       const addedLines = diff.split("\n").filter((line) => line.startsWith("+") && !line.startsWith("+++"))
       expect(diff).toContain("rename from src/old.ts")
       expect(addedLines).toEqual(["+const added = true"])

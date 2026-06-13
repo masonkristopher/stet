@@ -4,8 +4,7 @@ import { createTestRenderer } from "@opentui/core/testing"
 import { createRoot } from "@opentui/react"
 import { createElement } from "react"
 import { App } from "../src/App"
-import { loadGitModel } from "../src/git"
-import { createFixtureRepo, disabledSyntax, makeSettleUntil } from "../test/helpers"
+import { loadModel, createFixtureRepo, disabledSyntax, makeSettleUntil, withRegistry } from "../test/helpers"
 
 describe("go-to-file palette", () => {
   test("opens with ctrl-p, swallows global keys, fuzzy-jumps on enter", async () => {
@@ -15,12 +14,12 @@ describe("go-to-file palette", () => {
       "src/tree.ts": "export const tree = true\n",
       "test/tree.test.ts": "export const testTree = true\n",
     })
-    const model = await loadGitModel(repoRoot, { kind: "all", ref: "HEAD" })
+    const model = await loadModel(repoRoot, { kind: "all", ref: "HEAD" })
     const { renderer, renderOnce, captureCharFrame, mockInput } = await createTestRenderer({ height: 34, width: 120 })
     const settleUntil = makeSettleUntil({ captureCharFrame, renderOnce })
 
     try {
-      createRoot(renderer).render(createElement(App, { model, scope: { kind: "all", ref: "HEAD" }, syntax: disabledSyntax }))
+      createRoot(renderer).render(withRegistry(createElement(App, { model, scope: { kind: "all", ref: "HEAD" }, syntax: disabledSyntax })))
       const initial = await settleUntil("app chrome", (frame) => frame.includes("sideye"), 5)
       expect(initial).toContain("sideye")
 

@@ -1,7 +1,7 @@
 import type { ScrollBoxRenderable } from "@opentui/core"
 import type { RefObject } from "react"
 import { PROBLEMS_HEIGHT } from "../constants"
-import type { ProblemItem } from "../hooks/useDiagnostics"
+import type { ProblemItem } from "../atoms/diagnostics"
 import { useTheme } from "../theme/context"
 
 interface ProblemsPanelProps {

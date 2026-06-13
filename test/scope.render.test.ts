@@ -5,8 +5,7 @@ import { createTestRenderer } from "@opentui/core/testing"
 import { createRoot } from "@opentui/react"
 import { createElement } from "react"
 import { App } from "../src/App"
-import { loadGitModel } from "../src/git"
-import { createFixtureRepo, disabledSyntax, makeSettleUntil } from "../test/helpers"
+import { loadModel, createFixtureRepo, disabledSyntax, makeSettleUntil, withRegistry } from "../test/helpers"
 
 describe("scope switching", () => {
   test("re-runs checks for the new scope's changed set", async () => {
@@ -17,12 +16,12 @@ describe("scope switching", () => {
     })
     writeFileSync(join(repoRoot, "src", "a.ts"), "const a = 2\n")
 
-    const model = await loadGitModel(repoRoot, { kind: "all", ref: "HEAD" })
+    const model = await loadModel(repoRoot, { kind: "all", ref: "HEAD" })
     const { renderer, renderOnce, captureCharFrame, mockInput } = await createTestRenderer({ height: 34, width: 120 })
     const settleUntil = makeSettleUntil({ captureCharFrame, renderOnce })
 
     try {
-      createRoot(renderer).render(createElement(App, { model, scope: { kind: "all", ref: "HEAD" }, syntax: disabledSyntax }))
+      createRoot(renderer).render(withRegistry(createElement(App, { model, scope: { kind: "all", ref: "HEAD" }, syntax: disabledSyntax })))
       const failed = await settleUntil("failed lint run", (frame) => frame.includes("lint failed:"), 5)
       expect(failed).toContain("fail")
 

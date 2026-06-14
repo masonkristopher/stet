@@ -24,6 +24,7 @@ See `README.md` for what sideye does, its keys, and its non-goals; see `SPEC.md`
 - Rely on type inference; avoid explicit annotations or interfaces unless needed for exports or clarity, and inline single-use values rather than naming them.
 - Prefer `const`; use ternaries or early returns instead of reassignment, and early returns instead of `else`.
 - Prefer functional array methods (`map`/`filter`/`flatMap`) over loops; use type guards on `filter` to keep inference downstream.
+- For generic data utilities, prefer native ES2024 over a third-party util library: `Map.groupBy`/`Object.groupBy` for grouping, in preference to a hand-rolled get-or-create-push loop (`Map.groupBy` returns a `Map`, which a `Record`-returning lib helper does not), `new Set`/`Set` methods (`union`/`difference`/`intersection`) for dedupe and set algebra, `toSorted` with an explicit comparator (use `localeCompare` for locale-aware order), and `structuredClone` for deep copies. Project-specific pure helpers (no Effect/Solid/OpenTUI imports) live under `src/utils/`; domain helpers stay in their domain module.
 - Use Bun APIs where they exist (`Bun.file`, and so on).
 - Never alias imports (no `import { x as y }`).
 - Prefer dynamic imports for heavy modules on startup-sensitive paths; bind them at the top of the narrowest scope that needs them, and keep branch-specific imports inside their branch so the git tree renders before anything heavy loads.

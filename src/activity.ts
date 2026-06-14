@@ -36,12 +36,7 @@ export function recordActivity(
 }
 
 export function lastChangedAt(log: ActivityLog) {
-  const byPath = new Map<string, number>();
-  for (const event of log.events) {
-    byPath.set(event.path, event.at);
-  }
-
-  return byPath;
+  return new Map(log.events.map((event) => [event.path, event.at]));
 }
 
 export function latestActivity(log: ActivityLog): ActivityEvent | undefined {

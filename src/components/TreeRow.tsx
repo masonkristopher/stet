@@ -5,7 +5,8 @@ import { checkerSummary, directorySummary } from "../diagnostics";
 import { state } from "../state";
 import { useTheme } from "../theme/context";
 import type { DirectoryNode, FileTreeRow } from "../tree";
-import { kindLetter, truncateName } from "../ui-helpers";
+import { kindLetter } from "../ui-helpers";
+import { truncateName } from "../utils/text";
 
 // Fine-grained reactivity replaces React.memo: only the rows whose focus,
 // Selection, or checker state actually change re-evaluate.

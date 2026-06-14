@@ -34,7 +34,7 @@ import { File } from "./services/file";
 import { Git } from "./services/git";
 import type { SyntaxConfig } from "./syntax";
 import { buildFileTree, expandAncestorsForPath, flattenTree } from "./tree";
-import { truncate } from "./ui-helpers";
+import { truncate } from "./utils/text";
 
 interface JumpTarget {
   path: string;

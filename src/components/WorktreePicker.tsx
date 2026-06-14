@@ -3,7 +3,8 @@ import { createEffect, Index, Show } from "solid-js";
 
 import { state } from "../state";
 import { useTheme } from "../theme/context";
-import { collapseHome, truncateLeft, worktreeLabel } from "../ui-helpers";
+import { worktreeLabel } from "../ui-helpers";
+import { collapseHome, truncateLeft } from "../utils/text";
 
 export function WorktreePicker() {
   const theme = useTheme();

@@ -152,23 +152,13 @@ export function countBySeverity(diagnostics: Iterable<Diagnostic>) {
 }
 
 export function findingsLineMap(path: string, state: CheckerState) {
-  const byLine = new Map<number, Diagnostic[]>();
-  for (const checker of checkerNames) {
-    for (const diagnostic of state[checker].get(path)?.diagnostics ?? []) {
-      if (diagnostic.line === undefined) {
-        continue;
-      }
+  const findings = checkerNames
+    .flatMap((checker) => state[checker].get(path)?.diagnostics ?? [])
+    .filter(
+      (diagnostic): diagnostic is Diagnostic & { line: number } => diagnostic.line !== undefined,
+    );
 
-      const existing = byLine.get(diagnostic.line);
-      if (existing === undefined) {
-        byLine.set(diagnostic.line, [diagnostic]);
-      } else {
-        existing.push(diagnostic);
-      }
-    }
-  }
-
-  return byLine;
+  return Map.groupBy(findings, (diagnostic) => diagnostic.line);
 }
 
 export function discoverCheckerCommands(repoRoot: string, files: ChangedFile[]): CheckerCommand[] {
@@ -509,17 +499,12 @@ export function stateForResolvedChecker(
   diagnostics: Diagnostic[],
   repoRoot: string,
 ) {
-  const byPath = new Map<string, Diagnostic[]>();
-  for (const diagnostic of diagnostics) {
-    const path = relativize(diagnostic.path, repoRoot);
-    const existing = byPath.get(path);
-    const normalized = { ...diagnostic, checker, path };
-    if (existing === undefined) {
-      byPath.set(path, [normalized]);
-    } else {
-      existing.push(normalized);
-    }
-  }
+  const normalized = diagnostics.map((diagnostic) => ({
+    ...diagnostic,
+    checker,
+    path: relativize(diagnostic.path, repoRoot),
+  }));
+  const byPath = Map.groupBy(normalized, (diagnostic) => diagnostic.path);
 
   // Keep findings for every reported path (tsc runs project-wide), not just changed files
   const state = new Map<string, CheckerFileState>();

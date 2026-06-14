@@ -26,21 +26,6 @@ export class Diagnostics extends Context.Service<
   }
 >()("sideye/Diagnostics") {}
 
-// Group by checker; most have one command, typecheck may have one per workspace package
-function groupByChecker(commands: CheckerCommand[]) {
-  const byChecker = new Map<CheckerName, CheckerCommand[]>();
-  for (const command of commands) {
-    const list = byChecker.get(command.checker);
-    if (list === undefined) {
-      byChecker.set(command.checker, [command]);
-    } else {
-      list.push(command);
-    }
-  }
-
-  return byChecker;
-}
-
 export const DiagnosticsLive = Layer.effect(
   Diagnostics,
   Effect.gen(function* diagnosticsLive() {
@@ -128,7 +113,10 @@ export const DiagnosticsLive = Layer.effect(
       // Through the Process release.
       run: (repoRoot, files) =>
         Stream.fromIterable([
-          ...groupByChecker(discoverCheckerCommands(repoRoot, files)).entries(),
+          ...Map.groupBy(
+            discoverCheckerCommands(repoRoot, files),
+            (command) => command.checker,
+          ).entries(),
         ]).pipe(
           Stream.mapEffect(
             ([checker, commands]) => runChecker(repoRoot, files, checker, commands),

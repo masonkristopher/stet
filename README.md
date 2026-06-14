@@ -79,7 +79,13 @@ sideye            # whole repo, worktree vs HEAD
 sideye main       # compare against another ref
 sideye --staged   # start in the staged scope
 sideye --unstaged # start in the unstaged scope
+sideye --no-icons # plain tree without Nerd Font file-type icons
 ```
+
+The tree shows a file-type icon next to each file and a folder glyph for each
+directory. These are [Nerd Font](https://www.nerdfonts.com/) glyphs and only
+render with a Nerd Font selected in your terminal; without one they appear as
+empty boxes, so pass `--no-icons` to fall back to a plain tree.
 
 ## Keys
 
@@ -114,6 +120,7 @@ Press `?` anytime to see the full list in the app:
 
 - git
 - macOS for clipboard copy (`pbcopy`) in v1
+- a Nerd Font for the tree's file-type icons (optional; use `--no-icons` without one)
 
 ## Development
 

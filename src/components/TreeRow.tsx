@@ -6,7 +6,8 @@ import { state } from "../state";
 import { useTheme } from "../theme/context";
 import type { DirectoryNode, FileTreeRow } from "../tree";
 import { kindLetter } from "../ui-helpers";
-import { truncateName } from "../utils/text";
+import { fileIcon, folderIcon } from "../utils/file-icon";
+import { truncate, truncateName } from "../utils/text";
 
 // Fine-grained reactivity replaces React.memo: only the rows whose focus,
 // Selection, or checker state actually change re-evaluate.
@@ -48,6 +49,8 @@ export function TreeRow(props: { row: FileTreeRow }) {
       <box
         id={node.id}
         width="100%"
+        height={1}
+        overflow="hidden"
         flexDirection="row"
         justifyContent="space-between"
         paddingLeft={1}
@@ -55,9 +58,15 @@ export function TreeRow(props: { row: FileTreeRow }) {
         backgroundColor={background()}
       >
         <box flexDirection="row">
-          <text
-            fg={nameFg()}
-          >{`${indent}${isExpanded() ? "▾" : "▸"} ${truncateName(`${node.name}/`, maxNameLen())}`}</text>
+          <box flexDirection="row" flexShrink={0}>
+            <text fg={nameFg()}>{indent}</text>
+            <box width={2} overflow="hidden">
+              <text fg={nameFg()}>
+                {state.iconsEnabled() ? folderIcon(isExpanded()) : isExpanded() ? "▾" : "▸"}
+              </text>
+            </box>
+          </box>
+          <text fg={nameFg()}>{truncateName(`${node.name}/`, maxNameLen())}</text>
           <RecencyDot level={recency()} />
         </box>
         <box flexDirection="row">
@@ -106,12 +115,15 @@ export function TreeRow(props: { row: FileTreeRow }) {
     const s = summary();
     return changed !== undefined || s.failed || s.errors > 0 || s.warnings > 0 || s.pending;
   };
-  const maxNameLen = () => contentWidth() - indent.length - (hasBadges() ? 14 : 0);
+  const maxNameLen = () =>
+    contentWidth() - indent.length - (state.iconsEnabled() ? 2 : 0) - (hasBadges() ? 14 : 0);
 
   return (
     <box
       id={node.id}
       width="100%"
+      height={1}
+      overflow="hidden"
       flexDirection="row"
       justifyContent="space-between"
       paddingLeft={1}
@@ -119,7 +131,15 @@ export function TreeRow(props: { row: FileTreeRow }) {
       backgroundColor={background()}
     >
       <box flexDirection="row">
-        <text fg={nameFg()}>{`${indent}${truncateName(node.name, maxNameLen())}`}</text>
+        <box flexDirection="row" flexShrink={0}>
+          <text fg={theme.colors.text.muted}>{indent}</text>
+          {state.iconsEnabled() ? (
+            <box width={2} overflow="hidden">
+              <text fg={theme.colors.text.muted}>{fileIcon(node.name)}</text>
+            </box>
+          ) : null}
+        </box>
+        <text fg={nameFg()}>{truncate(node.name, maxNameLen())}</text>
         <RecencyDot level={recency()} />
       </box>
       <box flexDirection="row">

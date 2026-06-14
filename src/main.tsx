@@ -64,6 +64,7 @@ try {
     state.setSyntax(syntax);
     state.setStatus(syntax.status);
     state.setScope(options.scope);
+    state.setIconsEnabled(options.icons);
     state.setGitModel(model);
     state.setRepoRoot(model.repoRoot);
     state.setLastChange(Date.now());

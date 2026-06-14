@@ -75,6 +75,7 @@ export function seedState(model: GitModel, scope: DiffScope) {
     state.setSyntax(disabledSyntax);
     state.setStatus(disabledSyntax.status);
     state.setScope(scope);
+    state.setIconsEnabled(true);
     state.setChangesOnly(false);
     state.setGitModel(model);
     state.setRepoRoot(model.repoRoot);

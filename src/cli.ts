@@ -9,15 +9,22 @@ export interface CliOptions {
   scope: DiffScope;
   help: boolean;
   version: boolean;
+  icons: boolean;
 }
 
 export function parseArgs(args: string[]): CliOptions {
   let kind: ScopeKind = "all";
   let help = false;
   let version = false;
+  let icons = true;
   let ref: string | undefined;
 
   for (const arg of args) {
+    if (arg === "--no-icons") {
+      icons = false;
+      continue;
+    }
+
     if (arg === "--staged") {
       kind = "staged";
       continue;
@@ -51,6 +58,7 @@ export function parseArgs(args: string[]): CliOptions {
 
   return {
     help,
+    icons,
     scope: { kind, ref: ref ?? "HEAD" },
     version,
   };
@@ -88,6 +96,7 @@ Usage:
   sideye <ref>
   sideye --staged [ref]
   sideye --unstaged
+  sideye --no-icons   (disable Nerd Font file-type icons in the tree)
 
 Keys:
   tab        switch focus between the file tree and the viewer

@@ -33,6 +33,7 @@ See `README.md` for what sideye does, its keys, and its non-goals; see `SPEC.md`
 - Comments are JSDoc or `TODO`/`FIXME` only; keep them sparse and useful, and do not narrate obvious code.
 - Prefer small typed modules (git parsing, diagnostics, clipboard, CLI args, UI state), and structured parsing over ad hoc string manipulation when a command offers machine-readable output.
 - Visual colors come from theme tokens in `src/theme` (`tokens.ts` shapes the `Theme`, `dark.ts` holds the hexes, `resolve.ts` exposes them via `useTheme`), never hardcoded hex at call sites. Each `<scrollbox>` must set `scrollbarOptions` to drive its track/thumb from the `scrollbar` token; without it OpenTUI paints a loud default gray that ignores the palette.
+- The tree's file-type icons resolve through `src/utils/file-icon.ts` (`fileIcon`/`folderIcon`), a Nerd Font lookup keyed exact-filename then extension then a default glyph. They are on by default, gated by `state.iconsEnabled()` and the `--no-icons` flag, and rendered monochrome (`text.muted`) for now; per-type icon colors via a `theme.colors.icon` token group are a deliberate follow-up.
 - Conventional commit style for commits and PR titles: `type(scope): summary`, with types `feat`/`fix`/`docs`/`chore`/`refactor`/`test` and an optional scope.
 - No AI-generated sign-offs in commits, PR text, docs, or generated content.
 

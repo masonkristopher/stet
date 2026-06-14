@@ -131,6 +131,7 @@ function loadDiffView(src: {
 function createState() {
   // --- writable primitives ---
   const [scope, setScope] = createSignal<DiffScope>({ kind: "all", ref: "HEAD" });
+  const [iconsEnabled, setIconsEnabled] = createSignal(true);
   const [changesOnly, setChangesOnly] = createSignal(false);
   const [selectedPath, setSelectedPath] = createSignal<string | undefined>(undefined);
   const [expandedDirectories, setExpandedDirectories] = createSignal(new Set<string>());
@@ -580,6 +581,7 @@ function createState() {
     fullContentPaths,
     gitModel,
     helpOpen,
+    iconsEnabled,
     jumpTarget,
     lastChange,
     lineMap,
@@ -617,6 +619,7 @@ function createState() {
     setFullContentPaths,
     setGitModel,
     setHelpOpen,
+    setIconsEnabled,
     setJumpTarget,
     setLastChange,
     setNow,

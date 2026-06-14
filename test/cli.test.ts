@@ -19,6 +19,14 @@ describe("parseArgs", () => {
     expect(parseArgs(["--unstaged"]).scope).toEqual({ kind: "unstaged", ref: "HEAD" });
   });
 
+  test("enables file-type icons by default", () => {
+    expect(parseArgs([]).icons).toBe(true);
+  });
+
+  test("disables icons with --no-icons", () => {
+    expect(parseArgs(["--no-icons"]).icons).toBe(false);
+  });
+
   test("rejects unknown options", () => {
     expect(() => parseArgs(["--nope"])).toThrow("Unknown option: --nope");
   });

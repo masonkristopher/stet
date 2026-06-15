@@ -19,10 +19,10 @@ import {
   type CheckerName,
   type CheckerState,
   type Diagnostic,
-} from "../src/diagnostics";
-import type { ChangedFile } from "../src/git";
-import { Diagnostics, DiagnosticsLive } from "../src/services/diagnostics";
-import { ProcessLive } from "../src/services/process";
+} from "../src/diagnostics/checker";
+import { Diagnostics, DiagnosticsLive } from "../src/diagnostics/service";
+import type { ChangedFile } from "../src/git/model";
+import { ProcessLive } from "../src/process";
 
 // Run the diagnostics service to completion, collecting each checker's final
 // State, the streaming equivalent of the old runDiagnostics callback.

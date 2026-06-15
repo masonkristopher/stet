@@ -1,7 +1,7 @@
 import { statSync } from "node:fs";
 
-import type { DiffScope } from "./cli";
-import { loadFileContent } from "./file-view";
+import type { DiffScope } from "../cli";
+import { loadFileContent } from "../file/content";
 
 export type ChangeKind = "modified" | "added" | "deleted" | "renamed" | "untracked";
 

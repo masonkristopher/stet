@@ -4,8 +4,8 @@ import { join } from "node:path";
 
 import { Effect } from "effect";
 
-import { Git, GitLive } from "../src/services/git";
-import { ProcessLive } from "../src/services/process";
+import { Git, GitLive } from "../src/git/service";
+import { ProcessLive } from "../src/process";
 import { createFixtureRepo } from "./helpers";
 
 const allScope = { kind: "all", ref: "HEAD" } as const;

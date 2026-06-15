@@ -3,6 +3,8 @@ import { isAbsolute, join } from "node:path";
 
 import { Context, Effect, Layer, Stream } from "effect";
 
+import type { ChangedFile } from "../git/model";
+import { Process } from "../process";
 import {
   discoverCheckerCommands,
   stateForEveryFile,
@@ -10,9 +12,7 @@ import {
   type CheckerCommand,
   type CheckerFileState,
   type CheckerName,
-} from "../diagnostics";
-import type { ChangedFile } from "../git";
-import { Process } from "./process";
+} from "./checker";
 
 export interface CheckerUpdate {
   checker: CheckerName;

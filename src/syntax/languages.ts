@@ -1,18 +1,18 @@
-import bashHighlights from "../assets/tree-sitter/bash/highlights.scm" with { type: "file" };
-import bashWasm from "../assets/tree-sitter/bash/tree-sitter-bash.wasm" with { type: "file" };
-import jsonHighlights from "../assets/tree-sitter/json/highlights.scm" with { type: "file" };
-import jsonWasm from "../assets/tree-sitter/json/tree-sitter-json.wasm" with { type: "file" };
-import tsxJsxHighlights from "../assets/tree-sitter/tsx/jsx.scm" with { type: "file" };
-import tsxWasm from "../assets/tree-sitter/tsx/tree-sitter-tsx.wasm" with { type: "file" };
-import tsTestGlobalsHighlights from "../assets/tree-sitter/typescript/test-globals.scm" with { type: "file" };
-import yamlHighlights from "../assets/tree-sitter/yaml/highlights.scm" with { type: "file" };
-import yamlWasm from "../assets/tree-sitter/yaml/tree-sitter-yaml.wasm" with { type: "file" };
-import jsBundledHighlights from "../node_modules/@opentui/core/assets/javascript/highlights.scm" with { type: "file" };
-import markdownBundledHighlights from "../node_modules/@opentui/core/assets/markdown/highlights.scm" with { type: "file" };
-import markdownInlineBundledHighlights from "../node_modules/@opentui/core/assets/markdown_inline/highlights.scm" with { type: "file" };
-import tsBundledHighlights from "../node_modules/@opentui/core/assets/typescript/highlights.scm" with { type: "file" };
-import tsBundledWasm from "../node_modules/@opentui/core/assets/typescript/tree-sitter-typescript.wasm" with { type: "file" };
-import zigBundledHighlights from "../node_modules/@opentui/core/assets/zig/highlights.scm" with { type: "file" };
+import bashHighlights from "../../assets/tree-sitter/bash/highlights.scm" with { type: "file" };
+import bashWasm from "../../assets/tree-sitter/bash/tree-sitter-bash.wasm" with { type: "file" };
+import jsonHighlights from "../../assets/tree-sitter/json/highlights.scm" with { type: "file" };
+import jsonWasm from "../../assets/tree-sitter/json/tree-sitter-json.wasm" with { type: "file" };
+import tsxJsxHighlights from "../../assets/tree-sitter/tsx/jsx.scm" with { type: "file" };
+import tsxWasm from "../../assets/tree-sitter/tsx/tree-sitter-tsx.wasm" with { type: "file" };
+import tsTestGlobalsHighlights from "../../assets/tree-sitter/typescript/test-globals.scm" with { type: "file" };
+import yamlHighlights from "../../assets/tree-sitter/yaml/highlights.scm" with { type: "file" };
+import yamlWasm from "../../assets/tree-sitter/yaml/tree-sitter-yaml.wasm" with { type: "file" };
+import jsBundledHighlights from "../../node_modules/@opentui/core/assets/javascript/highlights.scm" with { type: "file" };
+import markdownBundledHighlights from "../../node_modules/@opentui/core/assets/markdown/highlights.scm" with { type: "file" };
+import markdownInlineBundledHighlights from "../../node_modules/@opentui/core/assets/markdown_inline/highlights.scm" with { type: "file" };
+import tsBundledHighlights from "../../node_modules/@opentui/core/assets/typescript/highlights.scm" with { type: "file" };
+import tsBundledWasm from "../../node_modules/@opentui/core/assets/typescript/tree-sitter-typescript.wasm" with { type: "file" };
+import zigBundledHighlights from "../../node_modules/@opentui/core/assets/zig/highlights.scm" with { type: "file" };
 
 export interface Language {
   filetype: string;

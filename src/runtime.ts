@@ -1,10 +1,10 @@
 import { Layer, ManagedRuntime } from "effect";
 
-import { ClipboardLive } from "./services/clipboard";
-import { DiagnosticsLive } from "./services/diagnostics";
-import { FileLive } from "./services/file";
-import { GitLive } from "./services/git";
-import { ProcessLive } from "./services/process";
+import { ClipboardLive } from "./clipboard/service";
+import { DiagnosticsLive } from "./diagnostics/service";
+import { FileLive } from "./file/service";
+import { GitLive } from "./git/service";
+import { ProcessLive } from "./process";
 
 // One long-lived Effect runtime holding the service layer. Solid signals and
 // Effects run service effects through `runtime.runPromise` / `runtime.runFork`

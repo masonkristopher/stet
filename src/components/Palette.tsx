@@ -1,7 +1,7 @@
 import type { ScrollBoxRenderable } from "@opentui/core";
 import { createEffect, Index, Show } from "solid-js";
 
-import { recencyLevel } from "../activity";
+import { recencyLevel } from "../git/activity";
 import { state } from "../state";
 import { useTheme } from "../theme/context";
 import { kindLetter } from "../ui-helpers";

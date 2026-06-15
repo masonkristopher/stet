@@ -1,8 +1,8 @@
 import { SyntaxStyle, getTreeSitterClient, type TreeSitterClient } from "@opentui/core";
 
+import type { SyntaxCaptureStyles } from "../theme/tokens";
 import { supportedFiletypeFor } from "./filetype";
 import { languages } from "./languages";
-import type { SyntaxCaptureStyles } from "./theme/tokens";
 
 export type SyntaxConfig =
   | {

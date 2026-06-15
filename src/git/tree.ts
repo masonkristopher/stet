@@ -1,4 +1,4 @@
-import type { ChangedFile, RepoFile, StageState } from "./git";
+import type { ChangedFile, RepoFile, StageState } from "./model";
 
 export interface FileNode {
   type: "file";

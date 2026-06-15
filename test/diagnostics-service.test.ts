@@ -4,8 +4,8 @@ import { join } from "node:path";
 
 import { Effect, Layer, Stream } from "effect";
 
-import { Diagnostics, DiagnosticsLive } from "../src/services/diagnostics";
-import { ProcessLive } from "../src/services/process";
+import { Diagnostics, DiagnosticsLive } from "../src/diagnostics/service";
+import { ProcessLive } from "../src/process";
 import { createFixtureRepo, loadModel } from "./helpers";
 
 test("Diagnostics.run streams a state for each configured checker", async () => {

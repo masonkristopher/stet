@@ -4,7 +4,7 @@ import { createEffect, createMemo, on, Show } from "solid-js";
 
 import { DIFF_ID } from "../constants";
 import { state } from "../state";
-import { diffFiletypeFor } from "../syntax";
+import { diffFiletypeFor } from "../syntax/highlight";
 import { useTheme } from "../theme/context";
 import { nearestNavigableIndex, placeholderText, viewerTitle } from "../ui-helpers";
 

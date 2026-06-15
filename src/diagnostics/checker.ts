@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import type { ChangedFile } from "./git";
+import type { ChangedFile } from "../git/model";
 
 export const checkerNames = ["lint", "typecheck"] as const;
 export type CheckerName = (typeof checkerNames)[number];

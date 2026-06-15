@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 import { SyntaxStyle, getTreeSitterClient } from "@opentui/core";
 
-import { diffFiletypeFor, expandCaptureStyles, type SyntaxConfig } from "../src/syntax";
+import { diffFiletypeFor, expandCaptureStyles, type SyntaxConfig } from "../src/syntax/highlight";
 import { darkTheme } from "../src/theme/dark";
 
 const baseCaptureStyles = darkTheme.syntax;

@@ -3,7 +3,6 @@ import { existsSync } from "node:fs";
 import { useKeyboard, useRenderer, useTerminalDimensions } from "@opentui/solid";
 import { createEffect, Show } from "solid-js";
 
-import { emptyActivityLog } from "./activity";
 import { HeaderBar } from "./components/HeaderBar";
 import { HelpOverlay } from "./components/HelpOverlay";
 import { Palette } from "./components/Palette";
@@ -12,11 +11,12 @@ import { Sidebar } from "./components/Sidebar";
 import { StatusBar } from "./components/StatusBar";
 import { Viewer } from "./components/Viewer";
 import { WorktreePicker } from "./components/WorktreePicker";
-import type { Worktree } from "./git";
+import { emptyActivityLog } from "./git/activity";
+import type { Worktree } from "./git/model";
+import { defaultExpandedDirectories, expandAncestorsForPath } from "./git/tree";
 import { createKeyHandler } from "./keymap";
 import { state } from "./state";
 import { useTheme } from "./theme/context";
-import { defaultExpandedDirectories, expandAncestorsForPath } from "./tree";
 import { worktreeLabel } from "./ui-helpers";
 
 export function App() {

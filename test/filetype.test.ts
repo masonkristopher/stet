@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { filetypeFor, supportedFiletypeFor } from "../src/filetype";
+import { filetypeFor, supportedFiletypeFor } from "../src/syntax/filetype";
 
 describe("supportedFiletypeFor", () => {
   test("returns bundled OpenTUI parser filetypes", () => {

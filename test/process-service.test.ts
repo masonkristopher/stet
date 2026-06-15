@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 
 import { Effect, Fiber } from "effect";
 
-import { CommandError, Process, ProcessLive } from "../src/services/process";
+import { CommandError, Process, ProcessLive } from "../src/process";
 
 test("Process.run returns stdout for a successful command", async () => {
   const result = await Effect.runPromise(

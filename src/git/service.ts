@@ -1,6 +1,8 @@
 import { Context, Effect, Layer, Schedule } from "effect";
 
 import type { DiffScope } from "../cli";
+import { Process, type CommandError } from "../process";
+import { GitError } from "./errors";
 import {
   assembleChanged,
   assembleModel,
@@ -12,9 +14,7 @@ import {
   type ChangedFile,
   type GitModel,
   type Worktree,
-} from "../git";
-import { GitError } from "./errors";
-import { Process, type CommandError } from "./process";
+} from "./model";
 
 function toGitError(error: CommandError) {
   return new GitError({ message: error.message });

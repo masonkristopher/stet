@@ -1,6 +1,6 @@
 import type { SyntaxStyle } from "@opentui/core";
 
-import type { ChangeKind, StageState } from "../git";
+import type { ChangeKind, StageState } from "../git/model";
 
 export type SyntaxCaptureStyles = Parameters<typeof SyntaxStyle.fromStyles>[0];
 

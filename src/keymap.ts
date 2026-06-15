@@ -1,13 +1,13 @@
 import type { KeyEvent } from "@opentui/core";
 import { batch } from "solid-js";
 
-import { latestActivity } from "./activity";
 import { nextScope, scopeLabel } from "./cli";
-import { formatCopyReference } from "./copy-reference";
-import type { Worktree } from "./git";
-import { lineReference } from "./patch";
+import { formatCopyReference } from "./clipboard/reference";
+import { latestActivity } from "./git/activity";
+import type { Worktree } from "./git/model";
+import { lineReference } from "./git/patch";
+import { firstFileInNode } from "./git/tree";
 import { state } from "./state";
-import { firstFileInNode } from "./tree";
 import { nextFindingPath, orderedFindingPaths } from "./ui-helpers";
 
 interface KeyHandlerCtx {

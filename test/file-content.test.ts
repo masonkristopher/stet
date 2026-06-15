@@ -9,8 +9,8 @@ import {
   loadFileContent,
   MAX_FILE_LINES,
   textContent,
-} from "../src/file-view";
-import { parsePatch } from "../src/patch";
+} from "../src/file/content";
+import { parsePatch } from "../src/git/patch";
 
 describe("textContent", () => {
   test("normalizes the trailing newline and counts lines", () => {

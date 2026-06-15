@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { fuzzyMatch, rankFiles } from "../src/fuzzy";
+import { fuzzyMatch, rankFiles } from "../src/utils/fuzzy";
 
 const noContext = {
   changed: new Set<string>(),

@@ -1,10 +1,10 @@
 import { createMemo } from "solid-js";
 
-import { recencyLevel, type RecencyLevel } from "../activity";
-import { checkerSummary, directorySummary } from "../diagnostics";
+import { checkerSummary, directorySummary } from "../diagnostics/checker";
+import { recencyLevel, type RecencyLevel } from "../git/activity";
+import type { DirectoryNode, FileTreeRow } from "../git/tree";
 import { state } from "../state";
 import { useTheme } from "../theme/context";
-import type { DirectoryNode, FileTreeRow } from "../tree";
 import { kindLetter } from "../ui-helpers";
 import { fileIcon, folderIcon } from "../utils/file-icon";
 import { truncate, truncateName } from "../utils/text";

@@ -2,7 +2,7 @@ import { afterEach, expect, test } from "bun:test";
 
 import { batch } from "solid-js";
 
-import type { GitModel } from "../src/git";
+import type { GitModel } from "../src/git/model";
 import { state } from "../src/state";
 
 function modelWith(paths: string[]): GitModel {

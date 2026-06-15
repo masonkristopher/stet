@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import type { ChangedFile, RepoFile } from "../src/git";
+import type { ChangedFile, RepoFile } from "../src/git/model";
 import {
   buildFileTree,
   defaultExpandedDirectories,
@@ -8,7 +8,7 @@ import {
   findRowIndexForPath,
   firstFileInNode,
   flattenTree,
-} from "../src/tree";
+} from "../src/git/tree";
 
 function changed(path: string, overrides: Partial<ChangedFile> = {}): ChangedFile {
   return {

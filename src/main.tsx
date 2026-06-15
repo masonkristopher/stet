@@ -7,16 +7,16 @@ import { batch } from "solid-js";
 import packageJson from "../package.json";
 import { App } from "./App";
 import { helpText, parseArgs } from "./cli";
-import { initialCheckerState } from "./diagnostics";
-import type { GitModel } from "./git";
+import { initialCheckerState } from "./diagnostics/checker";
+import type { GitModel } from "./git/model";
+import { Git } from "./git/service";
+import { defaultExpandedDirectories, expandAncestorsForPath } from "./git/tree";
+import { Process } from "./process";
 import { runtime } from "./runtime";
-import { Git } from "./services/git";
-import { Process } from "./services/process";
 import { state } from "./state";
-import { createSyntaxConfig } from "./syntax";
+import { createSyntaxConfig } from "./syntax/highlight";
 import { darkTheme } from "./theme/dark";
 import { resolveTheme } from "./theme/resolve";
-import { defaultExpandedDirectories, expandAncestorsForPath } from "./tree";
 
 try {
   const options = parseArgs(Bun.argv.slice(2));

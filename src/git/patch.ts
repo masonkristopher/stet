@@ -1,4 +1,4 @@
-import type { CopyReferencePayload } from "./copy-reference";
+import type { CopyReferencePayload } from "../clipboard/reference";
 
 export interface ParsedDiffLine {
   type: "context" | "add" | "remove";

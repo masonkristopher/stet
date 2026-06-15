@@ -8,7 +8,7 @@ import {
   recencyLevel,
   recordActivity,
   RECENT_MS,
-} from "../src/activity";
+} from "../src/git/activity";
 
 describe("recordActivity", () => {
   test("returns the same log when nothing changed", () => {

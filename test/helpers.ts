@@ -7,14 +7,18 @@ import { Effect, Layer } from "effect";
 import { batch } from "solid-js";
 
 import type { DiffScope } from "../src/cli";
-import { initialCheckerState } from "../src/diagnostics";
-import type { ChangedFile, GitModel } from "../src/git";
-import { File, FileLive } from "../src/services/file";
-import { Git, GitLive } from "../src/services/git";
-import { ProcessLive } from "../src/services/process";
+import { initialCheckerState } from "../src/diagnostics/checker";
+import { File, FileLive } from "../src/file/service";
+import type { ChangedFile, GitModel } from "../src/git/model";
+import { Git, GitLive } from "../src/git/service";
+import {
+  defaultExpandedDirectories,
+  expandAncestorsForPath,
+  type FileTreeRow,
+} from "../src/git/tree";
+import { ProcessLive } from "../src/process";
 import { state } from "../src/state";
-import type { SyntaxConfig } from "../src/syntax";
-import { defaultExpandedDirectories, expandAncestorsForPath, type FileTreeRow } from "../src/tree";
+import type { SyntaxConfig } from "../src/syntax/highlight";
 
 export const disabledSyntax: SyntaxConfig = { enabled: false, status: "syntax disabled for tests" };
 

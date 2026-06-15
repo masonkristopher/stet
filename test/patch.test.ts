@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { lineReference, parsePatch, renderPatch } from "../src/patch";
+import { lineReference, parsePatch, renderPatch } from "../src/git/patch";
 
 const diff = `diff --git a/src/a.ts b/src/a.ts
 --- a/src/a.ts

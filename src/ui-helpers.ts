@@ -1,7 +1,7 @@
-import type { Diagnostic } from "./diagnostics";
-import type { FileContent } from "./file-view";
-import type { ChangedFile, Worktree } from "./git";
-import type { ParsedDiffLine } from "./patch";
+import type { Diagnostic } from "./diagnostics/checker";
+import type { FileContent } from "./file/content";
+import type { ChangedFile, Worktree } from "./git/model";
+import type { ParsedDiffLine } from "./git/patch";
 
 export function viewerTitle(
   selectedPath: string | undefined,

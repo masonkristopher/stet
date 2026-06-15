@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { formatCopyReference } from "../src/copy-reference";
+import { formatCopyReference } from "../src/clipboard/reference";
 
 describe("copy reference formatting", () => {
   test("formats path-only fallback", () => {

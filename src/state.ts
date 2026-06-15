@@ -1,16 +1,8 @@
 import { Effect, Stream } from "effect";
 import { batch, createEffect, createMemo, createRoot, createSignal, onCleanup } from "solid-js";
 
-import {
-  emptyActivityLog,
-  lastChangedAt,
-  latestActivity,
-  RECENT_MS,
-  recordActivity,
-  type ActivityEventKind,
-  type ActivityLog,
-} from "./activity";
 import type { DiffScope } from "./cli";
+import { Clipboard } from "./clipboard/service";
 import { PROBLEMS_HEIGHT } from "./constants";
 import {
   allFindings,
@@ -22,18 +14,26 @@ import {
   type CheckerName,
   type CheckerState,
   type Diagnostic,
-} from "./diagnostics";
-import { contentToContextPatch, type FileContent } from "./file-view";
-import { rankFiles } from "./fuzzy";
-import { mergeChanged, type ChangedFile, type GitModel, type Worktree } from "./git";
-import { renderPatch } from "./patch";
+} from "./diagnostics/checker";
+import { Diagnostics } from "./diagnostics/service";
+import { contentToContextPatch, type FileContent } from "./file/content";
+import { File } from "./file/service";
+import {
+  emptyActivityLog,
+  lastChangedAt,
+  latestActivity,
+  RECENT_MS,
+  recordActivity,
+  type ActivityEventKind,
+  type ActivityLog,
+} from "./git/activity";
+import { mergeChanged, type ChangedFile, type GitModel, type Worktree } from "./git/model";
+import { renderPatch } from "./git/patch";
+import { Git } from "./git/service";
+import { buildFileTree, expandAncestorsForPath, flattenTree } from "./git/tree";
 import { runtime } from "./runtime";
-import { Clipboard } from "./services/clipboard";
-import { Diagnostics } from "./services/diagnostics";
-import { File } from "./services/file";
-import { Git } from "./services/git";
-import type { SyntaxConfig } from "./syntax";
-import { buildFileTree, expandAncestorsForPath, flattenTree } from "./tree";
+import type { SyntaxConfig } from "./syntax/highlight";
+import { rankFiles } from "./utils/fuzzy";
 import { truncate } from "./utils/text";
 
 interface JumpTarget {

@@ -3,7 +3,7 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { DiffRenderable, type RGBA } from "@opentui/core";
 import { createTestRenderer } from "@opentui/core/testing";
 
-import { createSyntaxConfig, diffFiletypeFor } from "../src/syntax";
+import { createSyntaxConfig, diffFiletypeFor } from "../src/syntax/highlight";
 import { darkTheme } from "../src/theme/dark";
 
 function toDiff(path: string, lines: string[]) {

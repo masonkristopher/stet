@@ -30,6 +30,7 @@ import {
 } from "./git/activity";
 import { mergeChanged, type ChangedFile, type GitModel, type Worktree } from "./git/model";
 import { renderPatch } from "./git/patch";
+import type { SearchMatch } from "./git/search";
 import { Git } from "./git/service";
 import { buildFileTree, expandAncestorsForPath, flattenTree } from "./git/tree";
 import { runtime } from "./runtime";
@@ -59,6 +60,10 @@ interface DiffView {
   fileContent: FileContent | undefined;
   diff: string;
 }
+
+// Bounds the search result list so a broad query in a large repo can't flood the
+// Panel; hitting the cap sets `searchTruncated`, surfaced as a trailing "+".
+const SEARCH_RESULT_CAP = 500;
 
 const emptyModel: GitModel = {
   changed: [],
@@ -147,6 +152,12 @@ function createState() {
   const [paletteOpen, setPaletteOpen] = createSignal(false);
   const [paletteQuery, setPaletteQuery] = createSignal("");
   const [paletteIndex, setPaletteIndex] = createSignal(0);
+  const [searchOpen, setSearchOpen] = createSignal(false);
+  const [searchQuery, setSearchQuery] = createSignal("");
+  const [searchIndex, setSearchIndex] = createSignal(0);
+  const [searchScope, setSearchScope] = createSignal<"changed" | "repo">("changed");
+  const [searchResults, setSearchResults] = createSignal<SearchMatch[]>([]);
+  const [searchTruncated, setSearchTruncated] = createSignal(false);
   const [findOpen, setFindOpen] = createSignal(false);
   const [findActive, setFindActive] = createSignal(false);
   const [findQuery, setFindQuery] = createSignal("");
@@ -265,6 +276,63 @@ function createState() {
       .then(setDiffView)
       .catch(() => {});
     onCleanup(() => controller.abort());
+  });
+
+  // Project content search: debounced git grep over the changed set (honoring the
+  // Active scope, since `changed` already reflects it) or the whole repo. Holds
+  // The previous results until the new query resolves; cleanup aborts the prior
+  // Grep and cancels a not-yet-fired keystroke, the same restart-on-rekey pattern
+  // As the diff pipeline.
+  const SEARCH_DEBOUNCE_MS = 120;
+  createEffect(() => {
+    const query = searchQuery();
+    const paths =
+      searchScope() === "changed" ? gitModel().changed.map((file) => file.path) : undefined;
+    const root = repoRoot();
+    if (
+      !searchOpen() ||
+      query === "" ||
+      root === "" ||
+      (paths !== undefined && paths.length === 0)
+    ) {
+      batch(() => {
+        setSearchResults([]);
+        setSearchTruncated(false);
+      });
+      return;
+    }
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      runtime
+        .runPromise(Git.pipe(Effect.flatMap((git) => git.search(root, query, paths))), {
+          signal: controller.signal,
+        })
+        // Drop a superseded query's results: a search can resolve just as a newer
+        // Keystroke aborts its controller, so guard the write the same way.
+        .then((matches) => {
+          if (controller.signal.aborted) {
+            return;
+          }
+          batch(() => {
+            setSearchResults(matches.slice(0, SEARCH_RESULT_CAP));
+            setSearchTruncated(matches.length > SEARCH_RESULT_CAP);
+          });
+        })
+        // A genuine grep failure clears stale results; our own cancellation (the
+        // Aborted controller on re-query) must leave the prior results in place.
+        .catch(() => {
+          if (!controller.signal.aborted) {
+            batch(() => {
+              setSearchResults([]);
+              setSearchTruncated(false);
+            });
+          }
+        });
+    }, SEARCH_DEBOUNCE_MS);
+    onCleanup(() => {
+      clearTimeout(timer);
+      controller.abort();
+    });
   });
 
   const renderedPatch = createMemo(() => {
@@ -662,6 +730,12 @@ function createState() {
     resetFind,
     runChecks,
     scope,
+    searchIndex,
+    searchOpen,
+    searchQuery,
+    searchResults,
+    searchScope,
+    searchTruncated,
     selectFile,
     selectedFile,
     selectedPath,
@@ -691,6 +765,10 @@ function createState() {
     setProblemsOpen,
     setRepoRoot,
     setScope,
+    setSearchIndex,
+    setSearchOpen,
+    setSearchQuery,
+    setSearchScope,
     setSelectedPath,
     setSidebarOpen,
     setStatus,

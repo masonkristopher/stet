@@ -102,6 +102,10 @@ export function seedState(model: GitModel, scope: DiffScope) {
     state.setHelpOpen(false);
     state.setCursorIndex(0);
     state.setJumpTarget(undefined);
+    state.setSearchOpen(false);
+    state.setSearchQuery("");
+    state.setSearchIndex(0);
+    state.setSearchScope("changed");
   });
 }
 

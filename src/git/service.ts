@@ -15,6 +15,7 @@ import {
   type GitModel,
   type Worktree,
 } from "./model";
+import { parseSearchOutput, searchArgs, type SearchMatch } from "./search";
 
 function toGitError(error: CommandError) {
   return new GitError({ message: error.message });
@@ -47,6 +48,11 @@ export class Git extends Context.Service<
     readonly repoFiles: (
       repoRoot: string,
     ) => Effect.Effect<Pick<GitModel, "repoFiles" | "repoFilesKey">, GitError>;
+    readonly search: (
+      repoRoot: string,
+      query: string,
+      paths: readonly string[] | undefined,
+    ) => Effect.Effect<SearchMatch[], GitError>;
     readonly worktrees: (repoRoot: string) => Effect.Effect<Worktree[], GitError>;
   }
 >()("sideye/Git") {}
@@ -141,6 +147,13 @@ export const GitLive = Layer.effect(
               repoFilesKey,
             };
           }),
+          Effect.mapError(toGitError),
+        ),
+      // Git grep exits 1 when nothing matches, which is a normal empty result.
+      search: (repoRoot, query, paths) =>
+        process.run(searchArgs(query, paths), repoRoot, { allowedExitCodes: [0, 1] }).pipe(
+          retryTransient,
+          Effect.map((result) => parseSearchOutput(result.stdout)),
           Effect.mapError(toGitError),
         ),
       worktrees: (repoRoot) =>

@@ -79,6 +79,24 @@ export function createKeyHandler(ctx: KeyHandlerCtx) {
         return;
       }
 
+      // The search panel owns the keyboard while open: nav + scope toggle here,
+      // Text and submit (the jump) are the input element's job (like the palette).
+      if (state.searchOpen()) {
+        if (key.name === "escape") {
+          state.setSearchOpen(false);
+        } else if (key.name === "down" || (key.ctrl && key.name === "n")) {
+          state.setSearchIndex(
+            Math.min(state.searchIndex() + 1, Math.max(0, state.searchResults().length - 1)),
+          );
+        } else if (key.name === "up" || (key.ctrl && key.name === "p")) {
+          state.setSearchIndex(Math.max(state.searchIndex() - 1, 0));
+        } else if (key.ctrl && key.name === "a") {
+          state.setSearchScope(state.searchScope() === "changed" ? "repo" : "changed");
+          state.setSearchIndex(0);
+        }
+        return;
+      }
+
       // The find bar owns the keyboard while open: only escape cancels it; text
       // And submit are the input element's job (same split as the palette).
       if (state.findOpen()) {
@@ -109,6 +127,13 @@ export function createKeyHandler(ctx: KeyHandlerCtx) {
         state.setPaletteOpen(true);
         state.setPaletteQuery("");
         state.setPaletteIndex(0);
+        return;
+      }
+
+      if (key.ctrl && key.name === "f") {
+        state.setSearchOpen(true);
+        state.setSearchQuery("");
+        state.setSearchIndex(0);
         return;
       }
 

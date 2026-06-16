@@ -11,6 +11,7 @@ const KEY_HELP: [combo: string, action: string][] = [
   ["enter", "open the focused item / jump to a problem"],
   ["ctrl-p", "go to file: fuzzy-search the whole repo"],
   ["/", "find in the viewer; n/N cycle matches, esc clears"],
+  ["ctrl-f", "search file contents; ctrl-a toggles changes/repo"],
   ["s", "cycle scope: all changes → staged → unstaged"],
   ["w", "switch to another git worktree"],
   ["c", "toggle changes-only filter for the tree"],

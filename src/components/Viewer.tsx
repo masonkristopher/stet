@@ -47,6 +47,17 @@ export function Viewer() {
     if (jump === undefined || jump.path !== state.selectedPath()) {
       return;
     }
+    // Only resolve once the loaded snapshot matches the current target AND view
+    // Intent. `selectedPath`/`fileView` update synchronously, but `diffView`
+    // (which feeds `navigableLines`) loads async; acting on a stale snapshot
+    // Consumes the jump against the wrong content and never lands on the line.
+    // The `showFileContent` check is what makes escalation work: after the jump
+    // Flips to file view, it waits for the full content instead of clearing
+    // Itself against the still-loaded diff.
+    const view = state.diffView();
+    if (view?.path !== jump.path || view.showFileContent !== state.showFileContent()) {
+      return;
+    }
     const lines = state.navigableLines();
     const index = lines.findIndex((line) => line.newLine === jump.line);
     if (index !== -1) {

@@ -34,6 +34,12 @@ Poll git and refresh the tree, diff, and file content while the user watches. Pr
 - Binary, missing, and oversized files render explicit placeholders, never raw bytes. `f` loads full content when truncated.
 - `/` opens an in-buffer find over the rendered lines: smart-case substring match (case-insensitive unless the query has an uppercase char), `n`/`N` cycle, `esc` clears, and a file switch ends it. Matches are highlighted at the line level; the diff renderable exposes only per-line colors, so substring-range highlighting is out of scope until OpenTUI offers it.
 
+## Content search
+
+- `ctrl-f` opens a project content search backed by `git grep` (literal `-F`, smart-case, `-I` to skip binary, `--untracked` so it covers the tree's universe). It searches working-tree file content, not diffs.
+- Scope defaults to the changed set (pathspec-limited to `git status`'s changed files, so it follows the active all/staged/unstaged scope); `ctrl-a` toggles between the changed set and the whole repo. Results group by file; `enter` routes through the same `jumpTarget` path as problems navigation, landing on the line and escalating to full-file view when the line is outside the diff.
+- The query is debounced and runs through the interruptible `Process` service, holding the previous results until the new ones resolve. Results are capped to keep the panel bounded; hitting the cap is surfaced as a trailing `+` on the count.
+
 ## Recency
 
 Recency markers come from an append-only in-memory activity event log (the seam for a future persistence layer). They decay silently: fresh under 5s, recent under 30s. `.` jumps to the latest activity. A scope switch is not activity.

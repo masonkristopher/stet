@@ -7,6 +7,7 @@ import { HeaderBar } from "./components/HeaderBar";
 import { HelpOverlay } from "./components/HelpOverlay";
 import { Palette } from "./components/Palette";
 import { ProblemsPanel } from "./components/ProblemsPanel";
+import { SearchPanel } from "./components/SearchPanel";
 import { Sidebar } from "./components/Sidebar";
 import { StatusBar } from "./components/StatusBar";
 import { Viewer } from "./components/Viewer";
@@ -96,6 +97,9 @@ export function App() {
       <StatusBar />
       <Show when={state.paletteOpen()}>
         <Palette />
+      </Show>
+      <Show when={state.searchOpen()}>
+        <SearchPanel />
       </Show>
       <Show when={state.worktreeOpen()}>
         <WorktreePicker />

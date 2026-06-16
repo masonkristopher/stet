@@ -133,6 +133,7 @@ Problems:
 
 Anywhere:
   ctrl-p     open the go-to-file palette (type to fuzzy-search, enter jumps)
+  ctrl-f     search file contents (ctrl-a toggles changes/repo, enter jumps)
   s          cycle scope: all changes -> staged -> unstaged
   c          toggle changes-only filter for the tree
   v          toggle diff <-> full file view

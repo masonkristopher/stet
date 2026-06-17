@@ -129,6 +129,8 @@ repo's own, then your `PATH`), so diagnostics work out of the box. Pass
 | `v`         | toggle diff <-> full file view for a changed file |
 | `p`         | toggle the problems panel                         |
 | `b`         | toggle the file tree sidebar                      |
+| `[` / `]`   | shrink / grow the sidebar (shrink past min hides) |
+| `\`         | reset the sidebar to its default width            |
 | `.`         | jump to the most recently changed file            |
 | `n`         | jump to the next file with findings               |
 | `y`         | copy `path:line` + snippet at the cursor          |

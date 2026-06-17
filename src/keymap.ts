@@ -177,11 +177,22 @@ export function createKeyHandler(ctx: KeyHandlerCtx) {
       }
 
       if (key.name === "b") {
-        const open = state.sidebarOpen();
-        if (open && state.focusedPane() === "tree") {
-          state.setFocusedPane("diff");
+        if (state.sidebarOpen()) {
+          state.collapseSidebar();
+        } else {
+          state.setSidebarOpen(true);
         }
-        state.setSidebarOpen(!open);
+        return;
+      }
+
+      if (state.sidebarOpen() && (key.name === "]" || key.name === "[" || key.name === "\\")) {
+        if (key.name === "]") {
+          state.nudgeSidebarWidth(2);
+        } else if (key.name === "[") {
+          state.nudgeSidebarWidth(-2);
+        } else {
+          state.resetSidebarWidth();
+        }
         return;
       }
 

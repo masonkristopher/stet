@@ -3,7 +3,7 @@ import { batch, createEffect, createMemo, createRoot, createSignal, on, onCleanu
 
 import type { DiffScope } from "./cli";
 import { Clipboard } from "./clipboard/service";
-import { PROBLEMS_HEIGHT } from "./constants";
+import { PROBLEMS_HEIGHT, SIDEBAR_MIN_WIDTH, SIDEBAR_VIEWER_MIN } from "./constants";
 import {
   allFindings,
   checkerNames,
@@ -145,6 +145,7 @@ function createState() {
   const [focusedNodeId, setFocusedNodeId] = createSignal("");
   const [focusedPane, setFocusedPane] = createSignal<"tree" | "diff" | "problems">("tree");
   const [sidebarOpen, setSidebarOpen] = createSignal(true);
+  const [sidebarWidthOverride, setSidebarWidthOverride] = createSignal<number | null>(null);
   const [problemsOpen, setProblemsOpen] = createSignal(false);
   const [problemIndex, setProblemIndex] = createSignal(0);
   const [paletteOpen, setPaletteOpen] = createSignal(false);
@@ -382,9 +383,39 @@ function createState() {
   const problemsHeight = createMemo(() => (problemsOpen() ? PROBLEMS_HEIGHT : 0));
   const paneHeight = createMemo(() => Math.max(1, terminalHeight() - 4 - problemsHeight()));
   const viewerHeight = createMemo(() => Math.max(1, paneHeight() - 1));
-  const sidebarWidth = createMemo(() =>
-    sidebarOpen() ? Math.max(34, Math.min(54, Math.floor(terminalWidth() * 0.34))) : 0,
-  );
+  // A manual width is stored raw and only clamped here, so it never overflows a
+  // Shrunken terminal yet is restored intact when the terminal grows back. The
+  // Responsive default and a manual override share the same clamp, so the
+  // Viewer-preserving max holds in both cases.
+  const sidebarMax = () => Math.max(SIDEBAR_MIN_WIDTH, terminalWidth() - SIDEBAR_VIEWER_MIN);
+  const sidebarWidth = createMemo(() => {
+    if (!sidebarOpen()) {
+      return 0;
+    }
+    const responsive = Math.max(34, Math.min(54, Math.floor(terminalWidth() * 0.34)));
+    const desired = sidebarWidthOverride() ?? responsive;
+    return Math.max(SIDEBAR_MIN_WIDTH, Math.min(desired, sidebarMax()));
+  });
+  // Closing the sidebar moves focus off the now-hidden tree so keys still land
+  // Somewhere; the `b` toggle and a shrink-past-minimum share this one path.
+  const collapseSidebar = () => {
+    if (focusedPane() === "tree") {
+      setFocusedPane("diff");
+    }
+    setSidebarOpen(false);
+  };
+  // Nudges seed from the current rendered width on first use so the step is
+  // Relative to what's on screen, not a stale override. Shrinking past the
+  // Minimum collapses the sidebar rather than clamping, like an IDE pane.
+  const nudgeSidebarWidth = (delta: number) => {
+    const next = (sidebarWidthOverride() ?? sidebarWidth()) + delta;
+    if (next < SIDEBAR_MIN_WIDTH) {
+      collapseSidebar();
+      return;
+    }
+    setSidebarWidthOverride(next);
+  };
+  const resetSidebarWidth = () => setSidebarWidthOverride(null);
   const paletteWidth = createMemo(() => Math.max(30, Math.min(70, terminalWidth() - 8)));
   const paletteLeft = createMemo(() =>
     Math.max(0, Math.floor((terminalWidth() - paletteWidth()) / 2)),
@@ -681,6 +712,7 @@ function createState() {
     changesOnly,
     checkerState,
     checksRunning,
+    collapseSidebar,
     copy,
     counts,
     countsText,
@@ -709,6 +741,7 @@ function createState() {
     moveFocus,
     navigableLines,
     now,
+    nudgeSidebarWidth,
     paletteIndex,
     paletteLeft,
     paletteOpen,
@@ -723,6 +756,7 @@ function createState() {
     renderedPatch,
     repoRoot,
     resetFind,
+    resetSidebarWidth,
     runChecks,
     scope,
     searchIndex,

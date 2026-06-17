@@ -18,6 +18,7 @@ const KEY_HELP: [combo: string, action: string][] = [
   ["v", "toggle diff ↔ full file view for a changed file"],
   ["p", "toggle the problems panel"],
   ["b", "toggle the file tree sidebar"],
+  ["[ / ] / \\", "shrink (collapses past min) / grow / reset sidebar"],
   [".", "jump to the most recently changed file"],
   ["n", "jump to the next file with findings"],
   ["y", "copy path:line + snippet at the cursor"],

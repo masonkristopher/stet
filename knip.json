@@ -3,5 +3,5 @@
   "tags": ["-lintignore"],
   "entry": ["script/sideye-launcher.cjs", "test/**/*.{ts,tsx}"],
   "project": ["src/**/*.{ts,tsx}", "test/**/*.{ts,tsx}", "script/**/*.{ts,cjs}"],
-  "ignoreBinaries": ["dist/", "tar"]
+  "ignoreBinaries": ["dist/"]
 }

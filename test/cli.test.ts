@@ -27,6 +27,14 @@ describe("parseArgs", () => {
     expect(parseArgs(["--no-icons"]).icons).toBe(false);
   });
 
+  test("overflows long lines by default", () => {
+    expect(parseArgs([]).overflow).toBe("scroll");
+  });
+
+  test("wraps long lines with --wrap", () => {
+    expect(parseArgs(["--wrap"]).overflow).toBe("wrap");
+  });
+
   test("rejects unknown options", () => {
     expect(() => parseArgs(["--nope"])).toThrow("Unknown option: --nope");
   });

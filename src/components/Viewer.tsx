@@ -308,7 +308,7 @@ export function Viewer() {
           syntaxStyle={syntaxStyle()}
           treeSitterClient={treeSitterClient()}
           showLineNumbers
-          wrapMode="none"
+          wrapMode={state.overflow() === "wrap" ? "word" : "none"}
           addedBg={theme.colors.diff.addedBg}
           removedBg={theme.colors.diff.removedBg}
           addedLineNumberBg={theme.colors.diff.addedLineNumberBg}

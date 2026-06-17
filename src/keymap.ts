@@ -224,6 +224,13 @@ export function createKeyHandler(ctx: KeyHandlerCtx) {
         return;
       }
 
+      if (key.name === "z") {
+        const wrapping = state.overflow() === "wrap";
+        state.setOverflow(wrapping ? "scroll" : "wrap");
+        state.setStatus(wrapping ? "long lines: scroll" : "long lines: wrap");
+        return;
+      }
+
       if (key.name === ".") {
         const latest = latestActivity(state.activityLog());
         if (latest !== undefined) {

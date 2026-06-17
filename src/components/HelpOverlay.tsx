@@ -16,6 +16,7 @@ const KEY_HELP: [combo: string, action: string][] = [
   ["w", "switch to another git worktree"],
   ["c", "toggle changes-only filter for the tree"],
   ["v", "toggle diff ↔ full file view for a changed file"],
+  ["z", "toggle long-line wrap in the viewer"],
   ["p", "toggle the problems panel"],
   ["b", "toggle the file tree sidebar"],
   ["[ / ] / \\", "shrink (collapses past min) / grow / reset sidebar"],

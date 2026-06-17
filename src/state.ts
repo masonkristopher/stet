@@ -139,6 +139,7 @@ function createState() {
   // --- writable primitives ---
   const [scope, setScope] = createSignal<DiffScope>({ kind: "all", ref: "HEAD" });
   const [iconsEnabled, setIconsEnabled] = createSignal(true);
+  const [overflow, setOverflow] = createSignal<"scroll" | "wrap">("scroll");
   const [changesOnly, setChangesOnly] = createSignal(false);
   const [selectedPath, setSelectedPath] = createSignal<string | undefined>(undefined);
   const [expandedDirectories, setExpandedDirectories] = createSignal(new Set<string>());
@@ -772,6 +773,7 @@ function createState() {
     navigableLines,
     now,
     nudgeSidebarWidth,
+    overflow,
     paletteIndex,
     paletteLeft,
     paletteOpen,
@@ -817,6 +819,7 @@ function createState() {
     setJumpTarget,
     setLastChange,
     setNow,
+    setOverflow,
     setPaletteIndex,
     setPaletteOpen,
     setPaletteQuery,

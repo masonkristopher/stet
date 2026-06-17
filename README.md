@@ -63,6 +63,7 @@ sideye main       # compare against another ref
 sideye --staged   # start in the staged scope
 sideye --unstaged # start in the unstaged scope
 sideye --no-icons # plain tree without Nerd Font file-type icons
+sideye --wrap     # wrap long lines in the viewer instead of overflowing
 ```
 
 The tree shows a file-type icon next to each file and a folder glyph for each
@@ -127,6 +128,7 @@ repo's own, then your `PATH`), so diagnostics work out of the box. Pass
 | `w`         | switch to another git worktree                    |
 | `c`         | toggle changes-only filter for the tree           |
 | `v`         | toggle diff <-> full file view for a changed file |
+| `z`         | toggle long-line wrap in the viewer               |
 | `p`         | toggle the problems panel                         |
 | `b`         | toggle the file tree sidebar                      |
 | `[` / `]`   | shrink / grow the sidebar (shrink past min hides) |

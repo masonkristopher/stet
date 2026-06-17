@@ -70,6 +70,7 @@ try {
     state.setStatus(syntax.status);
     state.setScope(options.scope);
     state.setIconsEnabled(options.icons);
+    state.setOverflow(options.overflow);
     state.setGitModel(model);
     state.setRepoRoot(model.repoRoot);
     state.setLastChange(Date.now());

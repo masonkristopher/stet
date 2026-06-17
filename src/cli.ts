@@ -11,6 +11,8 @@ export interface CliOptions {
   version: boolean;
   icons: boolean;
   lspDownload: boolean;
+  /** Long line handling: `scroll` (default) or `wrap`. */
+  overflow: "scroll" | "wrap";
 }
 
 export function parseArgs(args: string[]): CliOptions {
@@ -19,6 +21,7 @@ export function parseArgs(args: string[]): CliOptions {
   let version = false;
   let icons = true;
   let lspDownload = true;
+  let overflow: "scroll" | "wrap" = "scroll";
   let ref: string | undefined;
 
   for (const arg of args) {
@@ -29,6 +32,11 @@ export function parseArgs(args: string[]): CliOptions {
 
     if (arg === "--no-lsp-download") {
       lspDownload = false;
+      continue;
+    }
+
+    if (arg === "--wrap") {
+      overflow = "wrap";
       continue;
     }
 
@@ -67,6 +75,7 @@ export function parseArgs(args: string[]): CliOptions {
     help,
     icons,
     lspDownload,
+    overflow,
     scope: { kind, ref: ref ?? "HEAD" },
     version,
   };
@@ -106,6 +115,7 @@ Usage:
   sideye --unstaged
   sideye --no-icons        (disable Nerd Font file-type icons in the tree)
   sideye --no-lsp-download (do not auto-download a missing language server)
+  sideye --wrap            (wrap long lines in the viewer instead of overflowing)
 
 Keys:
   tab        switch focus between the file tree and the viewer
@@ -137,6 +147,7 @@ Anywhere:
   s          cycle scope: all changes -> staged -> unstaged
   c          toggle changes-only filter for the tree
   v          toggle diff <-> full file view
+  z          toggle long-line wrap in the viewer
   p          toggle the problems panel
   .          jump to the most recently changed file
   f          load full content when truncated

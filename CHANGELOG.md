@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.4](https://github.com/jimmy-guzman/sideye/compare/sideye-v0.2.3...sideye-v0.2.4) (2026-06-17)
+
+
+### Features
+
+* **viewer:** ✨ toggleable word wrap for long lines ([#69](https://github.com/jimmy-guzman/sideye/issues/69)) ([03c240a](https://github.com/jimmy-guzman/sideye/commit/03c240a48369d762e48e0eab71da2f7bf3505c82))
+
 ## [0.2.3](https://github.com/jimmy-guzman/sideye/compare/sideye-v0.2.2...sideye-v0.2.3) (2026-06-17)
 
 

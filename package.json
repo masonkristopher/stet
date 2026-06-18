@@ -1,6 +1,6 @@
 {
   "name": "sideye",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "private": true,
   "description": "Read-only companion TUI for CLI coding agents",
   "license": "MIT",

@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.5](https://github.com/jimmy-guzman/sideye/compare/sideye-v0.2.4...sideye-v0.2.5) (2026-06-20)
+
+
+### Features
+
+* **worktree:** ✨ recover when the active worktree is deleted ([#72](https://github.com/jimmy-guzman/sideye/issues/72)) ([394cdd1](https://github.com/jimmy-guzman/sideye/commit/394cdd10ef01c8aa340eccc17deb26b48b145180))
+
+
+### Bug Fixes
+
+* **git:** 🐛 force canonical a//b/ diff prefixes ([#74](https://github.com/jimmy-guzman/sideye/issues/74)) ([a555b34](https://github.com/jimmy-guzman/sideye/commit/a555b34c29afc8e52724b62f98ba4ed0cc113ec3))
+
 ## [0.2.4](https://github.com/jimmy-guzman/sideye/compare/sideye-v0.2.3...sideye-v0.2.4) (2026-06-17)
 
 

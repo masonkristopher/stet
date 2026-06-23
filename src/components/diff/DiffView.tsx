@@ -271,7 +271,7 @@ export function DiffView() {
       onMouseScroll={onWheel}
       scrollbarOptions={{
         trackOptions: {
-          backgroundColor: theme.colors.scrollbar.track,
+          backgroundColor: theme.rgba.transparent,
           foregroundColor: theme.colors.scrollbar.thumb,
         },
         visible: false,

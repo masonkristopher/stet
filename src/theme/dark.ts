@@ -29,7 +29,7 @@ export const darkTheme: Theme = {
     untracked: "#a6e3a1",
   },
   recency: { aged: "#6c7086", fresh: "#f5c2e7" },
-  scrollbar: { thumb: "#585b70", track: "#181825" },
+  scrollbar: { thumb: "#585b70" },
   severity: {
     error: "#f38ba8",
     errorGutterBg: "#5a3d50",

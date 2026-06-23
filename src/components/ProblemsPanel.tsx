@@ -35,7 +35,7 @@ export function ProblemsPanel() {
         viewportCulling
         scrollbarOptions={{
           trackOptions: {
-            backgroundColor: theme.colors.scrollbar.track,
+            backgroundColor: theme.rgba.transparent,
             foregroundColor: theme.colors.scrollbar.thumb,
           },
         }}

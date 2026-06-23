@@ -18,7 +18,9 @@ export interface Theme {
   kind: Record<ChangeKind, string>;
   // Recency dot ramps fresh -> aged across an activity's lifetime, then vanishes.
   recency: { fresh: string; aged: string };
-  scrollbar: { thumb: string; track: string };
+  // Only the thumb is themed; the track stays transparent so it inherits
+  // Whatever surface it scrolls over (rgba.transparent at the call sites).
+  scrollbar: { thumb: string };
   severity: {
     error: string;
     errorGutterBg: string;

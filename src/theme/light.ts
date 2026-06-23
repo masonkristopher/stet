@@ -26,7 +26,7 @@ export const lightTheme: Theme = {
     untracked: "#40a02b",
   },
   recency: { aged: "#9ca0b0", fresh: "#ea76cb" },
-  scrollbar: { thumb: "#acb0be", track: "#e6e9ef" },
+  scrollbar: { thumb: "#acb0be" },
   severity: {
     error: "#d20f39",
     errorGutterBg: "#eac8d3",

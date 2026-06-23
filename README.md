@@ -24,7 +24,7 @@ problems. You decide what to say next.
   not ignored by git.
 - Marks changed files in place, with staged, unstaged, mixed, and untracked
   states.
-- Opens unchanged files read-only, with syntax highlighting.
+- Opens unchanged files read-only, with syntax highlighting for any language Shiki supports.
 - Opens changed files as diffs, with a toggle for the full file.
 - Finds text within the open file and cycles through the matches.
 - Searches file contents across the repo, scoped to the changes or the whole

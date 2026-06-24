@@ -14,7 +14,7 @@ export function HeaderBar() {
       justifyContent="space-between"
       paddingLeft={1}
       paddingRight={1}
-      backgroundColor={theme.colors.surface.panel}
+      backgroundColor={theme.colors.surface.base}
     >
       <box flexDirection="row">
         <text fg={theme.colors.text.strong}>sideye</text>

@@ -2,6 +2,7 @@ import {
   fg,
   StyledText,
   type MouseEvent,
+  type RGBA,
   type ScrollBoxRenderable,
   type TextRenderable,
 } from "@opentui/core";
@@ -223,38 +224,55 @@ export function DiffView() {
 
   const isCursor = (row: DiffLineRow) => row.navIndex === state.cursorIndex();
 
-  const gutterBackground = (row: DiffLineRow) => {
-    if (isCursor(row)) {
-      return theme.colors.surface.cursor;
+  // The gutter carries two orthogonal signals on separate channels: its background
+  // Is the diff state (add/remove), and its line-number digits take the diagnostic
+  // Severity color. They never fight, and a severity number only ever lands on a
+  // Green (added) or base (context) gutter since removed lines have no new-line number.
+  const findingsFor = (row: DiffLineRow) =>
+    row.newLine === undefined ? undefined : state.lineMap().get(row.newLine);
+
+  const gutterNumberColor = (row: DiffLineRow) => {
+    const findings = findingsFor(row);
+    if (findings === undefined) {
+      return theme.colors.diff.lineNumberFg;
     }
-    const findings = row.newLine === undefined ? undefined : state.lineMap().get(row.newLine);
-    if (findings !== undefined) {
-      return findings.some((finding) => finding.severity === "error")
-        ? theme.colors.severity.errorGutterBg
-        : findings.some((finding) => finding.severity === "warning")
-          ? theme.colors.severity.warningGutterBg
-          : theme.colors.severity.infoGutterBg;
+    return findings.some((finding) => finding.severity === "error")
+      ? theme.colors.severity.error
+      : findings.some((finding) => finding.severity === "warning")
+        ? theme.colors.severity.warning
+        : theme.colors.severity.info;
+  };
+
+  // Each line's background resolves in two steps: its diff state, then a cursor lift
+  // That brightens that state rather than replacing it, so a selected add/remove line
+  // Stays its own color; only a plain context line falls back to the neutral highlight.
+  const gutterState = (row: DiffLineRow) =>
+    row.type === "add"
+      ? { active: theme.rgba.addedLineNumberBgActive, normal: theme.colors.diff.addedLineNumberBg }
+      : row.type === "remove"
+        ? {
+            active: theme.rgba.removedLineNumberBgActive,
+            normal: theme.colors.diff.removedLineNumberBg,
+          }
+        : undefined;
+
+  const contentState = (row: DiffLineRow) => {
+    if (findMatchSet().has(row.navIndex)) {
+      return { active: theme.rgba.findMatchBgActive, normal: theme.colors.find.matchBg };
     }
     return row.type === "add"
-      ? theme.colors.diff.addedLineNumberBg
+      ? { active: theme.rgba.addedBgActive, normal: theme.colors.diff.addedBg }
       : row.type === "remove"
-        ? theme.colors.diff.removedLineNumberBg
+        ? { active: theme.rgba.removedBgActive, normal: theme.colors.diff.removedBg }
         : undefined;
   };
 
-  const contentBackground = (row: DiffLineRow) => {
-    if (isCursor(row)) {
-      return theme.colors.surface.cursor;
-    }
-    if (findMatchSet().has(row.navIndex)) {
-      return theme.colors.find.matchBg;
-    }
-    return row.type === "add"
-      ? theme.colors.diff.addedBg
-      : row.type === "remove"
-        ? theme.colors.diff.removedBg
-        : undefined;
-  };
+  const resolveBackground = (bg: { normal: string; active: RGBA } | undefined, cursor: boolean) =>
+    cursor ? (bg?.active ?? theme.colors.surface.cursor) : bg?.normal;
+
+  const gutterBackground = (row: DiffLineRow) => resolveBackground(gutterState(row), isCursor(row));
+  const contentBackground = (row: DiffLineRow) =>
+    resolveBackground(contentState(row), isCursor(row));
 
   const lineLabel = (row: DiffLineRow) =>
     String(row.newLine ?? row.oldLine ?? "").padStart(numberWidth());
@@ -292,7 +310,7 @@ export function DiffView() {
           >
             {(line) => (
               <box width="100%" flexDirection="row">
-                <text fg={theme.colors.diff.lineNumberFg} bg={gutterBackground(line())}>
+                <text fg={gutterNumberColor(line())} bg={gutterBackground(line())}>
                   {`${lineLabel(line())} `}
                 </text>
                 <box flexGrow={1} backgroundColor={contentBackground(line())}>

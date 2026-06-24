@@ -23,11 +23,8 @@ export interface Theme {
   scrollbar: { thumb: string };
   severity: {
     error: string;
-    errorGutterBg: string;
     warning: string;
-    warningGutterBg: string;
     info: string;
-    infoGutterBg: string;
   };
   stage: Record<StageState, string>;
   success: string;

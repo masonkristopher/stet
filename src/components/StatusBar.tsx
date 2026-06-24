@@ -19,7 +19,7 @@ export function StatusBar() {
       justifyContent="space-between"
       paddingLeft={1}
       paddingRight={1}
-      backgroundColor={theme.colors.surface.panel}
+      backgroundColor={theme.colors.surface.base}
     >
       <text fg={theme.colors.text.muted}>{hint()}</text>
       <text fg={theme.colors.text.secondary}>{state.statusRight()}</text>

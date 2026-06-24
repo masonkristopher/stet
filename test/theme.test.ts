@@ -49,16 +49,32 @@ describe("theme parity", () => {
 });
 
 describe("resolveTheme", () => {
-  test("precomputed RGBA values derive from their hex tokens", () => {
+  test("transparent is the zero RGBA singleton", () => {
     const resolved = resolveTheme(darkTheme);
 
     expect(resolved.colors).toBe(darkTheme);
-    expect(resolved.rgba.addedBg).toEqual(RGBA.fromHex(darkTheme.diff.addedBg));
-    expect(resolved.rgba.cursorBg).toEqual(RGBA.fromHex(darkTheme.surface.cursor));
-    expect(resolved.rgba.errorGutterBg).toEqual(RGBA.fromHex(darkTheme.severity.errorGutterBg));
-    expect(resolved.rgba.findMatchBg).toEqual(RGBA.fromHex(darkTheme.find.matchBg));
-    expect(resolved.rgba.removedBg).toEqual(RGBA.fromHex(darkTheme.diff.removedBg));
     expect(resolved.rgba.transparent).toEqual(RGBA.fromValues(0, 0, 0, 0));
-    expect(resolved.rgba.warningGutterBg).toEqual(RGBA.fromHex(darkTheme.severity.warningGutterBg));
+  });
+
+  test("each active variant brightens its base token and stays clamped", () => {
+    const resolved = resolveTheme(darkTheme);
+    const variants = [
+      [resolved.rgba.addedBgActive, darkTheme.diff.addedBg],
+      [resolved.rgba.addedLineNumberBgActive, darkTheme.diff.addedLineNumberBg],
+      [resolved.rgba.removedBgActive, darkTheme.diff.removedBg],
+      [resolved.rgba.removedLineNumberBgActive, darkTheme.diff.removedLineNumberBg],
+      [resolved.rgba.findMatchBgActive, darkTheme.find.matchBg],
+    ] as const;
+
+    for (const [active, baseHex] of variants) {
+      const base = RGBA.fromHex(baseHex);
+      // No channel darkens or overflows...
+      for (const channel of ["r", "g", "b"] as const) {
+        expect(active[channel]).toBeGreaterThanOrEqual(base[channel]);
+        expect(active[channel]).toBeLessThanOrEqual(1);
+      }
+      // ...and the variant is genuinely brighter than its base, not a no-op.
+      expect(active.r + active.g + active.b).toBeGreaterThan(base.r + base.g + base.b);
+    }
   });
 });

@@ -64,7 +64,8 @@ function StyledLine(props: { row: DiffLineRow; wrap: boolean; width: number; scr
 // Thrashing into the scheduler wedge the built-in `<diff>` triggered.
 export function DiffView() {
   const theme = useTheme();
-  const measurer = createLineMeasurer(useRenderer().widthMethod);
+  const renderer = useRenderer();
+  const measurer = createLineMeasurer(renderer.widthMethod);
   onCleanup(() => measurer.destroy());
   let scrollRef: ScrollBoxRenderable | undefined;
   const [scrollTop, setScrollTop] = createSignal(0);
@@ -168,13 +169,56 @@ export function DiffView() {
       setScrollX(max);
     }
   });
+  // Clamp scrollTop when the content shrinks under it (toggle to a shorter file,
+  // Terminal resize), mirroring the scrollX clamp. Reads scrollTop untracked so it
+  // Fires on a height/viewport change, not on every scroll tick, and never feeds
+  // Back into the reconciler below.
+  createEffect(() => {
+    const max = maxScrollY();
+    if (untrack(scrollTop) > max) {
+      setScrollTop(max);
+    }
+  });
 
-  // Wheel: left/right scroll long lines horizontally (shared across all lines —
-  // The whole view shifts); up/down drive scrollTop directly and move the
-  // Scrollbox to match. Both axes own the scroll and zero the native delta so the
-  // Scrollbox never also acts on it: scrollTop must stay the single source of
-  // Truth for the window, or a native read-back races the uncommitted scroll and
-  // The slice trails the visible content, blanking the lower viewport.
+  // The scrollbox's physical scroll is a pure projection of the scrollTop signal:
+  // The windowed slice (driven by scrollTop) and what's painted must never disagree.
+  // The scrollbox clamps scrollTo to `scrollSize - viewportSize`, where scrollSize is
+  // The content height *as last laid out*. Right after a content swap grows the file,
+  // OpenTUI's layout overwrites scrollSize with a transiently-stale height and
+  // Re-clamps the physical scroll toward 0, stranding the viewport in the empty top
+  // Spacer (the toggle-blank bug). It is a race: whether a follow-up frame re-applies
+  // The scroll after layout settles is non-deterministic, so a one-shot scrollTo can
+  // Lose. Reconcile every rendered frame instead: re-assert the scrollbar's metrics
+  // From the content height we already compute (the per-row heights the spacers
+  // Reconstruct) and project scrollTop onto the physical scroll. While the two
+  // Diverge we request another frame, so a clamped scroll always recovers within a
+  // Frame or two; once aligned every call is a cheap early-return/no-op and the
+  // Renderer goes idle. scrollTop stays the single source of truth.
+  const syncScroll = async () => {
+    if (scrollRef === undefined) {
+      return;
+    }
+    const want = untrack(scrollTop);
+    const diverged = scrollRef.scrollTop !== want;
+    scrollRef.verticalScrollBar.scrollSize = untrack(heights).reduce(
+      (sum, height) => sum + height,
+      0,
+    );
+    scrollRef.verticalScrollBar.viewportSize = state.viewerHeight();
+    scrollRef.scrollTo(want);
+    if (diverged) {
+      renderer.requestRender();
+    }
+  };
+  renderer.setFrameCallback(syncScroll);
+  onCleanup(() => renderer.removeFrameCallback(syncScroll));
+
+  // Wheel: left/right scroll long lines horizontally (shared across all lines, so
+  // The whole view shifts); up/down drive scrollTop directly (the reconciler above
+  // Projects it onto the scrollbox). Both axes own the scroll and zero the native
+  // Delta so the scrollbox never also acts on it: scrollTop must stay the single
+  // Source of truth for the window, or a native read-back races the uncommitted
+  // Scroll and the slice trails the visible content, blanking the lower viewport.
   const HORIZONTAL_STEP = 4;
   const VERTICAL_STEP = 3;
   const onWheel = (event: MouseEvent) => {
@@ -193,11 +237,9 @@ export function DiffView() {
       return;
     }
     const sign = direction === "down" ? 1 : -1;
-    setScrollTop((previous) => {
-      const next = Math.max(0, Math.min(previous + sign * delta * VERTICAL_STEP, maxScrollY()));
-      scrollRef?.scrollTo(next);
-      return next;
-    });
+    setScrollTop((previous) =>
+      Math.max(0, Math.min(previous + sign * delta * VERTICAL_STEP, maxScrollY())),
+    );
     if (event.scroll !== undefined) {
       event.scroll.delta = 0;
     }
@@ -227,7 +269,6 @@ export function DiffView() {
       viewport: state.viewerHeight(),
     });
     if (next !== current) {
-      scrollRef.scrollTo(next);
       setScrollTop(next);
     }
   });

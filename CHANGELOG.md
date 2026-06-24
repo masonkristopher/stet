@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.2.8](https://github.com/jimmy-guzman/sideye/compare/sideye-v0.2.7...sideye-v0.2.8) (2026-06-24)
+
+
+### Features
+
+* **theme:** ✨ adopt a Catppuccin-grounded, pink-forward palette ([#80](https://github.com/jimmy-guzman/sideye/issues/80)) ([8dd26c3](https://github.com/jimmy-guzman/sideye/commit/8dd26c3fd465380554e21a946670853e0f0a82e6))
+* **tree:** ✨ broaden file-icon coverage ([#83](https://github.com/jimmy-guzman/sideye/issues/83)) ([ab18a9e](https://github.com/jimmy-guzman/sideye/commit/ab18a9e5e93b4cdff3dce297761d6e1fa3d47437))
+* **tree:** ✨ render symlinks as their target path ([#84](https://github.com/jimmy-guzman/sideye/issues/84)) ([59afe2d](https://github.com/jimmy-guzman/sideye/commit/59afe2defef11a4075e5019d0d34048e16e49182))
+* **ui:** ✨ vanish the scrollbar track into its surface ([#85](https://github.com/jimmy-guzman/sideye/issues/85)) ([549f9fd](https://github.com/jimmy-guzman/sideye/commit/549f9fd910bdf2150567c4e6abf8fa595e09ab1d))
+
+
+### Bug Fixes
+
+* **sidebar:** 🐛 stop the file tree scrollbox from hijacking arrow keys ([#86](https://github.com/jimmy-guzman/sideye/issues/86)) ([384e77f](https://github.com/jimmy-guzman/sideye/commit/384e77fdfd5da783804cbc5ea474933503139b72))
+* **viewer:** 🐛 stop wheel scroll from blanking the lower viewport ([#82](https://github.com/jimmy-guzman/sideye/issues/82)) ([f303def](https://github.com/jimmy-guzman/sideye/commit/f303defc65b4a137950fd4fccc7bd839bec3bb8c))
+
 ## [0.2.7](https://github.com/jimmy-guzman/sideye/compare/sideye-v0.2.6...sideye-v0.2.7) (2026-06-23)
 
 

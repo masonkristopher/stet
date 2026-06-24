@@ -18,6 +18,7 @@ import {
   untrack,
 } from "solid-js";
 
+import { followScrollTop } from "../../diff/follow";
 import { isLineRow, type DiffLineRow, type DiffRow } from "../../diff/rows";
 import { sliceSpansWindow } from "../../diff/spans";
 import { visibleWindow, visibleWindowVariable } from "../../diff/windowing";
@@ -140,6 +141,9 @@ export function DiffView() {
   const maxScrollY = () =>
     Math.max(0, heights().reduce((sum, height) => sum + height, 0) - state.viewerHeight());
 
+  // Context rows kept between the cursor and the top/bottom edge as it moves.
+  const CURSOR_SCROLL_MARGIN = 3;
+
   // Mount a few rows beyond the viewport as a buffer so a fast scroll tick never
   // Flashes an unmounted row at the viewport edge.
   const OVERSCAN = 8;
@@ -199,11 +203,13 @@ export function DiffView() {
     }
   };
 
-  // Keep the cursor's row inside the viewport by scrolling the box to it. Reads
-  // The current scroll offset untracked: this effect must fire only when the
-  // Cursor or layout moves, never when scrollTop itself changes. Tracking scrollTop
-  // Would make it re-run on every wheel tick and snap the off-screen cursor back
-  // Into view, so free wheel scrolling could never leave the cursor's screen.
+  // Keep the cursor's row inside the viewport by scrolling the box to it, with a
+  // Margin of context rows so the cursor never glues to the very edge (where a
+  // Frame of scheduling lag could push it off screen). Reads the current scroll
+  // Offset untracked: this effect must fire only when the cursor or layout moves,
+  // Never when scrollTop itself changes. Tracking scrollTop would make it re-run
+  // On every wheel tick and snap the off-screen cursor back into view, so free
+  // Wheel scrolling could never leave the cursor's screen.
   createEffect(() => {
     const cursorRow = lineRowIndices()[state.cursorIndex()];
     if (cursorRow === undefined || scrollRef === undefined) {
@@ -211,11 +217,15 @@ export function DiffView() {
     }
     const rowHeights = heights();
     const top = rowHeights.slice(0, cursorRow).reduce((sum, height) => sum + height, 0);
-    const height = rowHeights[cursorRow] ?? 1;
-    const viewport = state.viewerHeight();
     const current = untrack(scrollTop);
-    const next =
-      top < current ? top : top + height > current + viewport ? top + height - viewport : current;
+    const next = followScrollTop({
+      current,
+      height: rowHeights[cursorRow] ?? 1,
+      margin: CURSOR_SCROLL_MARGIN,
+      maxScroll: maxScrollY(),
+      top,
+      viewport: state.viewerHeight(),
+    });
     if (next !== current) {
       scrollRef.scrollTo(next);
       setScrollTop(next);

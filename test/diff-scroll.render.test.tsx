@@ -83,4 +83,34 @@ describe("diff viewer vertical scroll", () => {
       rmSync(repoRoot, { force: true, recursive: true });
     }
   }, 20_000);
+
+  test("stepping down one line at a time keeps the cursor line on screen", async () => {
+    const repoRoot = longFileRepo("sideye-step-");
+    const model = await loadModel(repoRoot, { kind: "all", ref: "HEAD" });
+    seedState(model, { kind: "all", ref: "HEAD" });
+    state.setFocusedPane("diff");
+    const { renderer, renderOnce, captureCharFrame, mockInput } = await testRender(() => <App />, {
+      height: 34,
+      useMouse: true,
+      width: 120,
+    });
+    const settleUntil = makeSettleUntil({ captureCharFrame, renderOnce });
+
+    try {
+      await settleUntil("file content", (frame) => frame.includes("line_1 ="), 5);
+
+      // Walk the cursor down one line per render pass; it must never leave the
+      // Viewport (the reported bug: the highlight scrolls off the bottom edge).
+      for (let step = 0; step < 60; step += 1) {
+        mockInput.pressKey("j");
+        // oxlint-disable-next-line no-await-in-loop -- one cursor step per render pass
+        await renderOnce();
+        const cursorLine = state.cursorLineNumber();
+        expect(captureCharFrame()).toContain(`line_${cursorLine} =`);
+      }
+    } finally {
+      renderer.destroy();
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  }, 20_000);
 });

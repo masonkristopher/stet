@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import { basename } from "node:path";
 
 import { useKeyboard, useRenderer, useTerminalDimensions } from "@opentui/solid";
 import { createEffect, Show } from "solid-js";
@@ -30,11 +31,27 @@ export function App() {
     state.setTerminalHeight(dimensions().height);
   });
 
-  function quit() {
+  createEffect(() => {
+    const dir = basename(state.gitModel().repoRoot);
+    if (dir === "") {
+      renderer.setTerminalTitle("sideye");
+      return;
+    }
+    const repo = basename(state.mainWorktreePath()) || dir;
+    const segments = dir === repo ? [repo] : [dir, repo];
+    renderer.setTerminalTitle([...segments, "sideye"].join(" · "));
+  });
+
+  function quit(message?: string) {
     // The renderer no longer owns the background fibers (the git poll runs on the
     // Shared runtime, not the render tree), so tear down the screen and exit
     // Rather than waiting for an event loop that the poll keeps alive.
+    renderer.setTerminalTitle("");
     renderer.destroy();
+    // Log after destroy so the message lands on the restored screen, not the alt buffer.
+    if (message !== undefined) {
+      console.log(message);
+    }
     process.exit(0);
   }
 
@@ -106,9 +123,7 @@ export function App() {
       return;
     }
     // Nothing recoverable: the repository itself is gone.
-    renderer.destroy();
-    console.log("sideye: worktree deleted, nothing left to inspect");
-    process.exit(0);
+    quit("sideye: worktree deleted, nothing left to inspect");
   });
 
   useKeyboard(createKeyHandler({ quit, switchWorktree }));

@@ -145,7 +145,7 @@ repo's own, then your `PATH`), so diagnostics work out of the box. Pass
 | `\`         | reset the sidebar to its default width            |
 | `.`         | jump to the most recently changed file            |
 | `n`         | jump to the next file with findings               |
-| `y`         | copy `path:line` + snippet at the cursor          |
+| `y`         | copy focused file path, or `path:line`            |
 | `f`         | load full content when truncated                  |
 | `r`         | re-run checks                                     |
 | `ctrl-d/u`  | half-page cursor movement in the viewer           |

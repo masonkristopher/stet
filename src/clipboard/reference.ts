@@ -1,7 +1,6 @@
 export interface CopyReferencePayload {
   path: string;
   line?: number;
-  snippet?: string;
 }
 
 export function formatCopyReference(payload: CopyReferencePayload) {
@@ -9,12 +8,7 @@ export function formatCopyReference(payload: CopyReferencePayload) {
     return payload.path;
   }
 
-  const reference = `${payload.path}:${payload.line}`;
-  if (payload.snippet === undefined || payload.snippet === "") {
-    return reference;
-  }
-
-  return `${reference}\n${payload.snippet}`;
+  return `${payload.path}:${payload.line}`;
 }
 
 const LINUX_CLIPBOARD_COMMANDS = [

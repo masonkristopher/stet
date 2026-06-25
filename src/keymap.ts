@@ -5,7 +5,6 @@ import { scopeKinds } from "./cli";
 import { formatCopyReference } from "./clipboard/reference";
 import { isNavigableProblemItem } from "./diagnostics/problems";
 import { latestActivity } from "./git/activity";
-import { lineReference } from "./git/patch";
 import { firstFileInNode } from "./git/tree";
 import { state } from "./state";
 import { nextFindingPath, orderedFindingPaths } from "./ui-helpers";
@@ -296,11 +295,20 @@ export function createKeyHandler(host: HostEffects) {
         return;
       }
 
-      if (key.name === "y" && selectedPath !== undefined) {
-        const line = state.navigableLines()[state.cursorIndex()];
-        const reference =
-          line === undefined ? { path: selectedPath } : lineReference(selectedPath, line);
-        state.copy(formatCopyReference(reference));
+      if (key.name === "y") {
+        if (state.focusedPane() === "tree") {
+          const row = state.treeRows()[state.focusedRowIndex()];
+          if (row !== undefined) {
+            state.copy(formatCopyReference({ path: row.node.path }));
+          }
+          return;
+        }
+        if (selectedPath !== undefined) {
+          const line = state.navigableLines()[state.cursorIndex()];
+          state.copy(
+            formatCopyReference({ line: line?.newLine ?? line?.oldLine, path: selectedPath }),
+          );
+        }
         return;
       }
 

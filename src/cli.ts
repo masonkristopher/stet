@@ -174,7 +174,7 @@ Anywhere:
   p          toggle the problems panel
   .          jump to the most recently changed file
   f          load full content when truncated
-  y          copy path:line + snippet at the cursor
+  y          copy the focused file's path (tree) or path:line (viewer)
   n          jump to next file with findings
   r          re-run checks
   q/escape   quit

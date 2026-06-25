@@ -75,7 +75,9 @@ describe("helpText", () => {
     expect(helpText()).toContain("v          toggle diff <-> full file view");
     expect(helpText()).toContain("p          toggle the problems panel");
     expect(helpText()).toContain(".          jump to the most recently changed file");
-    expect(helpText()).toContain("y          copy path:line + snippet at the cursor");
+    expect(helpText()).toContain(
+      "y          copy the focused file's path (tree) or path:line (viewer)",
+    );
     expect(helpText()).toContain("The view is live");
   });
 });

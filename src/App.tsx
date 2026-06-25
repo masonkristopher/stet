@@ -2,7 +2,11 @@ import { existsSync } from "node:fs";
 import { basename, join } from "node:path";
 
 import type { ThemeMode } from "@opentui/core";
-import { useKeyboard, useRenderer, useTerminalDimensions } from "@opentui/solid";
+import {
+  useKeyboard,
+  useRenderer,
+  useTerminalDimensions,
+} from "@opentui/solid";
 import { createEffect, onCleanup, Show } from "solid-js";
 
 import { HeaderBar } from "./components/HeaderBar";
@@ -84,8 +88,13 @@ export function App() {
     }
     // The main worktree survives and isn't where we already are: switch to it.
     if (main !== "" && main !== root && existsSync(main)) {
-      const cached = state.worktrees()?.find((worktree) => worktree.path === main);
-      const label = cached === undefined ? (main.split("/").pop() ?? main) : worktreeLabel(cached);
+      const cached = state
+        .worktrees()
+        ?.find((worktree) => worktree.path === main);
+      const label =
+        cached === undefined
+          ? (main.split("/").pop() ?? main)
+          : worktreeLabel(cached);
       const target: Worktree = cached ?? {
         bare: false,
         detached: false,
@@ -94,16 +103,25 @@ export function App() {
         path: main,
         prunable: false,
       };
-      void state.switchWorktree(target, `worktree deleted, switched to ${label}`);
+      void state.switchWorktree(
+        target,
+        `worktree deleted, switched to ${label}`,
+      );
       return;
     }
     // Nothing recoverable: the repository itself is gone.
     quit("sideye: worktree deleted, nothing left to inspect");
   });
 
-  async function openInEditor(filePath: string, line: number | undefined, mode: "terminal" | "ide") {
-    const template = mode === "ide" ? state.ideTemplate() : state.editorTemplate();
+  async function openInEditor(
+    filePath: string,
+    line: number | undefined,
+    mode: "terminal" | "ide",
+  ) {
+    const template =
+      mode === "ide" ? state.ideTemplate() : state.editorTemplate();
     if (template === undefined) {
+      state.notify("no IDE configured — set 'ide' in config or use --ide");
       return;
     }
     const absolutePath = join(state.gitModel().repoRoot, filePath);
@@ -121,16 +139,26 @@ export function App() {
           stdout: "inherit",
         });
         await proc.exited;
+      } catch (error) {
+        state.notify(
+          error instanceof Error ? error.message : "failed to open editor",
+        );
       } finally {
         renderer.resume();
       }
     } else {
-      Bun.spawn(argv, {
-        cwd: state.gitModel().repoRoot,
-        stderr: "inherit",
-        stdin: "inherit",
-        stdout: "inherit",
-      });
+      try {
+        Bun.spawn(argv, {
+          cwd: state.gitModel().repoRoot,
+          stderr: "inherit",
+          stdin: "inherit",
+          stdout: "inherit",
+        });
+      } catch (error) {
+        state.notify(
+          error instanceof Error ? error.message : "failed to open IDE",
+        );
+      }
     }
   }
 

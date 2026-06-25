@@ -19,9 +19,11 @@ const keyEvent = (overrides: { ctrl?: boolean; name: string }) =>
   });
 
 describe("createKeyHandler", () => {
+  const noop = () => {};
+
   test("ctrl-c quits", () => {
     let quitCount = 0;
-    const handle = createKeyHandler({ quit: () => quitCount++ });
+    const handle = createKeyHandler({ openInEditor: noop, quit: () => quitCount++ });
 
     handle(keyEvent({ ctrl: true, name: "c" }));
 
@@ -30,7 +32,7 @@ describe("createKeyHandler", () => {
 
   test("a plain c does not quit", () => {
     let quitCount = 0;
-    const handle = createKeyHandler({ quit: () => quitCount++ });
+    const handle = createKeyHandler({ openInEditor: noop, quit: () => quitCount++ });
 
     handle(keyEvent({ name: "c" }));
 

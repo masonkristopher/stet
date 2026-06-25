@@ -19,6 +19,7 @@ import { nextFindingPath, orderedFindingPaths } from "./ui-helpers";
  */
 interface HostEffects {
   quit: () => void;
+  openInEditor: (path: string, line: number | undefined, mode: "terminal" | "ide") => void;
 }
 
 // One handler routes every key through the modal-precedence chain
@@ -293,6 +294,20 @@ export function createKeyHandler(host: HostEffects) {
       if (key.name === "f" && selectedPath !== undefined) {
         state.setFullContentPaths(new Set(state.fullContentPaths()).add(selectedPath));
         state.notify(`loaded full content for ${selectedPath}`);
+        return;
+      }
+
+      if (key.name === "e" && selectedPath !== undefined) {
+        const line = state.navigableLines()[state.cursorIndex()];
+        const lineNumber = line?.newLine ?? line?.oldLine;
+        void host.openInEditor(selectedPath, lineNumber, "terminal");
+        return;
+      }
+
+      if (key.name === "E" && selectedPath !== undefined) {
+        const line = state.navigableLines()[state.cursorIndex()];
+        const lineNumber = line?.newLine ?? line?.oldLine;
+        void host.openInEditor(selectedPath, lineNumber, "ide");
         return;
       }
 

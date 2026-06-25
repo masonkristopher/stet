@@ -7,7 +7,7 @@ import { batch } from "solid-js";
 
 import packageJson from "../package.json";
 import { App } from "./App";
-import { helpText, parseArgs } from "./cli";
+import { helpText, parseArgs, resolveEditorTemplate, resolveIdeTemplate } from "./cli";
 import { Config, ConfigLive } from "./config/service";
 import { initialCheckerState } from "./diagnostics/checker";
 import type { GitModel } from "./git/model";
@@ -115,6 +115,8 @@ try {
     state.setSessionBase(sessionBase);
     state.setIconsEnabled(options.icons);
     state.setOverflow(options.overflow);
+    state.setEditorTemplate(resolveEditorTemplate(options.editor));
+    state.setIdeTemplate(resolveIdeTemplate(options.ide));
     state.setGitModel(model);
     state.setRepoRoot(model.repoRoot);
     state.setMainWorktreePath(mainWorktreePath);

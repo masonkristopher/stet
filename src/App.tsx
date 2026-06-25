@@ -1,5 +1,5 @@
 import { existsSync } from "node:fs";
-import { basename } from "node:path";
+import { basename, join } from "node:path";
 
 import type { ThemeMode } from "@opentui/core";
 import { useKeyboard, useRenderer, useTerminalDimensions } from "@opentui/solid";
@@ -16,6 +16,7 @@ import { StatusBar } from "./components/StatusBar";
 import { Viewer } from "./components/Viewer";
 import { WorktreePicker } from "./components/WorktreePicker";
 import type { Worktree } from "./git/model";
+import { buildEditorCommand } from "./cli";
 import { createKeyHandler } from "./keymap";
 import { state } from "./state";
 import { setAppearance } from "./theme/active";
@@ -100,7 +101,40 @@ export function App() {
     quit("sideye: worktree deleted, nothing left to inspect");
   });
 
-  useKeyboard(createKeyHandler({ quit }));
+  async function openInEditor(filePath: string, line: number | undefined, mode: "terminal" | "ide") {
+    const template = mode === "ide" ? state.ideTemplate() : state.editorTemplate();
+    if (template === undefined) {
+      return;
+    }
+    const absolutePath = join(state.gitModel().repoRoot, filePath);
+    const argv = buildEditorCommand(template, absolutePath, line);
+    if (argv.length === 0) {
+      return;
+    }
+    if (mode === "terminal") {
+      renderer.suspend();
+      try {
+        const proc = Bun.spawn(argv, {
+          cwd: state.gitModel().repoRoot,
+          stderr: "inherit",
+          stdin: "inherit",
+          stdout: "inherit",
+        });
+        await proc.exited;
+      } finally {
+        renderer.resume();
+      }
+    } else {
+      Bun.spawn(argv, {
+        cwd: state.gitModel().repoRoot,
+        stderr: "inherit",
+        stdin: "inherit",
+        stdout: "inherit",
+      });
+    }
+  }
+
+  useKeyboard(createKeyHandler({ quit, openInEditor }));
 
   return (
     <box

@@ -38,6 +38,25 @@ export function hasTheme(name: string) {
   return registry.has(name);
 }
 
+// Built-ins first (`dark`, `light`), then user themes in registration order; `Map`
+// Preserves insertion order, which is the order the switcher lists them in.
+export function themeNames() {
+  return [...registry.keys()];
+}
+
+// Test-only: the registry is a process-global map, so a test that registers themes
+// Would leak them into later tests. Snapshot before and restore after to isolate.
+export function snapshotRegistry() {
+  return new Map(registry);
+}
+
+export function restoreRegistry(snapshot: ReturnType<typeof snapshotRegistry>) {
+  registry.clear();
+  for (const [name, theme] of snapshot) {
+    registry.set(name, theme);
+  }
+}
+
 export function selectThemeName(selection: ThemeSelection, appearance: "dark" | "light") {
   if (selection === undefined) {
     return appearance;

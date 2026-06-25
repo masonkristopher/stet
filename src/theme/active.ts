@@ -16,7 +16,8 @@ const root = createRoot(() => {
   const activeTheme = createMemo<ResolvedTheme>(() =>
     resolveTheme(themeForName(activeThemeName())),
   );
-  return { activeTheme, activeThemeName, appearance, setAppearance, setSelection };
+  return { activeTheme, activeThemeName, appearance, selection, setAppearance, setSelection };
 });
 
-export const { activeTheme, activeThemeName, appearance, setAppearance, setSelection } = root;
+export const { activeTheme, activeThemeName, appearance, selection, setAppearance, setSelection } =
+  root;

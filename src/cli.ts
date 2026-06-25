@@ -168,6 +168,7 @@ Anywhere:
   ctrl-p     open the go-to-file palette (type to fuzzy-search, enter jumps)
   ctrl-f     search file contents (ctrl-a toggles changes/repo, enter jumps)
   s          open the scope picker (unstaged/staged/all/session/last commit)
+  t          open the theme switcher (filter, preview live, enter applies)
   c          toggle changes-only filter for the tree
   v          toggle diff <-> full file view
   z          toggle long-line wrap in the viewer

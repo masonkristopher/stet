@@ -46,7 +46,8 @@ import {
   flattenTree,
 } from "./git/tree";
 import { runtime } from "./runtime";
-import { activeThemeName } from "./theme/active";
+import { activeThemeName, selection, setSelection } from "./theme/active";
+import { themeNames, type ThemeSelection } from "./theme/registry";
 import { worktreeLabel } from "./ui-helpers";
 import { findMatches as findMatchIndices } from "./utils/find";
 import { rankFiles } from "./utils/fuzzy";
@@ -170,6 +171,18 @@ function loadDiffView(src: {
   );
 }
 
+// Case-insensitive subsequence test (cmdk-style): every query char appears in
+// Order in the target. An empty query matches everything.
+function isSubsequence(query: string, target: string) {
+  let i = 0;
+  for (const char of target) {
+    if (char === query[i]) {
+      i += 1;
+    }
+  }
+  return i === query.length;
+}
+
 function createState() {
   // --- writable primitives ---
   const [scope, setScope] = createSignal<DiffScope>({ kind: "all", ref: "HEAD" });
@@ -209,6 +222,11 @@ function createState() {
   const [worktreeIndex, setWorktreeIndex] = createSignal(0);
   const [worktrees, setWorktrees] = createSignal<Worktree[] | undefined>(undefined);
   const [helpOpen, setHelpOpen] = createSignal(false);
+  const [themeOpen, setThemeOpen] = createSignal(false);
+  const [themeIndex, setThemeIndex] = createSignal(0);
+  const [themeQuery, setThemeQuery] = createSignal("");
+  // The selection active when the picker opened, restored if the user cancels.
+  const [themeOrigin, setThemeOrigin] = createSignal<ThemeSelection>(undefined);
   const [gitModel, setGitModel] = createSignal<GitModel>(emptyModel);
   const [repoRoot, setRepoRoot] = createSignal("");
   // The repository's main worktree, resolved once at startup (repository-wide
@@ -282,6 +300,22 @@ function createState() {
       limit: 50,
     });
   });
+  // A thunk, not a memo: `themeNames()` reads the registry, which user themes are
+  // Registered into at startup *after* this root is created, so it must be read
+  // Lazily (when the picker opens), never captured once. `auto` maps to the
+  // Undefined selection (follow the terminal).
+  const themeItems = (): { name: string; selection: ThemeSelection }[] => [
+    { name: "auto", selection: undefined },
+    ...themeNames().map((name) => ({ name, selection: name })),
+  ];
+  // A thunk, not a memo: a memo computes eagerly at root-creation time (module
+  // Import), before startup registers user themes, and would never recompute
+  // Since the registry is not reactive. Reading per call keeps it current while
+  // Still tracking `themeQuery` for the reactive scopes that read it.
+  const themeResults = () => {
+    const query = themeQuery().toLowerCase();
+    return themeItems().filter((item) => isSubsequence(query, item.name.toLowerCase()));
+  };
 
   // --- coherent diff-pane snapshot (the freeze fix) ---
   const diffSource = createMemo(() => {
@@ -434,6 +468,18 @@ function createState() {
 
   // A file switch ends any active find so highlights never bleed across files.
   createEffect(on(selectedPath, () => batch(resetFind)));
+
+  // Live theme preview: while the picker is open, the highlighted row is the
+  // Active selection, so moving (keys, hover, wheel) or filtering re-themes the
+  // Whole UI and re-highlights the diff instantly through the one reactive seam.
+  // It only writes while open; cancel/commit are handled by closeThemePicker.
+  createEffect(() => {
+    if (!themeOpen()) {
+      return;
+    }
+    const item = themeResults()[themeIndex()];
+    setSelection(item === undefined ? themeOrigin() : item.selection);
+  });
 
   // --- layout (derived from terminal dimensions) ---
   const problemsHeight = createMemo(() => (problemsOpen() ? PROBLEMS_HEIGHT : 0));
@@ -636,6 +682,40 @@ function createState() {
           setStatus(error instanceof Error ? (error.message.split("\n")[0] ?? "") : String(error));
         });
       });
+  }
+
+  // Open the theme picker on the active selection (so it reads as "where am I
+  // Now"), capturing it as the revert target. A `{dark,light}` pair (config-only,
+  // The picker never writes one) matches no single row, so it parks on `auto`.
+  function openThemePicker() {
+    const current = selection();
+    const index =
+      current === undefined
+        ? 0
+        : Math.max(
+            0,
+            themeItems().findIndex((item) => item.selection === current),
+          );
+    batch(() => {
+      setThemeOrigin(current);
+      setThemeQuery("");
+      setThemeIndex(index);
+      setThemeOpen(true);
+    });
+  }
+
+  // Commit applies the highlighted row's selection, cancel restores the one
+  // Captured on open. Done explicitly (not left to the preview effect) so a click
+  // Or enter finalizes deterministically even without a prior hover, then closing
+  // Stops the effect from writing further.
+  function closeThemePicker(commit: boolean) {
+    if (commit) {
+      const item = themeResults()[themeIndex()];
+      setSelection(item === undefined ? themeOrigin() : item.selection);
+    } else {
+      setSelection(themeOrigin());
+    }
+    setThemeOpen(false);
   }
 
   // A monotonic token guards the async last-commit resolution: a newer pick (of
@@ -968,6 +1048,7 @@ function createState() {
     changesOnly,
     checkerState,
     checksRunning,
+    closeThemePicker,
     collapseSidebar,
     copy,
     counts,
@@ -1000,6 +1081,7 @@ function createState() {
     notify,
     now,
     nudgeSidebarWidth,
+    openThemePicker,
     overflow,
     paletteIndex,
     paletteLeft,
@@ -1072,6 +1154,8 @@ function createState() {
     setStatus,
     setTerminalHeight,
     setTerminalWidth,
+    setThemeIndex,
+    setThemeQuery,
     setWorktreeIndex,
     setWorktreeOpen,
     setWorktrees,
@@ -1083,6 +1167,10 @@ function createState() {
     switchWorktree,
     terminalHeight,
     terminalWidth,
+    themeIndex,
+    themeOpen,
+    themeOrigin,
+    themeResults,
     treeRows,
     truncated,
     viewerHeight,

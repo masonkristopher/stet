@@ -90,6 +90,14 @@ diffs, polling, and checks all re-point at the chosen worktree.
 
 ![worktree picker listing worktrees, including one marked prunable](assets/screenshots/worktree-picker.png)
 
+### Switch themes
+
+Press `t` to open the theme switcher: filter by name and move (or hover) to
+preview the whole UI live, `enter` to apply, `esc` to revert. The switch lasts the
+session; [config](#configuration) is where a theme is made permanent.
+
+![theme switcher listing themes with color swatches, previewing the highlighted one live](assets/screenshots/theme-switcher.png)
+
 ### Go to file
 
 Press `ctrl-p` to fuzzy-search the whole repo and open any file.
@@ -135,6 +143,7 @@ repo's own, then your `PATH`), so diagnostics work out of the box. Pass
 | `/`         | find in the viewer; `n`/`N` cycle, `esc` clears   |
 | `ctrl-f`    | search files; `ctrl-a` toggles changes/repo scope |
 | `s`         | scope picker: unstaged/staged/all/session/last    |
+| `t`         | theme switcher: filter, live-preview, apply       |
 | `w`         | switch to another git worktree                    |
 | `c`         | toggle changes-only filter for the tree           |
 | `v`         | toggle diff <-> full file view for a changed file |
@@ -162,8 +171,9 @@ Press `?` anytime to see the full list in the app:
 The keyboard drives everything, but the mouse works too. Click a file to open
 it, a folder to expand or collapse it, a diff line to move the cursor there, or
 a problem to jump to it. Clicks also work in the overlays: a go-to-file or
-search result, or a worktree to switch to. Clicking a pane focuses it, and the
-wheel scrolls whichever pane the pointer is over.
+search result, a worktree to switch to, or a theme to apply (hovering a theme
+previews it live). Clicking a pane focuses it, and the wheel scrolls whichever
+pane the pointer is over.
 
 ## Configuration
 
@@ -191,6 +201,11 @@ overriding individual tokens (`keyword`, `string`, ...).
   },
 }
 ```
+
+Press `t` to open the theme switcher and try any of these without editing the
+config: filter by name, move (or hover) to preview the whole UI live, `enter`
+(or click) to apply, `esc` to revert. The switch lasts the session; `config` is
+still where a theme is made permanent.
 
 ## Requirements
 

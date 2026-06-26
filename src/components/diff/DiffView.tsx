@@ -348,12 +348,18 @@ export function DiffView() {
       }}
     >
       <box width="100%" height={window().topSpacer} />
+      {/* Non-wrap rows are pinned to height 1 because `heights()` counts every such
+          row as one terminal row, and the spacers/maxScrollY derive from that. Some
+          graphemes (emoji with a U+FE0F variation selector) otherwise lay a
+          `wrapMode="none"` text out two rows tall, under-counting the content height
+          and stranding the file's last line below the fold. Separators count as 1 in
+          both modes, so they pin unconditionally. */}
       <Index each={visibleRows()}>
         {(row) => (
           <Show
             when={asLineRow(row())}
             fallback={
-              <box width="100%" backgroundColor={theme.colors.surface.panel}>
+              <box width="100%" height={1} backgroundColor={theme.colors.surface.panel}>
                 <text fg={theme.colors.text.faint}>
                   {`${"⋯".padStart(numberWidth())} ${separatorText(row())}`}
                 </text>
@@ -364,6 +370,7 @@ export function DiffView() {
               <box
                 width="100%"
                 flexDirection="row"
+                height={wrap() ? undefined : 1}
                 onMouseDown={(event: MouseEvent) => {
                   event.stopPropagation();
                   batch(() => {

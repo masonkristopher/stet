@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.3.0](https://github.com/jimmy-guzman/sideye/compare/sideye-v0.2.10...sideye-v0.3.0) (2026-06-26)
+
+
+### ⚠ BREAKING CHANGES
+
+* 💥 y in the viewer copies path:line only; the line's code snippet is no longer appended.
+
+### Features
+
+* ✨  copy file path from the file tree ([#110](https://github.com/jimmy-guzman/sideye/issues/110)) ([cf33923](https://github.com/jimmy-guzman/sideye/commit/cf33923f63c7a58422ef89c7eaea110aea9865bf))
+* **theme:** ✨ runtime theme switcher ([#112](https://github.com/jimmy-guzman/sideye/issues/112)) ([6d15a9d](https://github.com/jimmy-guzman/sideye/commit/6d15a9d2bf680ded85af09d1bea73c476b30d8d2))
+
+
+### Bug Fixes
+
+* **theme:** 🐛 render focused overlay input text in theme color ([#116](https://github.com/jimmy-guzman/sideye/issues/116)) ([535e83d](https://github.com/jimmy-guzman/sideye/commit/535e83d294f2eb0d3e23692a8ddb01799efa4f60))
+
+
+### Performance Improvements
+
+* **refresh:** ⚡️cut refresh load & harden exit/startup ([#115](https://github.com/jimmy-guzman/sideye/issues/115)) ([cbddb1f](https://github.com/jimmy-guzman/sideye/commit/cbddb1f30dd33059de9f56d3109141761e2e6413))
+
 ## [0.2.10](https://github.com/jimmy-guzman/sideye/compare/sideye-v0.2.9...sideye-v0.2.10) (2026-06-25)
 
 

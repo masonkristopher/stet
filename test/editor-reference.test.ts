@@ -110,6 +110,27 @@ describe("resolveEditorTemplate", () => {
     }
   });
 
+  test("falls through to $VISUAL when $EDITOR is empty string", () => {
+    const savedEditor = process.env.EDITOR;
+    const savedVisual = process.env.VISUAL;
+    process.env.EDITOR = "";
+    process.env.VISUAL = "hx";
+    try {
+      expect(resolveEditorTemplate(undefined)).toBe("hx {file}:{line}");
+    } finally {
+      if (savedEditor !== undefined) {
+        process.env.EDITOR = savedEditor;
+      } else {
+        delete process.env.EDITOR;
+      }
+      if (savedVisual !== undefined) {
+        process.env.VISUAL = savedVisual;
+      } else {
+        delete process.env.VISUAL;
+      }
+    }
+  });
+
   test("SIDEYE_EDITOR beats $EDITOR", () => {
     const savedSideye = process.env.SIDEYE_EDITOR;
     const savedEditor = process.env.EDITOR;

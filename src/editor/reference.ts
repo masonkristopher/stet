@@ -52,9 +52,13 @@ export function resolveEditorTemplate(explicit: string | undefined): string {
     return normalizeTemplate(sideye, "+{line} {file}");
   }
 
-  const env = process.env.EDITOR ?? process.env.VISUAL;
-  if (env !== undefined && env !== "") {
-    return normalizeTemplate(env, "+{line} {file}");
+  const editor = process.env.EDITOR;
+  if (editor !== undefined && editor !== "") {
+    return normalizeTemplate(editor, "+{line} {file}");
+  }
+  const visual = process.env.VISUAL;
+  if (visual !== undefined && visual !== "") {
+    return normalizeTemplate(visual, "+{line} {file}");
   }
 
   return "vim +{line} {file}";

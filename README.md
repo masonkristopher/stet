@@ -65,6 +65,8 @@ sideye --staged   # start in the staged scope
 sideye --unstaged # start in the unstaged scope
 sideye --no-icons # plain tree without Nerd Font file-type icons
 sideye --wrap     # wrap long lines in the viewer instead of scrolling them horizontally
+sideye --editor "nvim +{line} {file}"   # terminal editor for the e key
+sideye --ide    "code --goto {file}:{line}" # GUI/IDE for the o key
 ```
 
 The tree shows a file-type icon next to each file and a folder glyph for each
@@ -152,6 +154,8 @@ repo's own, then your `PATH`), so diagnostics work out of the box. Pass
 | `s`         | scope picker: unstaged/staged/all/session/last    |
 | `t`         | theme switcher: filter, live-preview, apply       |
 | `w`         | switch to another git worktree                    |
+| `e`         | open file in terminal editor (suspends TUI)       |
+| `o`         | open file in GUI / IDE (renderer stays live)      |
 | `c`         | toggle changes-only filter for the tree           |
 | `v`         | toggle diff <-> full file view for a changed file |
 | `z`         | toggle long-line wrap in the viewer               |
@@ -195,6 +199,19 @@ terminal's appearance and sideye re-themes). A theme is a full set of `#rrggbb` 
 `{ "base": <name>, ... }` that inherits another theme and overrides only the
 tokens you name. Its `"syntax"` is a bundled Shiki theme name, or an object
 overriding individual tokens (`keyword`, `string`, ...).
+
+Use `editor` and `ide` to set persistent command templates for `e` and `o`. Both
+use `{file}` and `{line}` as placeholders; `{line}` is omitted automatically
+when no cursor line is available. Without a config value, each key falls back to
+`SIDEYE_EDITOR` / `SIDEYE_IDE`, then `$EDITOR` / `$VISUAL`, then `vim` (editor
+only); `o` does nothing if nothing is configured.
+
+```jsonc
+{
+  "editor": "nvim +{line} {file}",
+  "ide": "code --goto {file}:{line}",
+}
+```
 
 ```jsonc
 {

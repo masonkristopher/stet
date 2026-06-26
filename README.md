@@ -204,7 +204,11 @@ Use `editor` and `ide` to set persistent command templates for `e` and `o`. Both
 use `{file}` and `{line}` as placeholders; `{line}` is omitted automatically
 when no cursor line is available. Without a config value, each key falls back to
 `SIDEYE_EDITOR` / `SIDEYE_IDE`, then `$EDITOR` / `$VISUAL`, then `vim` (editor
-only); `o` does nothing if nothing is configured.
+only); `o` does nothing if nothing is configured. A bare editor name (no
+`{file}`) is expanded to a known template (`nvim` becomes `nvim +{line} {file}`,
+`code` becomes `code --goto {file}:{line}`, and so on). Templates are split on
+whitespace, so file paths with spaces in the editor binary path are not
+supported.
 
 ```jsonc
 {

@@ -117,7 +117,7 @@ interface DiffBase {
 const DIFF_MAX_LINES = 1600;
 
 // Bounds the search result list so a broad query in a large repo can't flood the
-// Panel; hitting the cap sets `searchTruncated`, surfaced as a trailing "+".
+// Panel; hitting the cap sets `searchComboboxTruncated`, surfaced as a trailing "+".
 const SEARCH_RESULT_CAP = 500;
 
 const emptyModel: GitModel = {
@@ -224,8 +224,8 @@ function createState() {
   const [cliBaseRef, setCliBaseRef] = createSignal("HEAD");
   // The SHA HEAD pointed at when sideye launched, pinned for the session scope.
   const [sessionBase, setSessionBase] = createSignal("HEAD");
-  const [scopeOpen, setScopeOpen] = createSignal(false);
-  const [scopeIndex, setScopeIndex] = createSignal(0);
+  const [scopeMenuOpen, setScopeMenuOpen] = createSignal(false);
+  const [scopeMenuIndex, setScopeMenuIndex] = createSignal(0);
   const [iconsEnabled, setIconsEnabled] = createSignal(true);
   const [overflow, setOverflow] = createSignal<"scroll" | "wrap">("scroll");
   const [changesOnly, setChangesOnly] = createSignal(false);
@@ -239,28 +239,28 @@ function createState() {
   const [sidebarWidthOverride, setSidebarWidthOverride] = createSignal<number | null>(null);
   const [problemsOpen, setProblemsOpen] = createSignal(false);
   const [problemIndex, setProblemIndex] = createSignal(0);
-  const [paletteOpen, setPaletteOpen] = createSignal(false);
-  const [paletteQuery, setPaletteQuery] = createSignal("");
-  const [paletteIndex, setPaletteIndex] = createSignal(0);
-  const [searchOpen, setSearchOpen] = createSignal(false);
-  const [searchQuery, setSearchQuery] = createSignal("");
-  const [searchIndex, setSearchIndex] = createSignal(0);
-  const [searchScope, setSearchScope] = createSignal<"changed" | "repo">("changed");
-  const [searchResults, setSearchResults] = createSignal<SearchMatch[]>([]);
-  const [searchTruncated, setSearchTruncated] = createSignal(false);
+  const [fileComboboxOpen, setFileComboboxOpen] = createSignal(false);
+  const [fileComboboxQuery, setFileComboboxQuery] = createSignal("");
+  const [fileComboboxIndex, setFileComboboxIndex] = createSignal(0);
+  const [searchComboboxOpen, setSearchComboboxOpen] = createSignal(false);
+  const [searchComboboxQuery, setSearchComboboxQuery] = createSignal("");
+  const [searchComboboxIndex, setSearchComboboxIndex] = createSignal(0);
+  const [searchComboboxScope, setSearchComboboxScope] = createSignal<"changed" | "repo">("changed");
+  const [searchComboboxResults, setSearchComboboxResults] = createSignal<SearchMatch[]>([]);
+  const [searchComboboxTruncated, setSearchComboboxTruncated] = createSignal(false);
   const [findOpen, setFindOpen] = createSignal(false);
   const [findActive, setFindActive] = createSignal(false);
   const [findQuery, setFindQuery] = createSignal("");
   const [findMatchPos, setFindMatchPos] = createSignal(0);
-  const [worktreeOpen, setWorktreeOpen] = createSignal(false);
-  const [worktreeIndex, setWorktreeIndex] = createSignal(0);
+  const [worktreeMenuOpen, setWorktreeMenuOpen] = createSignal(false);
+  const [worktreeMenuIndex, setWorktreeMenuIndex] = createSignal(0);
   const [worktrees, setWorktrees] = createSignal<Worktree[] | undefined>(undefined);
-  const [helpOpen, setHelpOpen] = createSignal(false);
-  const [themeOpen, setThemeOpen] = createSignal(false);
-  const [themeIndex, setThemeIndex] = createSignal(0);
-  const [themeQuery, setThemeQuery] = createSignal("");
+  const [helpDialogOpen, setHelpDialogOpen] = createSignal(false);
+  const [themeComboboxOpen, setThemeComboboxOpen] = createSignal(false);
+  const [themeComboboxIndex, setThemeComboboxIndex] = createSignal(0);
+  const [themeComboboxQuery, setThemeComboboxQuery] = createSignal("");
   // The selection active when the picker opened, restored if the user cancels.
-  const [themeOrigin, setThemeOrigin] = createSignal<ThemeSelection>(undefined);
+  const [themeComboboxOrigin, setThemeComboboxOrigin] = createSignal<ThemeSelection>(undefined);
   const [gitModel, setGitModel] = createSignal<GitModel>(emptyModel);
   const [repoRoot, setRepoRoot] = createSignal("");
   // The repository's main worktree, resolved once at startup (repository-wide
@@ -358,15 +358,15 @@ function createState() {
     const index = allProblemItems().findIndex(isNavigableProblemItem);
     return index === -1 ? 0 : index;
   });
-  const paletteResults = createMemo(() => {
-    if (!paletteOpen()) {
+  const fileComboboxResults = createMemo(() => {
+    if (!fileComboboxOpen()) {
       return [];
     }
     const model = gitModel();
     const allPaths = [
       ...new Set([...model.repoFiles.map((file) => file.path), ...model.changedByPath.keys()]),
     ];
-    return rankFiles(paletteQuery(), allPaths, {
+    return rankFiles(fileComboboxQuery(), allPaths, {
       changed: new Set(model.changedByPath.keys()),
       lastChangedAt: recencyByPath(),
       limit: 50,
@@ -376,17 +376,17 @@ function createState() {
   // Registered into at startup *after* this root is created, so it must be read
   // Lazily (when the picker opens), never captured once. `auto` maps to the
   // Undefined selection (follow the terminal).
-  const themeItems = (): { name: string; selection: ThemeSelection }[] => [
+  const themeComboboxItems = (): { name: string; selection: ThemeSelection }[] => [
     { name: "auto", selection: undefined },
     ...themeNames().map((name) => ({ name, selection: name })),
   ];
   // A thunk, not a memo: a memo computes eagerly at root-creation time (module
   // Import), before startup registers user themes, and would never recompute
   // Since the registry is not reactive. Reading per call keeps it current while
-  // Still tracking `themeQuery` for the reactive scopes that read it.
-  const themeResults = () => {
-    const query = themeQuery().toLowerCase();
-    return themeItems().filter((item) => isSubsequence(query, item.name.toLowerCase()));
+  // Still tracking `themeComboboxQuery` for the reactive scopes that read it.
+  const themeComboboxResults = () => {
+    const query = themeComboboxQuery().toLowerCase();
+    return themeComboboxItems().filter((item) => isSubsequence(query, item.name.toLowerCase()));
   };
 
   // --- coherent diff-pane snapshot (the freeze fix) ---
@@ -463,19 +463,19 @@ function createState() {
   // As the diff pipeline.
   const SEARCH_DEBOUNCE_MS = 120;
   createEffect(() => {
-    const query = searchQuery();
+    const query = searchComboboxQuery();
     const paths =
-      searchScope() === "changed" ? gitModel().changed.map((file) => file.path) : undefined;
+      searchComboboxScope() === "changed" ? gitModel().changed.map((file) => file.path) : undefined;
     const root = repoRoot();
     if (
-      !searchOpen() ||
+      !searchComboboxOpen() ||
       query === "" ||
       root === "" ||
       (paths !== undefined && paths.length === 0)
     ) {
       batch(() => {
-        setSearchResults([]);
-        setSearchTruncated(false);
+        setSearchComboboxResults([]);
+        setSearchComboboxTruncated(false);
       });
       return;
     }
@@ -495,8 +495,8 @@ function createState() {
             return;
           }
           batch(() => {
-            setSearchResults(matches.slice(0, SEARCH_RESULT_CAP));
-            setSearchTruncated(matches.length > SEARCH_RESULT_CAP);
+            setSearchComboboxResults(matches.slice(0, SEARCH_RESULT_CAP));
+            setSearchComboboxTruncated(matches.length > SEARCH_RESULT_CAP);
           });
         })
         // A genuine grep failure clears stale results; our own cancellation (the
@@ -504,8 +504,8 @@ function createState() {
         .catch(() => {
           if (!controller.signal.aborted) {
             batch(() => {
-              setSearchResults([]);
-              setSearchTruncated(false);
+              setSearchComboboxResults([]);
+              setSearchComboboxTruncated(false);
             });
           }
         });
@@ -552,11 +552,11 @@ function createState() {
   // Whole UI and re-highlights the diff instantly through the one reactive seam.
   // It only writes while open; cancel/commit are handled by closeThemePicker.
   createEffect(() => {
-    if (!themeOpen()) {
+    if (!themeComboboxOpen()) {
       return;
     }
-    const item = themeResults()[themeIndex()];
-    setSelection(item === undefined ? themeOrigin() : item.selection);
+    const item = themeComboboxResults()[themeComboboxIndex()];
+    setSelection(item === undefined ? themeComboboxOrigin() : item.selection);
   });
 
   // --- layout (derived from terminal dimensions) ---
@@ -596,9 +596,9 @@ function createState() {
     setSidebarWidthOverride(next);
   };
   const resetSidebarWidth = () => setSidebarWidthOverride(null);
-  const paletteWidth = createMemo(() => Math.max(30, Math.min(70, terminalWidth() - 8)));
-  const paletteLeft = createMemo(() =>
-    Math.max(0, Math.floor((terminalWidth() - paletteWidth()) / 2)),
+  const overlayWidth = createMemo(() => Math.max(30, Math.min(70, terminalWidth() - 8)));
+  const overlayLeft = createMemo(() =>
+    Math.max(0, Math.floor((terminalWidth() - overlayWidth()) / 2)),
   );
 
   // --- status / cursor view-model ---
@@ -1061,7 +1061,7 @@ function createState() {
         const selectable = list.filter((worktree) => !worktree.bare);
         batch(() => {
           setWorktrees(selectable);
-          setWorktreeIndex(
+          setWorktreeMenuIndex(
             Math.max(
               0,
               selectable.findIndex((worktree) => worktree.path === root),
@@ -1071,7 +1071,7 @@ function createState() {
       })
       .catch((error: unknown) => {
         batch(() => {
-          setWorktreeOpen(false);
+          setWorktreeMenuOpen(false);
           setStatus(error instanceof Error ? (error.message.split("\n")[0] ?? "") : String(error));
         });
       });
@@ -1087,13 +1087,13 @@ function createState() {
         ? 0
         : Math.max(
             0,
-            themeItems().findIndex((item) => item.selection === current),
+            themeComboboxItems().findIndex((item) => item.selection === current),
           );
     batch(() => {
-      setThemeOrigin(current);
-      setThemeQuery("");
-      setThemeIndex(index);
-      setThemeOpen(true);
+      setThemeComboboxOrigin(current);
+      setThemeComboboxQuery("");
+      setThemeComboboxIndex(index);
+      setThemeComboboxOpen(true);
     });
   }
 
@@ -1103,12 +1103,12 @@ function createState() {
   // Stops the effect from writing further.
   function closeThemePicker(commit: boolean) {
     if (commit) {
-      const item = themeResults()[themeIndex()];
-      setSelection(item === undefined ? themeOrigin() : item.selection);
+      const item = themeComboboxResults()[themeComboboxIndex()];
+      setSelection(item === undefined ? themeComboboxOrigin() : item.selection);
     } else {
-      setSelection(themeOrigin());
+      setSelection(themeComboboxOrigin());
     }
-    setThemeOpen(false);
+    setThemeComboboxOpen(false);
   }
 
   // A monotonic token guards the async last-commit resolution: a newer pick (of
@@ -1178,7 +1178,7 @@ function createState() {
   // Belongs here next to `runChecks`; `reason` overrides the status.
   let switchRequest = 0;
   async function switchWorktree(worktree: Worktree, reason?: string) {
-    setWorktreeOpen(false);
+    setWorktreeMenuOpen(false);
     if (worktree.path === gitModel().repoRoot) {
       return;
     }
@@ -1500,6 +1500,10 @@ function createState() {
     diffView,
     editorTemplate,
     expandedDirectories,
+    fileComboboxIndex,
+    fileComboboxOpen,
+    fileComboboxQuery,
+    fileComboboxResults,
     fileView,
     findActive,
     findMatchPos,
@@ -1514,7 +1518,7 @@ function createState() {
     gitModel,
     goBack,
     goForward,
-    helpOpen,
+    helpDialogOpen,
     iconsEnabled,
     ideTemplate,
     jumpTarget,
@@ -1529,12 +1533,8 @@ function createState() {
     nudgeSidebarWidth,
     openThemePicker,
     overflow,
-    paletteIndex,
-    paletteLeft,
-    paletteOpen,
-    paletteQuery,
-    paletteResults,
-    paletteWidth,
+    overlayLeft,
+    overlayWidth,
     paneHeight,
     pendingRestore,
     pinActiveTab,
@@ -1547,14 +1547,14 @@ function createState() {
     resetSidebarWidth,
     runChecks,
     scope,
-    scopeIndex,
-    scopeOpen,
-    searchIndex,
-    searchOpen,
-    searchQuery,
-    searchResults,
-    searchScope,
-    searchTruncated,
+    scopeMenuIndex,
+    scopeMenuOpen,
+    searchComboboxIndex,
+    searchComboboxOpen,
+    searchComboboxQuery,
+    searchComboboxResults,
+    searchComboboxScope,
+    searchComboboxTruncated,
     seedNav,
     selectFile,
     selectScope,
@@ -1571,6 +1571,9 @@ function createState() {
     setCursorRow,
     setEditorTemplate,
     setExpandedDirectories,
+    setFileComboboxIndex,
+    setFileComboboxOpen,
+    setFileComboboxQuery,
     setFileView,
     setFindActive,
     setFindMatchPos,
@@ -1580,7 +1583,7 @@ function createState() {
     setFocusedPane,
     setFullContentPaths,
     setGitModel,
-    setHelpOpen,
+    setHelpDialogOpen,
     setIconsEnabled,
     setIdeTemplate,
     setJumpTarget,
@@ -1589,31 +1592,28 @@ function createState() {
     setNotice,
     setNow,
     setOverflow,
-    setPaletteIndex,
-    setPaletteOpen,
-    setPaletteQuery,
     setPendingRestore,
     setProblemIndex,
     setProblemsOpen,
     setRepoRoot,
     setScope,
-    setScopeIndex,
-    setScopeOpen,
-    setSearchIndex,
-    setSearchOpen,
-    setSearchQuery,
-    setSearchScope,
+    setScopeMenuIndex,
+    setScopeMenuOpen,
+    setSearchComboboxIndex,
+    setSearchComboboxOpen,
+    setSearchComboboxQuery,
+    setSearchComboboxScope,
     setSessionBase,
     setSidebarOpen,
     setStatus,
     setTerminalHeight,
     setTerminalWidth,
-    setThemeIndex,
-    setThemeQuery,
+    setThemeComboboxIndex,
+    setThemeComboboxQuery,
     setViewerScrollTop,
     setViewerScrollX,
-    setWorktreeIndex,
-    setWorktreeOpen,
+    setWorktreeMenuIndex,
+    setWorktreeMenuOpen,
     setWorktrees,
     showFileContent,
     sidebarOpen,
@@ -1624,18 +1624,18 @@ function createState() {
     tabItems,
     terminalHeight,
     terminalWidth,
-    themeIndex,
-    themeOpen,
-    themeOrigin,
-    themeResults,
+    themeComboboxIndex,
+    themeComboboxOpen,
+    themeComboboxOrigin,
+    themeComboboxResults,
     togglePinActiveTab,
     treeRows,
     truncated,
     viewerHeight,
     viewerScrollTop,
     viewerScrollX,
-    worktreeIndex,
-    worktreeOpen,
+    worktreeMenuIndex,
+    worktreeMenuOpen,
     worktrees,
   };
 }

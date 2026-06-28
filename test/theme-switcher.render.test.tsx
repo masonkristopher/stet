@@ -59,7 +59,9 @@ describe("theme switcher", () => {
   test("the unfiltered list includes themes registered after startup", () => {
     registerThemes(resolveThemes({ "post-startup-probe": { base: "dark" } }).themes);
 
-    expect(state.themeResults().some((item) => item.name === "post-startup-probe")).toBe(true);
+    expect(state.themeComboboxResults().some((item) => item.name === "post-startup-probe")).toBe(
+      true,
+    );
   });
 
   test("t opens it; navigating previews live, esc reverts, enter commits", async () => {

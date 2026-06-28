@@ -6,7 +6,7 @@ import {
   parseCommand,
   scopeKinds,
   scopeLabel,
-  scopePickerLabel,
+  scopeMenuLabel,
 } from "../src/cli";
 
 describe("parseArgs", () => {
@@ -142,13 +142,13 @@ describe("scopeLabel", () => {
   });
 });
 
-describe("scopePickerLabel", () => {
+describe("scopeMenuLabel", () => {
   test("gives a ref-agnostic label per kind", () => {
-    expect(scopePickerLabel("unstaged")).toBe("unstaged");
-    expect(scopePickerLabel("staged")).toBe("staged");
-    expect(scopePickerLabel("all")).toBe("all changes");
-    expect(scopePickerLabel("session")).toBe("since session start");
-    expect(scopePickerLabel("last-commit")).toBe("last commit");
+    expect(scopeMenuLabel("unstaged")).toBe("unstaged");
+    expect(scopeMenuLabel("staged")).toBe("staged");
+    expect(scopeMenuLabel("all")).toBe("all changes");
+    expect(scopeMenuLabel("session")).toBe("since session start");
+    expect(scopeMenuLabel("last-commit")).toBe("last commit");
   });
 });
 

@@ -140,6 +140,6 @@ describe("createKeyHandler", () => {
 
     handle(keyEvent({ ctrl: true, name: "t" }));
 
-    expect(state.themeOpen()).toBe(false);
+    expect(state.themeComboboxOpen()).toBe(false);
   });
 });

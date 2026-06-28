@@ -73,8 +73,8 @@ export function seedState(model: GitModel, scope: DiffScope) {
     state.setScope(scope);
     state.setCliBaseRef(scope.ref);
     state.setSessionBase("HEAD");
-    state.setScopeOpen(false);
-    state.setScopeIndex(0);
+    state.setScopeMenuOpen(false);
+    state.setScopeMenuIndex(0);
     state.setIconsEnabled(true);
     state.setChangesOnly(false);
     state.setNotice(undefined);
@@ -90,19 +90,21 @@ export function seedState(model: GitModel, scope: DiffScope) {
     state.setFocusedPane("tree");
     state.setProblemsOpen(false);
     state.setProblemIndex(0);
-    state.setPaletteOpen(false);
-    state.setPaletteQuery("");
-    state.setPaletteIndex(0);
-    state.setWorktreeOpen(false);
-    state.setWorktreeIndex(0);
+    state.setFileComboboxOpen(false);
+    state.setFileComboboxQuery("");
+    state.setFileComboboxIndex(0);
+    state.setWorktreeMenuOpen(false);
+    state.setWorktreeMenuIndex(0);
     state.setWorktrees(undefined);
-    state.setHelpOpen(false);
+    state.setHelpDialogOpen(false);
     state.setCursorIndex(0);
     state.setJumpTarget(undefined);
-    state.setSearchOpen(false);
-    state.setSearchQuery("");
-    state.setSearchIndex(0);
-    state.setSearchScope("changed");
+    state.setSearchComboboxOpen(false);
+    state.setSearchComboboxQuery("");
+    state.setSearchComboboxIndex(0);
+    state.setSearchComboboxScope("changed");
+    state.setThemeComboboxQuery("");
+    state.setThemeComboboxIndex(0);
   });
 }
 

@@ -6,17 +6,17 @@ import { useKeyboard, useRenderer, useTerminalDimensions } from "@opentui/solid"
 import { Effect } from "effect";
 import { createEffect, onCleanup, Show } from "solid-js";
 
+import { FileCombobox } from "./components/FileCombobox";
 import { HeaderBar } from "./components/HeaderBar";
-import { HelpOverlay } from "./components/HelpOverlay";
-import { Palette } from "./components/Palette";
+import { HelpDialog } from "./components/HelpDialog";
 import { ProblemsPanel } from "./components/ProblemsPanel";
-import { ScopePicker } from "./components/ScopePicker";
-import { SearchPanel } from "./components/SearchPanel";
+import { ScopeMenu } from "./components/ScopeMenu";
+import { SearchCombobox } from "./components/SearchCombobox";
 import { Sidebar } from "./components/Sidebar";
 import { StatusBar } from "./components/StatusBar";
-import { ThemeSwitcher } from "./components/ThemeSwitcher";
+import { ThemeCombobox } from "./components/ThemeCombobox";
 import { Viewer } from "./components/Viewer";
-import { WorktreePicker } from "./components/WorktreePicker";
+import { WorktreeMenu } from "./components/WorktreeMenu";
 import { buildEditorCommand } from "./editor/reference";
 import { Editor } from "./editor/service";
 import type { Worktree } from "./git/model";
@@ -65,7 +65,10 @@ export function App() {
   // Renderer keeps a click from re-showing it by focusing the clicked renderable.
   createEffect(() => {
     const inputFocused =
-      state.paletteOpen() || state.searchOpen() || state.themeOpen() || state.findOpen();
+      state.fileComboboxOpen() ||
+      state.searchComboboxOpen() ||
+      state.themeComboboxOpen() ||
+      state.findOpen();
     if (!inputFocused) {
       renderer.setCursorPosition(0, 0, false);
     }
@@ -176,23 +179,23 @@ export function App() {
         <ProblemsPanel />
       </Show>
       <StatusBar />
-      <Show when={state.paletteOpen()}>
-        <Palette />
+      <Show when={state.fileComboboxOpen()}>
+        <FileCombobox />
       </Show>
-      <Show when={state.searchOpen()}>
-        <SearchPanel />
+      <Show when={state.searchComboboxOpen()}>
+        <SearchCombobox />
       </Show>
-      <Show when={state.worktreeOpen()}>
-        <WorktreePicker />
+      <Show when={state.worktreeMenuOpen()}>
+        <WorktreeMenu />
       </Show>
-      <Show when={state.scopeOpen()}>
-        <ScopePicker />
+      <Show when={state.scopeMenuOpen()}>
+        <ScopeMenu />
       </Show>
-      <Show when={state.themeOpen()}>
-        <ThemeSwitcher />
+      <Show when={state.themeComboboxOpen()}>
+        <ThemeCombobox />
       </Show>
-      <Show when={state.helpOpen()}>
-        <HelpOverlay />
+      <Show when={state.helpDialogOpen()}>
+        <HelpDialog />
       </Show>
     </box>
   );

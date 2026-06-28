@@ -65,7 +65,7 @@ const KEY_HELP: [combo: string, action: string][] = [
   ["q / esc", "quit (esc closes panels first)"],
 ];
 
-export function HelpOverlay() {
+export function HelpDialog() {
   const theme = useTheme();
   // Size the list by its rendered height (descriptions can wrap to two lines), so
   // The overlay shows every shortcut without scrolling whenever the terminal has
@@ -73,7 +73,7 @@ export function HelpOverlay() {
   const listHeight = createMemo(() => {
     // Row interior after the border (2), scrollbar gutter (1), padding (2), and
     // The combo column — slightly conservative so the list never clips a row.
-    const actionWidth = state.paletteWidth() - 5 - COMBO_WIDTH;
+    const actionWidth = state.overlayWidth() - 5 - COMBO_WIDTH;
     const rendered = KEY_HELP.reduce(
       (sum, [, action]) => sum + wrappedLineCount(action, actionWidth),
       0,
@@ -83,9 +83,9 @@ export function HelpOverlay() {
   return (
     <box
       position="absolute"
-      left={state.paletteLeft()}
+      left={state.overlayLeft()}
       top={1}
-      width={state.paletteWidth()}
+      width={state.overlayWidth()}
       flexDirection="column"
       borderStyle="single"
       borderColor={theme.colors.border.focused}
@@ -110,7 +110,7 @@ export function HelpOverlay() {
         <For each={KEY_HELP}>
           {([combo, action]) => (
             <box
-              id={`help-${combo}`}
+              id={`help-dialog-${combo}`}
               width="100%"
               flexDirection="row"
               paddingLeft={1}

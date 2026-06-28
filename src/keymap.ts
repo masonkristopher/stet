@@ -47,24 +47,24 @@ export function createKeyHandler(host: HostEffects) {
         return;
       }
 
-      if (state.helpOpen()) {
+      if (state.helpDialogOpen()) {
         if (key.name === "escape" || key.name === "?" || key.name === "q") {
-          state.setHelpOpen(false);
+          state.setHelpDialogOpen(false);
         }
         return;
       }
 
-      if (state.worktreeOpen()) {
+      if (state.worktreeMenuOpen()) {
         const worktrees = state.worktrees();
         const lastIndex = Math.max(0, (worktrees?.length ?? 1) - 1);
         if (key.name === "escape" || key.name === "w") {
-          state.setWorktreeOpen(false);
+          state.setWorktreeMenuOpen(false);
         } else if (key.name === "j" || key.name === "down") {
-          state.setWorktreeIndex(Math.min(state.worktreeIndex() + 1, lastIndex));
+          state.setWorktreeMenuIndex(Math.min(state.worktreeMenuIndex() + 1, lastIndex));
         } else if (key.name === "k" || key.name === "up") {
-          state.setWorktreeIndex(Math.max(state.worktreeIndex() - 1, 0));
+          state.setWorktreeMenuIndex(Math.max(state.worktreeMenuIndex() - 1, 0));
         } else if (key.name === "return") {
-          const worktree = worktrees?.[state.worktreeIndex()];
+          const worktree = worktrees?.[state.worktreeMenuIndex()];
           if (worktree !== undefined) {
             void state.switchWorktree(worktree);
           }
@@ -72,33 +72,36 @@ export function createKeyHandler(host: HostEffects) {
         return;
       }
 
-      if (state.scopeOpen()) {
+      if (state.scopeMenuOpen()) {
         const lastIndex = scopeKinds.length - 1;
         if (key.name === "escape" || key.name === "s") {
-          state.setScopeOpen(false);
+          state.setScopeMenuOpen(false);
         } else if (key.name === "j" || key.name === "down") {
-          state.setScopeIndex(Math.min(state.scopeIndex() + 1, lastIndex));
+          state.setScopeMenuIndex(Math.min(state.scopeMenuIndex() + 1, lastIndex));
         } else if (key.name === "k" || key.name === "up") {
-          state.setScopeIndex(Math.max(state.scopeIndex() - 1, 0));
+          state.setScopeMenuIndex(Math.max(state.scopeMenuIndex() - 1, 0));
         } else if (key.name === "return") {
-          const kind = scopeKinds[state.scopeIndex()];
+          const kind = scopeKinds[state.scopeMenuIndex()];
           if (kind !== undefined) {
             state.selectScope(kind);
           }
-          state.setScopeOpen(false);
+          state.setScopeMenuOpen(false);
         }
         return;
       }
 
-      if (state.paletteOpen()) {
+      if (state.fileComboboxOpen()) {
         if (key.name === "escape") {
-          state.setPaletteOpen(false);
+          state.setFileComboboxOpen(false);
         } else if (key.name === "down" || (key.ctrl && key.name === "n")) {
-          state.setPaletteIndex(
-            Math.min(state.paletteIndex() + 1, Math.max(0, state.paletteResults().length - 1)),
+          state.setFileComboboxIndex(
+            Math.min(
+              state.fileComboboxIndex() + 1,
+              Math.max(0, state.fileComboboxResults().length - 1),
+            ),
           );
         } else if (key.name === "up" || (key.ctrl && key.name === "p")) {
-          state.setPaletteIndex(Math.max(state.paletteIndex() - 1, 0));
+          state.setFileComboboxIndex(Math.max(state.fileComboboxIndex() - 1, 0));
         }
         return;
       }
@@ -106,33 +109,41 @@ export function createKeyHandler(host: HostEffects) {
       // The theme picker owns the keyboard while open (like the palette): nav here
       // Previews live, text/submit are the input's job. Escape reverts to the
       // Theme open captured; enter (the input's onSubmit) commits the highlighted one.
-      if (state.themeOpen()) {
+      if (state.themeComboboxOpen()) {
         if (key.name === "escape") {
           state.closeThemePicker(false);
         } else if (key.name === "down" || (key.ctrl && key.name === "n")) {
-          state.setThemeIndex(
-            Math.min(state.themeIndex() + 1, Math.max(0, state.themeResults().length - 1)),
+          state.setThemeComboboxIndex(
+            Math.min(
+              state.themeComboboxIndex() + 1,
+              Math.max(0, state.themeComboboxResults().length - 1),
+            ),
           );
         } else if (key.name === "up" || (key.ctrl && key.name === "p")) {
-          state.setThemeIndex(Math.max(state.themeIndex() - 1, 0));
+          state.setThemeComboboxIndex(Math.max(state.themeComboboxIndex() - 1, 0));
         }
         return;
       }
 
       // The search panel owns the keyboard while open: nav + scope toggle here,
       // Text and submit (the jump) are the input element's job (like the palette).
-      if (state.searchOpen()) {
+      if (state.searchComboboxOpen()) {
         if (key.name === "escape") {
-          state.setSearchOpen(false);
+          state.setSearchComboboxOpen(false);
         } else if (key.name === "down" || (key.ctrl && key.name === "n")) {
-          state.setSearchIndex(
-            Math.min(state.searchIndex() + 1, Math.max(0, state.searchResults().length - 1)),
+          state.setSearchComboboxIndex(
+            Math.min(
+              state.searchComboboxIndex() + 1,
+              Math.max(0, state.searchComboboxResults().length - 1),
+            ),
           );
         } else if (key.name === "up" || (key.ctrl && key.name === "p")) {
-          state.setSearchIndex(Math.max(state.searchIndex() - 1, 0));
+          state.setSearchComboboxIndex(Math.max(state.searchComboboxIndex() - 1, 0));
         } else if (key.ctrl && key.name === "a") {
-          state.setSearchScope(state.searchScope() === "changed" ? "repo" : "changed");
-          state.setSearchIndex(0);
+          state.setSearchComboboxScope(
+            state.searchComboboxScope() === "changed" ? "repo" : "changed",
+          );
+          state.setSearchComboboxIndex(0);
         }
         return;
       }
@@ -164,16 +175,16 @@ export function createKeyHandler(host: HostEffects) {
       }
 
       if (key.ctrl && key.name === "p") {
-        state.setPaletteOpen(true);
-        state.setPaletteQuery("");
-        state.setPaletteIndex(0);
+        state.setFileComboboxOpen(true);
+        state.setFileComboboxQuery("");
+        state.setFileComboboxIndex(0);
         return;
       }
 
       if (key.ctrl && key.name === "f") {
-        state.setSearchOpen(true);
-        state.setSearchQuery("");
-        state.setSearchIndex(0);
+        state.setSearchComboboxOpen(true);
+        state.setSearchComboboxQuery("");
+        state.setSearchComboboxIndex(0);
         return;
       }
 
@@ -240,7 +251,7 @@ export function createKeyHandler(host: HostEffects) {
       }
 
       if (key.name === "?") {
-        state.setHelpOpen(true);
+        state.setHelpDialogOpen(true);
         return;
       }
 
@@ -267,8 +278,8 @@ export function createKeyHandler(host: HostEffects) {
       }
 
       if (key.name === "w") {
-        state.setWorktreeOpen(true);
-        state.setWorktreeIndex(0);
+        state.setWorktreeMenuOpen(true);
+        state.setWorktreeMenuIndex(0);
         state.setWorktrees(undefined);
         state.loadWorktrees(state.gitModel().repoRoot);
         return;
@@ -276,8 +287,8 @@ export function createKeyHandler(host: HostEffects) {
 
       if (key.name === "s") {
         // Open the picker on the active scope so it reads as "where am I now".
-        state.setScopeIndex(Math.max(0, scopeKinds.indexOf(state.scope().kind)));
-        state.setScopeOpen(true);
+        state.setScopeMenuIndex(Math.max(0, scopeKinds.indexOf(state.scope().kind)));
+        state.setScopeMenuOpen(true);
         return;
       }
 

@@ -5,12 +5,12 @@ import { state } from "../state";
 import { useTheme } from "../theme/context";
 import { themeForName } from "../theme/registry";
 
-export function ThemeSwitcher() {
+export function ThemeCombobox() {
   const theme = useTheme();
-  let themeRef: ScrollBoxRenderable | undefined;
+  let themeComboboxRef: ScrollBoxRenderable | undefined;
 
   createEffect(() => {
-    themeRef?.scrollChildIntoView(`theme-${state.themeIndex()}`);
+    themeComboboxRef?.scrollChildIntoView(`theme-combobox-${state.themeComboboxIndex()}`);
   });
 
   // `auto` follows the terminal, so its swatch is the live active accent; every
@@ -19,14 +19,17 @@ export function ThemeSwitcher() {
     name === "auto" ? theme.colors.accent.primary : themeForName(name).accent.primary;
 
   const move = (delta: number) =>
-    state.setThemeIndex(
-      Math.max(0, Math.min(state.themeIndex() + delta, state.themeResults().length - 1)),
+    state.setThemeComboboxIndex(
+      Math.max(
+        0,
+        Math.min(state.themeComboboxIndex() + delta, state.themeComboboxResults().length - 1),
+      ),
     );
 
   function onInput(value: string) {
     batch(() => {
-      state.setThemeQuery(value);
-      state.setThemeIndex(0);
+      state.setThemeComboboxQuery(value);
+      state.setThemeComboboxIndex(0);
     });
   }
 
@@ -48,9 +51,9 @@ export function ThemeSwitcher() {
   return (
     <box
       position="absolute"
-      left={state.paletteLeft()}
+      left={state.overlayLeft()}
       top={1}
-      width={state.paletteWidth()}
+      width={state.overlayWidth()}
       flexDirection="column"
       borderStyle="single"
       borderColor={theme.colors.border.focused}
@@ -70,9 +73,9 @@ export function ThemeSwitcher() {
         onSubmit={() => state.closeThemePicker(true)}
       />
       <scrollbox
-        ref={(el) => (themeRef = el)}
+        ref={(el) => (themeComboboxRef = el)}
         width="100%"
-        height={Math.min(12, Math.max(1, state.themeResults().length))}
+        height={Math.min(12, Math.max(1, state.themeComboboxResults().length))}
         scrollY
         viewportCulling
         onMouseScroll={onWheel}
@@ -84,21 +87,21 @@ export function ThemeSwitcher() {
         }}
       >
         <Show
-          when={state.themeResults().length > 0}
+          when={state.themeComboboxResults().length > 0}
           fallback={
-            <box id="theme-empty" paddingLeft={1}>
+            <box id="theme-combobox-empty" paddingLeft={1}>
               <text fg={theme.colors.text.muted}>no themes</text>
             </box>
           }
         >
           {/* Id-by-index is required: reordering results must never change a live renderable's id */}
-          <Index each={state.themeResults()}>
+          <Index each={state.themeComboboxResults()}>
             {(item, index) => {
-              const selected = () => index === state.themeIndex();
-              const current = () => item().selection === state.themeOrigin();
+              const selected = () => index === state.themeComboboxIndex();
+              const current = () => item().selection === state.themeComboboxOrigin();
               return (
                 <box
-                  id={`theme-${index}`}
+                  id={`theme-combobox-${index}`}
                   width="100%"
                   flexDirection="row"
                   paddingLeft={1}
@@ -106,10 +109,10 @@ export function ThemeSwitcher() {
                   backgroundColor={
                     selected() ? theme.colors.surface.cursor : theme.colors.surface.panel
                   }
-                  onMouseOver={() => state.setThemeIndex(index)}
+                  onMouseOver={() => state.setThemeComboboxIndex(index)}
                   onMouseDown={() =>
                     batch(() => {
-                      state.setThemeIndex(index);
+                      state.setThemeComboboxIndex(index);
                       state.closeThemePicker(true);
                     })
                   }

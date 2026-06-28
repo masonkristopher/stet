@@ -1,24 +1,24 @@
 import type { ScrollBoxRenderable } from "@opentui/core";
 import { createEffect, Index } from "solid-js";
 
-import { scopeKinds, scopePickerLabel } from "../cli";
+import { scopeKinds, scopeMenuLabel } from "../cli";
 import { state } from "../state";
 import { useTheme } from "../theme/context";
 
-export function ScopePicker() {
+export function ScopeMenu() {
   const theme = useTheme();
-  let scopeRef: ScrollBoxRenderable | undefined;
+  let scopeMenuRef: ScrollBoxRenderable | undefined;
 
   createEffect(() => {
-    scopeRef?.scrollChildIntoView(`scope-${state.scopeIndex()}`);
+    scopeMenuRef?.scrollChildIntoView(`scope-menu-${state.scopeMenuIndex()}`);
   });
 
   return (
     <box
       position="absolute"
-      left={state.paletteLeft()}
+      left={state.overlayLeft()}
       top={1}
-      width={state.paletteWidth()}
+      width={state.overlayWidth()}
       flexDirection="column"
       borderStyle="single"
       borderColor={theme.colors.border.focused}
@@ -29,7 +29,7 @@ export function ScopePicker() {
         <text fg={theme.colors.text.strong}>switch scope</text>
       </box>
       <scrollbox
-        ref={(el) => (scopeRef = el)}
+        ref={(el) => (scopeMenuRef = el)}
         width="100%"
         height={scopeKinds.length}
         scrollY
@@ -46,20 +46,22 @@ export function ScopePicker() {
           {(kind, index) => {
             const current = () => kind() === state.scope().kind;
             const nameFg = () =>
-              index === state.scopeIndex() ? theme.colors.text.selected : theme.colors.text.strong;
+              index === state.scopeMenuIndex()
+                ? theme.colors.text.selected
+                : theme.colors.text.strong;
             return (
               <box
-                id={`scope-${index}`}
+                id={`scope-menu-${index}`}
                 width="100%"
                 paddingLeft={1}
                 paddingRight={1}
                 backgroundColor={
-                  index === state.scopeIndex()
+                  index === state.scopeMenuIndex()
                     ? theme.colors.surface.cursor
                     : theme.colors.surface.panel
                 }
               >
-                <text fg={nameFg()}>{`${current() ? "● " : "  "}${scopePickerLabel(kind())}`}</text>
+                <text fg={nameFg()}>{`${current() ? "● " : "  "}${scopeMenuLabel(kind())}`}</text>
               </box>
             );
           }}

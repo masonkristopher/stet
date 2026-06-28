@@ -174,7 +174,7 @@ export function scopeLabel(scope: DiffScope) {
 
 // Ref-agnostic row labels for the scope picker (the active scope's full,
 // Ref-bearing label still shows in the header via scopeLabel).
-export function scopePickerLabel(kind: ScopeKind) {
+export function scopeMenuLabel(kind: ScopeKind) {
   if (kind === "staged") {
     return "staged";
   }

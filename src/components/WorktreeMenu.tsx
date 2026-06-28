@@ -6,12 +6,12 @@ import { useTheme } from "../theme/context";
 import { worktreeLabel } from "../ui-helpers";
 import { collapseHome, truncateLeft } from "../utils/text";
 
-export function WorktreePicker() {
+export function WorktreeMenu() {
   const theme = useTheme();
-  let worktreeRef: ScrollBoxRenderable | undefined;
+  let worktreeMenuRef: ScrollBoxRenderable | undefined;
 
   createEffect(() => {
-    worktreeRef?.scrollChildIntoView(`worktree-${state.worktreeIndex()}`);
+    worktreeMenuRef?.scrollChildIntoView(`worktree-menu-${state.worktreeMenuIndex()}`);
   });
 
   const repoRoot = () => state.gitModel().repoRoot;
@@ -19,9 +19,9 @@ export function WorktreePicker() {
   return (
     <box
       position="absolute"
-      left={state.paletteLeft()}
+      left={state.overlayLeft()}
       top={1}
-      width={state.paletteWidth()}
+      width={state.overlayWidth()}
       flexDirection="column"
       borderStyle="single"
       borderColor={theme.colors.border.focused}
@@ -32,7 +32,7 @@ export function WorktreePicker() {
         <text fg={theme.colors.text.strong}>switch worktree</text>
       </box>
       <scrollbox
-        ref={(el) => (worktreeRef = el)}
+        ref={(el) => (worktreeMenuRef = el)}
         width="100%"
         height={Math.min(12, Math.max(1, state.worktrees()?.length ?? 1))}
         scrollY
@@ -47,7 +47,7 @@ export function WorktreePicker() {
         <Show
           when={state.worktrees() !== undefined}
           fallback={
-            <box id="worktree-loading" paddingLeft={1}>
+            <box id="worktree-menu-loading" paddingLeft={1}>
               <text fg={theme.colors.text.muted}>loading…</text>
             </box>
           }
@@ -55,7 +55,7 @@ export function WorktreePicker() {
           <Show
             when={(state.worktrees()?.length ?? 0) > 0}
             fallback={
-              <box id="worktree-empty" paddingLeft={1}>
+              <box id="worktree-menu-empty" paddingLeft={1}>
                 <text fg={theme.colors.text.muted}>no worktrees</text>
               </box>
             }
@@ -69,19 +69,19 @@ export function WorktreePicker() {
                     .filter((badge) => badge !== "")
                     .join(" ");
                 const nameFg = () =>
-                  index === state.worktreeIndex()
+                  index === state.worktreeMenuIndex()
                     ? theme.colors.text.selected
                     : theme.colors.text.strong;
                 return (
                   <box
-                    id={`worktree-${index}`}
+                    id={`worktree-menu-${index}`}
                     width="100%"
                     flexDirection="row"
                     justifyContent="space-between"
                     paddingLeft={1}
                     paddingRight={1}
                     backgroundColor={
-                      index === state.worktreeIndex()
+                      index === state.worktreeMenuIndex()
                         ? theme.colors.surface.cursor
                         : theme.colors.surface.panel
                     }
@@ -99,7 +99,7 @@ export function WorktreePicker() {
                           collapseHome(worktree().path),
                           Math.max(
                             10,
-                            state.paletteWidth() - worktreeLabel(worktree()).length - 16,
+                            state.overlayWidth() - worktreeLabel(worktree()).length - 16,
                           ),
                         )}
                       </text>

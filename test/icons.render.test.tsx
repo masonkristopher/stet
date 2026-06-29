@@ -4,8 +4,9 @@ import { join } from "node:path";
 
 import { testRender } from "@opentui/solid";
 
-import { App } from "../src/App";
-import { state } from "../src/state";
+import { App } from "@/App";
+import { state } from "@/state";
+
 import { createFixtureRepo, loadModel, makeSettleUntil, runGit, seedState } from "./helpers";
 
 const FOLDER = "\u{f07b}";

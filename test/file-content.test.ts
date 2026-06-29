@@ -3,14 +3,14 @@ import { mkdirSync, mkdtempSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { structureDiff } from "../src/diff/engine";
+import { structureDiff } from "@/diff/engine";
 import {
   classifyFileBytes,
   contentToContextPatch,
   loadFileContent,
   MAX_FILE_LINES,
   textContent,
-} from "../src/file/content";
+} from "@/file/content";
 
 describe("textContent", () => {
   test("normalizes the trailing newline and counts lines", () => {

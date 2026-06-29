@@ -1,4 +1,4 @@
-import { preloadDiffHighlighter } from "../src/diff/engine";
+import { preloadDiffHighlighter } from "@/diff/engine";
 
 // Tests never auto-download a language server (no network, no slow installs). The provisioner's own
 // Tests toggle this explicitly and restore it.

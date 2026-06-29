@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
-import { renderDiff } from "../src/diff/engine";
-import { isLineRow } from "../src/diff/rows";
+import { renderDiff } from "@/diff/engine";
+import { isLineRow } from "@/diff/rows";
 
 const patch = `diff --git a/foo.ts b/foo.ts
 index 1111111..2222222 100644

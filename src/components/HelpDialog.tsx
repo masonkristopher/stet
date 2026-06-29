@@ -1,7 +1,7 @@
 import { createMemo, For, Show } from "solid-js";
 
-import { state } from "../state";
-import { useTheme } from "../theme/context";
+import { state } from "@/state";
+import { useTheme } from "@/theme/context";
 
 // Fixed width of the combo column box; the action text wraps in whatever remains
 // Of the overlay row after it. A reserved-width box (not string padding) keeps the

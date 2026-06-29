@@ -19,8 +19,8 @@ import {
   recordCurrent,
   remember,
   selectTab,
-} from "../src/viewer/navigation";
-import type { Location } from "../src/viewer/navigation";
+} from "@/viewer/navigation";
+import type { Location } from "@/viewer/navigation";
 
 function loc(
   path: string,

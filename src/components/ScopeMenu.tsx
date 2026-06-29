@@ -1,9 +1,9 @@
 import type { ScrollBoxRenderable } from "@opentui/core";
 import { createEffect, Index } from "solid-js";
 
-import { scopeKinds, scopeMenuLabel } from "../cli";
-import { state } from "../state";
-import { useTheme } from "../theme/context";
+import { scopeKinds, scopeMenuLabel } from "@/cli";
+import { state } from "@/state";
+import { useTheme } from "@/theme/context";
 
 export function ScopeMenu() {
   const theme = useTheme();

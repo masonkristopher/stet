@@ -3,15 +3,16 @@ import type { MouseEvent, RGBA, ScrollBoxRenderable, TextRenderable } from "@ope
 import { useRenderer } from "@opentui/solid";
 import { batch, createEffect, createMemo, Index, onCleanup, Show, untrack } from "solid-js";
 
-import { followScrollTop, followScrollX } from "../../diff/follow";
-import { isLineRow } from "../../diff/rows";
-import type { DiffLineRow, DiffRow } from "../../diff/rows";
-import { columnToIndex, markRange, sliceSpansWindow } from "../../diff/spans";
-import type { HighlightSpan } from "../../diff/spans";
-import { visibleWindow, visibleWindowVariable } from "../../diff/windowing";
-import { wordAt } from "../../diff/words";
-import { state } from "../../state";
-import { useTheme } from "../../theme/context";
+import { followScrollTop, followScrollX } from "@/diff/follow";
+import { isLineRow } from "@/diff/rows";
+import type { DiffLineRow, DiffRow } from "@/diff/rows";
+import { columnToIndex, markRange, sliceSpansWindow } from "@/diff/spans";
+import type { HighlightSpan } from "@/diff/spans";
+import { visibleWindow, visibleWindowVariable } from "@/diff/windowing";
+import { wordAt } from "@/diff/words";
+import { state } from "@/state";
+import { useTheme } from "@/theme/context";
+
 import { createLineMeasurer } from "./line-measure";
 
 // The caret word's display-column range on the cursor line, [from, to). Undefined

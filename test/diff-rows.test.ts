@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
-import { buildDiffRows, navigableLinesFromRows } from "../src/diff/rows";
-import type { DiffMetaInput } from "../src/diff/rows";
+import { buildDiffRows, navigableLinesFromRows } from "@/diff/rows";
+import type { DiffMetaInput } from "@/diff/rows";
 
 // Mirrors the probe: one context line, a 1/1 change, then two context lines.
 // `collapsedBefore` defaults to 0 (a hunk at line 1, so no leading separator).

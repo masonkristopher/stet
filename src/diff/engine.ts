@@ -11,9 +11,10 @@ import {
 import type { DiffsHighlighter, RenderDiffOptions } from "@pierre/diffs";
 import { Context, Effect, Layer } from "effect";
 
-import { activeThemeName, appearance } from "../theme/active";
-import { syntaxThemeForName, themeForName } from "../theme/registry";
-import { shikiTheme, SIDEYE_SHIKI_THEME_NAME } from "../theme/shiki";
+import { activeThemeName, appearance } from "@/theme/active";
+import { syntaxThemeForName, themeForName } from "@/theme/registry";
+import { shikiTheme, SIDEYE_SHIKI_THEME_NAME } from "@/theme/shiki";
+
 import { flattenLineSpans } from "./hast";
 import type { RenderSpan } from "./hast";
 import { buildDiffRows, navigableLinesFromRows } from "./rows";

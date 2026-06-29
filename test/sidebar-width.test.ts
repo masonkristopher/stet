@@ -2,7 +2,7 @@ import { afterEach, expect, test } from "bun:test";
 
 import { batch } from "solid-js";
 
-import { state } from "../src/state";
+import { state } from "@/state";
 
 // State is a global singleton shared across test files; restore the sidebar
 // Defaults (open, no override, 80-col terminal) after each case.

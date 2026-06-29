@@ -9,7 +9,7 @@ import {
   recencyLevel,
   recordActivity,
   RECENT_MS,
-} from "../src/git/activity";
+} from "@/git/activity";
 
 describe("recordActivity", () => {
   test("returns the same log when nothing changed", () => {

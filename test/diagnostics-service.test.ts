@@ -6,12 +6,12 @@ import { pathToFileURL } from "node:url";
 
 import { Effect, Layer, Stream } from "effect";
 
-import type { CheckerFileState } from "../src/diagnostics/checker";
-import { LanguageServers, ServerInstalling, ServerUnavailable } from "../src/diagnostics/servers";
-import type { ServerHandle } from "../src/diagnostics/servers";
-import { Diagnostics, DiagnosticsLive } from "../src/diagnostics/service";
-import type { LspConnection } from "../src/diagnostics/transport";
-import type { ChangedFile } from "../src/git/model";
+import type { CheckerFileState } from "@/diagnostics/checker";
+import { LanguageServers, ServerInstalling, ServerUnavailable } from "@/diagnostics/servers";
+import type { ServerHandle } from "@/diagnostics/servers";
+import { Diagnostics, DiagnosticsLive } from "@/diagnostics/service";
+import type { LspConnection } from "@/diagnostics/transport";
+import type { ChangedFile } from "@/git/model";
 
 function changed(path: string): ChangedFile {
   return {

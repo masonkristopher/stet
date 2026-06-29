@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-import { normalizeDefinition, normalizeReferences } from "../src/intel/protocol";
+import { normalizeDefinition, normalizeReferences } from "@/intel/protocol";
 
 const uri = pathToFileURL("/repo/src/target.ts").href;
 const path = fileURLToPath(uri);

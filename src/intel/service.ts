@@ -11,9 +11,10 @@ import { pathToFileURL } from "node:url";
 
 import { Context, Data, Effect, Layer } from "effect";
 
-import { LanguageServers, lspLanguageId, serversProviding } from "../diagnostics/servers";
-import type { Capability, ServerHandle } from "../diagnostics/servers";
-import { relativize } from "../utils/path";
+import { LanguageServers, lspLanguageId, serversProviding } from "@/diagnostics/servers";
+import type { Capability, ServerHandle } from "@/diagnostics/servers";
+import { relativize } from "@/utils/path";
+
 import { normalizeDefinition, normalizeReferences } from "./protocol";
 import type { NormalizedLocation } from "./protocol";
 

@@ -6,7 +6,8 @@ import { ScrollBoxRenderable } from "@opentui/core";
 import type { Renderable } from "@opentui/core";
 import { testRender } from "@opentui/solid";
 
-import { App } from "../src/App";
+import { App } from "@/App";
+
 import { createFixtureRepo, loadModel, makeSettleUntil, seedState } from "./helpers";
 
 // Toggling a diff to whole-file view used to leave the viewport blank until the user

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { classifyInstall } from "../src/upgrade/install-method";
+import { classifyInstall } from "@/upgrade/install-method";
 
 describe("classifyInstall", () => {
   test("detects Homebrew on Apple Silicon", () => {

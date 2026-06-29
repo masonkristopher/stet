@@ -1,10 +1,11 @@
 import type { InputRenderable } from "@opentui/core";
 import { batch, createEffect, on, Show } from "solid-js";
 
-import { firstWord, wordAt } from "../diff/words";
-import { state } from "../state";
-import { useTheme } from "../theme/context";
-import { nearestNavigableIndex, placeholderText, viewerStats } from "../ui-helpers";
+import { firstWord, wordAt } from "@/diff/words";
+import { state } from "@/state";
+import { useTheme } from "@/theme/context";
+import { nearestNavigableIndex, placeholderText, viewerStats } from "@/ui-helpers";
+
 import { DiffView } from "./diff/DiffView";
 import { Tabs } from "./Tabs";
 

@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
-import { loadConfigText } from "../src/config/load";
-import { darkTheme } from "../src/theme/dark";
+import { loadConfigText } from "@/config/load";
+import { darkTheme } from "@/theme/dark";
 
 describe("loadConfigText", () => {
   test("parses JSONC with comments and trailing commas", () => {

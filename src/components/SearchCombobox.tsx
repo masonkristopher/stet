@@ -1,9 +1,9 @@
 import type { ScrollBoxRenderable } from "@opentui/core";
 import { batch, createEffect, createMemo, For, Show } from "solid-js";
 
-import { state } from "../state";
-import { useTheme } from "../theme/context";
-import { truncate } from "../utils/text";
+import { state } from "@/state";
+import { useTheme } from "@/theme/context";
+import { truncate } from "@/utils/text";
 
 export function SearchCombobox() {
   const theme = useTheme();

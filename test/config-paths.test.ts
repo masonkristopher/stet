@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
-import { configPaths } from "../src/config/paths";
+import { configPaths } from "@/config/paths";
 
 describe("configPaths", () => {
   test("prefers config.jsonc, then config.json, under XDG_CONFIG_HOME", () => {

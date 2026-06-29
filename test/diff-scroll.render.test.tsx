@@ -3,8 +3,9 @@ import { rmSync } from "node:fs";
 
 import { testRender } from "@opentui/solid";
 
-import { App } from "../src/App";
-import { state } from "../src/state";
+import { App } from "@/App";
+import { state } from "@/state";
+
 import { createFixtureRepo, loadModel, makeSettleUntil, seedState } from "./helpers";
 
 // A long unchanged file viewed as full content. The viewer mounts only a windowed

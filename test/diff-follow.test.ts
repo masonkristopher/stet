@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { followScrollTop, followScrollX } from "../src/diff/follow";
+import { followScrollTop, followScrollX } from "@/diff/follow";
 
 // Viewport of 10 rows, content of 100 rows (so maxScroll = 90), 3-row margin.
 const base = { height: 1, margin: 3, maxScroll: 90, viewport: 10 };

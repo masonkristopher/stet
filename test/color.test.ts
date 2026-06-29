@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { lerpHex } from "../src/utils/color";
+import { lerpHex } from "@/utils/color";
 
 describe("lerpHex", () => {
   test("returns the endpoints at t=0 and t=1", () => {

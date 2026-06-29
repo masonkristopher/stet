@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { darkTheme } from "../src/theme/dark";
+import { darkTheme } from "@/theme/dark";
 import {
   registerThemes,
   resolveThemes,
@@ -9,7 +9,7 @@ import {
   snapshotRegistry,
   themeForName,
   themeNames,
-} from "../src/theme/registry";
+} from "@/theme/registry";
 
 describe("themeForName", () => {
   test("returns a built-in by name", () => {

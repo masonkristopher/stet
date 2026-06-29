@@ -3,8 +3,9 @@ import { rmSync } from "node:fs";
 
 import { testRender } from "@opentui/solid";
 
-import { App } from "../src/App";
-import { state } from "../src/state";
+import { App } from "@/App";
+import { state } from "@/state";
+
 import { createFixtureRepo, loadModel, makeSettleUntil, seedState } from "./helpers";
 
 // Some graphemes (emoji with a U+FE0F variation selector) lay a `wrapMode="none"`

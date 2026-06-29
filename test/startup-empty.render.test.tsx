@@ -2,8 +2,9 @@ import { expect, test } from "bun:test";
 
 import { testRender } from "@opentui/solid";
 
-import { App } from "../src/App";
-import type { GitModel } from "../src/git/model";
+import { App } from "@/App";
+import type { GitModel } from "@/git/model";
+
 import { makeSettleUntil, seedState } from "./helpers";
 
 const allScope = { kind: "all", ref: "HEAD" } as const;

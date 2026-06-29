@@ -1,14 +1,6 @@
 import { expect, test } from "bun:test";
 
-import {
-  firstWord,
-  lastWord,
-  nextWord,
-  prevWord,
-  wordAt,
-  words,
-  wordStarts,
-} from "../src/diff/words";
+import { firstWord, lastWord, nextWord, prevWord, wordAt, words, wordStarts } from "@/diff/words";
 
 const line = "const user = getUser(id)";
 // Words:        const(0-5) user(6-10) getUser(13-20) id(21-23)

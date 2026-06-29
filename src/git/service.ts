@@ -1,8 +1,9 @@
 import { Context, Effect, Layer, Schedule } from "effect";
 
-import type { DiffScope } from "../cli";
-import { Process } from "../process";
-import type { CommandError } from "../process";
+import type { DiffScope } from "@/cli";
+import { Process } from "@/process";
+import type { CommandError } from "@/process";
+
 import { GitError } from "./errors";
 import {
   assembleChanged,

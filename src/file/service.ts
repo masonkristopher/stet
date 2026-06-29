@@ -1,6 +1,7 @@
 import { Context, Effect, Layer } from "effect";
 
-import { Process } from "../process";
+import { Process } from "@/process";
+
 import { classifyFileBytes, loadFileContent } from "./content";
 import type { FileContent, LoadFileContentOptions } from "./content";
 

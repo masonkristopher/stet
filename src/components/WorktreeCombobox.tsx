@@ -1,10 +1,10 @@
 import type { ScrollBoxRenderable } from "@opentui/core";
 import { batch, createEffect, Index, Show } from "solid-js";
 
-import { state } from "../state";
-import { useTheme } from "../theme/context";
-import { worktreeLabel } from "../ui-helpers";
-import { collapseHome, truncateLeft } from "../utils/text";
+import { state } from "@/state";
+import { useTheme } from "@/theme/context";
+import { worktreeLabel } from "@/ui-helpers";
+import { collapseHome, truncateLeft } from "@/utils/text";
 
 export function WorktreeCombobox() {
   const theme = useTheme();

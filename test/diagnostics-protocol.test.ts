@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 
-import { isLspDiagnostic, mapLspDiagnostic } from "../src/diagnostics/protocol";
+import { isLspDiagnostic, mapLspDiagnostic } from "@/diagnostics/protocol";
 
 const range = { end: { character: 5, line: 0 }, start: { character: 1, line: 0 } };
 

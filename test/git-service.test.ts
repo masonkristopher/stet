@@ -6,9 +6,10 @@ import { join } from "node:path";
 
 import { Effect } from "effect";
 
-import { EMPTY_TREE_SHA } from "../src/git/model";
-import { Git, GitLive } from "../src/git/service";
-import { ProcessLive } from "../src/process";
+import { EMPTY_TREE_SHA } from "@/git/model";
+import { Git, GitLive } from "@/git/service";
+import { ProcessLive } from "@/process";
+
 import { createFixtureRepo, runGit } from "./helpers";
 
 const allScope = { kind: "all", ref: "HEAD" } as const;

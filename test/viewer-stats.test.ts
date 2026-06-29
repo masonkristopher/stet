@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
-import type { ChangedFile } from "../src/git/model";
-import { viewerStats } from "../src/ui-helpers";
+import type { ChangedFile } from "@/git/model";
+import { viewerStats } from "@/ui-helpers";
 
 function changed(over: Partial<ChangedFile> = {}): ChangedFile {
   return {

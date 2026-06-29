@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 
-import type { ChangedFile } from "../git/model";
-import { relativize } from "../utils/path";
+import type { ChangedFile } from "@/git/model";
+import { relativize } from "@/utils/path";
 
 // Diagnostics collapse to a single source now that they come from language servers; each diagnostic
 // Carries its own LSP `source` label (e.g. "ts", "eslint"). The keyed-map shape is retained so the

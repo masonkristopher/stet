@@ -4,7 +4,8 @@ import { join } from "node:path";
 
 import { testRender } from "@opentui/solid";
 
-import { App } from "../src/App";
+import { App } from "@/App";
+
 import { createFixtureRepo, loadModel, makeSettleUntil, runGit, seedState } from "./helpers";
 
 describe("worktree picker", () => {

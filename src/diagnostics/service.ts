@@ -14,7 +14,8 @@ import { pathToFileURL } from "node:url";
 
 import { Context, Effect, Layer, Stream } from "effect";
 
-import type { ChangedFile } from "../git/model";
+import type { ChangedFile } from "@/git/model";
+
 import { stateForResolvedChecker } from "./checker";
 import type { CheckerFileState, CheckerName, Diagnostic } from "./checker";
 import { isLspDiagnostic, mapLspDiagnostic } from "./protocol";

@@ -1,9 +1,10 @@
 import type { ScrollBoxRenderable } from "@opentui/core";
 import { createEffect, For, Show } from "solid-js";
 
-import { state } from "../state";
-import { useTheme } from "../theme/context";
-import { createDoubleClickGuard } from "../utils/double-click";
+import { state } from "@/state";
+import { useTheme } from "@/theme/context";
+import { createDoubleClickGuard } from "@/utils/double-click";
+
 import { TreeRow } from "./TreeRow";
 
 export function Sidebar() {

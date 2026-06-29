@@ -2,7 +2,8 @@ import { describe, expect, test } from "bun:test";
 
 import { testRender } from "@opentui/solid";
 
-import { App } from "../src/App";
+import { App } from "@/App";
+
 import { loadModel, makeSettleUntil, seedState } from "./helpers";
 
 describe("App rendering", () => {

@@ -11,7 +11,7 @@ import { join } from "node:path";
 
 import { Context, Effect, Layer, Queue } from "effect";
 
-import { Process } from "../process";
+import { Process } from "@/process";
 
 export interface ProvisionSpec {
   readonly binary: string;

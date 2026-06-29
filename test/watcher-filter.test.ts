@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { sep } from "node:path";
 
-import { shouldRefresh } from "../src/watcher/filter";
+import { shouldRefresh } from "@/watcher/filter";
 
 const WORKTREE = `.git${sep}`;
 const GIT_DIR = "";

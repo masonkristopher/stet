@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { findMatches } from "../src/utils/find";
+import { findMatches } from "@/utils/find";
 
 const lines = ["const findMatches = () => {", "  return MATCHES;", "}", "// find me"];
 

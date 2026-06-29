@@ -1,10 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import {
-  buildEditorCommand,
-  resolveEditorTemplate,
-  resolveIdeTemplate,
-} from "../src/editor/reference";
+import { buildEditorCommand, resolveEditorTemplate, resolveIdeTemplate } from "@/editor/reference";
 
 describe("buildEditorCommand", () => {
   test("substitutes {file} and {line} in a vim-style template", () => {

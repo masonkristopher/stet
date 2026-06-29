@@ -6,15 +6,15 @@ import { dirname, join } from "node:path";
 import { Effect, Layer } from "effect";
 import { batch } from "solid-js";
 
-import type { DiffScope } from "../src/cli";
-import { initialCheckerState } from "../src/diagnostics/checker";
-import { File, FileLive } from "../src/file/service";
-import type { ChangedFile, GitModel } from "../src/git/model";
-import { Git, GitLive } from "../src/git/service";
-import { defaultExpandedDirectories, expandAncestorsForPath } from "../src/git/tree";
-import type { FileTreeRow } from "../src/git/tree";
-import { ProcessLive } from "../src/process";
-import { state } from "../src/state";
+import type { DiffScope } from "@/cli";
+import { initialCheckerState } from "@/diagnostics/checker";
+import { File, FileLive } from "@/file/service";
+import type { ChangedFile, GitModel } from "@/git/model";
+import { Git, GitLive } from "@/git/service";
+import { defaultExpandedDirectories, expandAncestorsForPath } from "@/git/tree";
+import type { FileTreeRow } from "@/git/tree";
+import { ProcessLive } from "@/process";
+import { state } from "@/state";
 
 const GitTestLive = GitLive.pipe(Layer.provide(ProcessLive));
 const FileTestLive = FileLive.pipe(Layer.provide(ProcessLive));

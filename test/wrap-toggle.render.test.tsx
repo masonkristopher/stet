@@ -4,7 +4,8 @@ import { join } from "node:path";
 
 import { testRender } from "@opentui/solid";
 
-import { App } from "../src/App";
+import { App } from "@/App";
+
 import { createFixtureRepo, loadModel, makeSettleUntil, seedState } from "./helpers";
 
 // Count the terminal rows the long line occupies: scroll mode keeps it on one

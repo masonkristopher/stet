@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { upgradeInvocation } from "../src/upgrade/commands";
+import { upgradeInvocation } from "@/upgrade/commands";
 
 describe("upgradeInvocation", () => {
   test("standalone re-runs the install script", () => {

@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 
-import { refreshDelay } from "../src/utils/refresh-cadence";
+import { refreshDelay } from "@/utils/refresh-cadence";
 
 const NOW = 1_000_000;
 

@@ -1,13 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import {
-  helpText,
-  parseArgs,
-  parseCommand,
-  scopeKinds,
-  scopeLabel,
-  scopeMenuLabel,
-} from "../src/cli";
+import { helpText, parseArgs, parseCommand, scopeKinds, scopeLabel, scopeMenuLabel } from "@/cli";
 
 describe("parseArgs", () => {
   test("defaults to all changes vs HEAD", () => {

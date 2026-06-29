@@ -1,9 +1,9 @@
 import type { MouseEvent, ScrollBoxRenderable } from "@opentui/core";
 import { batch, createEffect, Index, Show } from "solid-js";
 
-import { state } from "../state";
-import { useTheme } from "../theme/context";
-import { themeForName } from "../theme/registry";
+import { state } from "@/state";
+import { useTheme } from "@/theme/context";
+import { themeForName } from "@/theme/registry";
 
 export function ThemeCombobox() {
   const theme = useTheme();

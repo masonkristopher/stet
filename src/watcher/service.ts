@@ -2,7 +2,8 @@ import { watch } from "node:fs";
 
 import { Context, Effect, Layer, Queue, Stream } from "effect";
 
-import { Git } from "../git/service";
+import { Git } from "@/git/service";
+
 import { shouldRefresh } from "./filter";
 import { watchRoots } from "./scope";
 

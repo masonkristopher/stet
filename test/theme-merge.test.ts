@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { mergeDeep } from "../src/theme/merge";
+import { mergeDeep } from "@/theme/merge";
 
 describe("mergeDeep", () => {
   test("recurses into nested objects and replaces leaves", () => {

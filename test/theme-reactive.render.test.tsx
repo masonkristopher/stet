@@ -3,10 +3,11 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { RGBA } from "@opentui/core";
 import { testRender } from "@opentui/solid";
 
-import { App } from "../src/App";
-import { setAppearance, setSelection } from "../src/theme/active";
-import { darkTheme } from "../src/theme/dark";
-import { registerThemes, resolveThemes } from "../src/theme/registry";
+import { App } from "@/App";
+import { setAppearance, setSelection } from "@/theme/active";
+import { darkTheme } from "@/theme/dark";
+import { registerThemes, resolveThemes } from "@/theme/registry";
+
 import { loadModel, makeSettleUntil, seedState } from "./helpers";
 
 // Two themes with unique, easy-to-spot surface backgrounds, one per appearance.

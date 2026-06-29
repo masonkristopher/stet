@@ -1,10 +1,10 @@
 import { createTextAttributes } from "@opentui/core";
 import { batch, createMemo, Index, Show } from "solid-js";
 
-import { state } from "../state";
-import { useTheme } from "../theme/context";
-import { createDoubleClickGuard } from "../utils/double-click";
-import { truncateLeft, truncateName } from "../utils/text";
+import { state } from "@/state";
+import { useTheme } from "@/theme/context";
+import { createDoubleClickGuard } from "@/utils/double-click";
+import { truncateLeft, truncateName } from "@/utils/text";
 
 // The active tab shows its path (truncated from the left to keep the filename);
 // Inactive tabs show just the basename. RIGHT_RESERVE keeps room for the status

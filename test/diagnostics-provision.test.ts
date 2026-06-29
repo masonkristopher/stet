@@ -5,9 +5,9 @@ import { join } from "node:path";
 
 import { Effect, Layer, Queue } from "effect";
 
-import { makeProvisioner, Provisioner } from "../src/diagnostics/provision";
-import type { ProvisionSpec } from "../src/diagnostics/provision";
-import { Process } from "../src/process";
+import { makeProvisioner, Provisioner } from "@/diagnostics/provision";
+import type { ProvisionSpec } from "@/diagnostics/provision";
+import { Process } from "@/process";
 
 const spec: ProvisionSpec = {
   args: ["--stdio"],

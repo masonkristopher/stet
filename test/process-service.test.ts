@@ -5,7 +5,7 @@ import { join } from "node:path";
 
 import { Effect, Fiber } from "effect";
 
-import { CommandError, Process, ProcessLive } from "../src/process";
+import { CommandError, Process, ProcessLive } from "@/process";
 
 test("Process.run returns stdout for a successful command", async () => {
   const result = await Effect.runPromise(

@@ -4,9 +4,10 @@ import { join } from "node:path";
 
 import { Effect } from "effect";
 
-import { parseSearchOutput, searchArgs } from "../src/git/search";
-import { Git, GitLive } from "../src/git/service";
-import { ProcessLive } from "../src/process";
+import { parseSearchOutput, searchArgs } from "@/git/search";
+import { Git, GitLive } from "@/git/service";
+import { ProcessLive } from "@/process";
+
 import { createFixtureRepo } from "./helpers";
 
 describe("searchArgs", () => {

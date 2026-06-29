@@ -1,7 +1,7 @@
 import { lstatSync } from "node:fs";
 
-import type { DiffScope } from "../cli";
-import { loadFileContent } from "../file/content";
+import type { DiffScope } from "@/cli";
+import { loadFileContent } from "@/file/content";
 
 export type ChangeKind = "modified" | "added" | "deleted" | "renamed" | "untracked";
 

@@ -1,6 +1,7 @@
 import { Context, Data, Effect, Layer } from "effect";
 
-import { Process } from "../process";
+import { Process } from "@/process";
+
 import { clipboardCommand } from "./reference";
 
 export class ClipboardError extends Data.TaggedError("ClipboardError")<{

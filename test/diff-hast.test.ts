@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { flattenLineSpans } from "../src/diff/hast";
+import { flattenLineSpans } from "@/diff/hast";
 
 function span(color: string, value: string) {
   return {

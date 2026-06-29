@@ -1,6 +1,6 @@
 import { Schema } from "effect";
 
-import type { ChangeKind, StageState } from "../git/model";
+import type { ChangeKind, StageState } from "@/git/model";
 
 // Every value is a 6-digit lowercase hex string. `ThemeSchema` is the single
 // Source of truth: the `Theme` type is derived from it, and a user-supplied

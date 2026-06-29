@@ -1,9 +1,10 @@
 import { basename } from "node:path";
 
+import { scopeLabel } from "@/cli";
+import { state } from "@/state";
+import { useTheme } from "@/theme/context";
+
 import packageJson from "../../package.json";
-import { scopeLabel } from "../cli";
-import { state } from "../state";
-import { useTheme } from "../theme/context";
 
 export function HeaderBar() {
   const theme = useTheme();

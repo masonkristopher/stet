@@ -7,6 +7,9 @@
     "resolveJsonModule": true,
     "jsx": "preserve",
     "jsxImportSource": "@opentui/solid",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
     "strict": true,
     "skipLibCheck": true,
     "types": ["bun"],

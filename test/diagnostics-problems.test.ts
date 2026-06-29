@@ -1,13 +1,13 @@
 import { describe, expect, test } from "bun:test";
 
-import type { CheckerState, Diagnostic } from "../src/diagnostics/checker";
+import type { CheckerState, Diagnostic } from "@/diagnostics/checker";
 import {
   buildProblemItems,
   isNavigableProblemItem,
   problemLocationLabel,
   sourceLabel,
   splitDiagnosticMessage,
-} from "../src/diagnostics/problems";
+} from "@/diagnostics/problems";
 
 function diagnostic(overrides: Partial<Diagnostic>): Diagnostic {
   return {

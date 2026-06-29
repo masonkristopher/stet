@@ -1,9 +1,10 @@
 import type { ScrollBoxRenderable } from "@opentui/core";
 import { batch, createEffect, Index, Show } from "solid-js";
 
-import { state } from "../state";
-import { useTheme } from "../theme/context";
-import { kindLetter } from "../ui-helpers";
+import { state } from "@/state";
+import { useTheme } from "@/theme/context";
+import { kindLetter } from "@/ui-helpers";
+
 import { RecencyDot } from "./TreeRow";
 
 export function FileCombobox() {

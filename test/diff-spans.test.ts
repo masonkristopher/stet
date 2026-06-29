@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { columnToIndex, markRange, sliceSpansWindow } from "../src/diff/spans";
+import { columnToIndex, markRange, sliceSpansWindow } from "@/diff/spans";
 
 describe("sliceSpansWindow", () => {
   test("keeps spans that fit within the budget from column 0", () => {

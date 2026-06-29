@@ -4,9 +4,10 @@ import { join } from "node:path";
 
 import { Effect, Fiber, Layer, Stream } from "effect";
 
-import { GitLive } from "../src/git/service";
-import { ProcessLive } from "../src/process";
-import { Watcher, WatcherLive } from "../src/watcher/service";
+import { GitLive } from "@/git/service";
+import { ProcessLive } from "@/process";
+import { Watcher, WatcherLive } from "@/watcher/service";
+
 import { createFixtureRepo } from "./helpers";
 
 const WatcherTest = WatcherLive.pipe(Layer.provide(GitLive), Layer.provide(ProcessLive));

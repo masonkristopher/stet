@@ -5,8 +5,9 @@ import { join } from "node:path";
 import { createMockMouse } from "@opentui/core/testing";
 import { testRender } from "@opentui/solid";
 
-import { App } from "../src/App";
-import { state } from "../src/state";
+import { App } from "@/App";
+import { state } from "@/state";
+
 import { createFixtureRepo, loadModel, makeSettleUntil, seedState } from "./helpers";
 
 describe("word caret", () => {

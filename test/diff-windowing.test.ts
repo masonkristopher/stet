@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { visibleWindow, visibleWindowVariable } from "../src/diff/windowing";
+import { visibleWindow, visibleWindowVariable } from "@/diff/windowing";
 
 describe("visibleWindow (fixed height)", () => {
   test("mounts only the visible slice with exact spacers", () => {

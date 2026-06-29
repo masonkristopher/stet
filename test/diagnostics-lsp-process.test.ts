@@ -2,8 +2,8 @@ import { expect, test } from "bun:test";
 
 import { Effect, Queue } from "effect";
 
-import type { JsonRpcMessage } from "../src/diagnostics/jsonrpc";
-import { createByteChannel } from "../src/diagnostics/lsp-process";
+import type { JsonRpcMessage } from "@/diagnostics/jsonrpc";
+import { createByteChannel } from "@/diagnostics/lsp-process";
 
 /**
  * `cat` echoes stdin to stdout, so a framed message written through the channel comes back as the

@@ -1,5 +1,5 @@
-import { state } from "../state";
-import { useTheme } from "../theme/context";
+import { state } from "@/state";
+import { useTheme } from "@/theme/context";
 
 export function StatusBar() {
   const theme = useTheme();

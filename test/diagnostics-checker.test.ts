@@ -8,9 +8,9 @@ import {
   initialCheckerState,
   markPending,
   stateForResolvedChecker,
-} from "../src/diagnostics/checker";
-import type { CheckerState, Diagnostic } from "../src/diagnostics/checker";
-import type { ChangedFile } from "../src/git/model";
+} from "@/diagnostics/checker";
+import type { CheckerState, Diagnostic } from "@/diagnostics/checker";
+import type { ChangedFile } from "@/git/model";
 
 const file: ChangedFile = {
   additions: 1,

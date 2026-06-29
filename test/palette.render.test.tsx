@@ -3,7 +3,8 @@ import { rmSync } from "node:fs";
 
 import { testRender } from "@opentui/solid";
 
-import { App } from "../src/App";
+import { App } from "@/App";
+
 import { createFixtureRepo, loadModel, makeSettleUntil, seedState } from "./helpers";
 
 describe("go-to-file palette", () => {

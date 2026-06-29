@@ -15,8 +15,9 @@ import {
   parseUntrackedFiles,
   parseWorktreeList,
   untrackedDiffArgs,
-} from "../src/git/model";
-import type { ChangedFile, GitModel } from "../src/git/model";
+} from "@/git/model";
+import type { ChangedFile, GitModel } from "@/git/model";
+
 import { createFixtureRepo, loadFileDiff, loadModel, loadWorktrees, runGit } from "../test/helpers";
 
 function file(path: string, overrides: Partial<ChangedFile> = {}): ChangedFile {

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { fileIcon, folderIcon, symlinkIcon } from "../src/utils/file-icon";
+import { fileIcon, folderIcon, symlinkIcon } from "@/utils/file-icon";
 
 describe("fileIcon", () => {
   test("matches by extension", () => {

@@ -2,9 +2,9 @@ import { describe, expect, test } from "bun:test";
 
 import { RGBA } from "@opentui/core";
 
-import { darkTheme } from "../src/theme/dark";
-import { lightTheme } from "../src/theme/light";
-import { resolveTheme } from "../src/theme/resolve";
+import { darkTheme } from "@/theme/dark";
+import { lightTheme } from "@/theme/light";
+import { resolveTheme } from "@/theme/resolve";
 
 const HEX = /^#[0-9a-f]{6}$/;
 

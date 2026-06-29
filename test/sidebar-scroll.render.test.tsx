@@ -2,8 +2,9 @@ import { describe, expect, test } from "bun:test";
 
 import { testRender } from "@opentui/solid";
 
-import { App } from "../src/App";
-import { state } from "../src/state";
+import { App } from "@/App";
+import { state } from "@/state";
+
 import { createFixtureRepo, loadModel, makeSettleUntil, seedState } from "./helpers";
 
 // The sidebar's scrollbox must not capture keyboard focus: OpenTUI's scrollbox

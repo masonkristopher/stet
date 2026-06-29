@@ -3,16 +3,12 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { RGBA } from "@opentui/core";
 import { testRender } from "@opentui/solid";
 
-import { App } from "../src/App";
-import { state } from "../src/state";
-import { setAppearance, setSelection } from "../src/theme/active";
-import { darkTheme } from "../src/theme/dark";
-import {
-  registerThemes,
-  resolveThemes,
-  restoreRegistry,
-  snapshotRegistry,
-} from "../src/theme/registry";
+import { App } from "@/App";
+import { state } from "@/state";
+import { setAppearance, setSelection } from "@/theme/active";
+import { darkTheme } from "@/theme/dark";
+import { registerThemes, resolveThemes, restoreRegistry, snapshotRegistry } from "@/theme/registry";
+
 import { loadModel, makeSettleUntil, seedState } from "./helpers";
 
 // Unique, easy-to-spot surface backgrounds: the App root paints `surface.base`, so

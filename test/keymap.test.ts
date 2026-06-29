@@ -3,8 +3,8 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { KeyEvent } from "@opentui/core";
 import { batch } from "solid-js";
 
-import { createKeyHandler } from "../src/keymap";
-import { state } from "../src/state";
+import { createKeyHandler } from "@/keymap";
+import { state } from "@/state";
 
 const keyEvent = (overrides: { ctrl?: boolean; name: string }) =>
   new KeyEvent({

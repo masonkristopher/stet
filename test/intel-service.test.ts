@@ -6,11 +6,11 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { Deferred, Effect, Layer } from "effect";
 
-import { LanguageServers, ServerUnavailable } from "../src/diagnostics/servers";
-import type { Capability, ServerHandle } from "../src/diagnostics/servers";
-import { LspRequestError } from "../src/diagnostics/transport";
-import type { LspConnection } from "../src/diagnostics/transport";
-import { Intel, IntelLive, IntelRequestError } from "../src/intel/service";
+import { LanguageServers, ServerUnavailable } from "@/diagnostics/servers";
+import type { Capability, ServerHandle } from "@/diagnostics/servers";
+import { LspRequestError } from "@/diagnostics/transport";
+import type { LspConnection } from "@/diagnostics/transport";
+import { Intel, IntelLive, IntelRequestError } from "@/intel/service";
 
 interface Recorded {
   method: string;

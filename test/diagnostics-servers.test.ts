@@ -7,8 +7,8 @@ import {
   resolveServerCommand,
   serversForPath,
   serversProviding,
-} from "../src/diagnostics/servers";
-import type { LspConnection } from "../src/diagnostics/transport";
+} from "@/diagnostics/servers";
+import type { LspConnection } from "@/diagnostics/transport";
 
 test("resolves a source file to every server that handles its extension", () => {
   // Typescript and oxlint both claim the JS/TS family, so a code file runs through both.

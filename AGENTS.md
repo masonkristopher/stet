@@ -29,6 +29,7 @@ See `README.md` for what sideye does, its keys, and its non-goals; see `SPEC.md`
 - For generic data utilities, prefer native ES2024 over a third-party util library: `Map.groupBy`/`Object.groupBy` for grouping, in preference to a hand-rolled get-or-create-push loop (`Map.groupBy` returns a `Map`, which a `Record`-returning lib helper does not), `new Set`/`Set` methods (`union`/`difference`/`intersection`) for dedupe and set algebra, `toSorted` with an explicit comparator (use `localeCompare` for locale-aware order), and `structuredClone` for deep copies. Project-specific pure helpers (no Effect/Solid/OpenTUI imports) live under `src/utils/`; domain helpers stay in their domain module.
 - Use Bun APIs where they exist (`Bun.file`, and so on).
 - Never alias imports (no `import { x as y }`).
+- Use the `@/` path alias (mapped to `src/` in `tsconfig.json`) for cross-directory imports (`@/state`, `@/diff/follow`), not upward-relative chains (`../../diff/follow`). Keep same-directory `./sibling` imports relative, since they signal colocation. Tests import source through the alias too (`@/git/activity`), not `../src/...`.
 - Prefer dynamic imports for heavy modules on startup-sensitive paths; bind them at the top of the narrowest scope that needs them, and keep branch-specific imports inside their branch so the git tree renders before anything heavy loads.
 - Do not reach for `as`, `!`, or `any` without first exhausting proper solutions.
 - Do not silence lint or type errors with rule overrides or casts. Fix the root cause.

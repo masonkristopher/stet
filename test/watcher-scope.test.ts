@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { sep } from "node:path";
 
-import { watchRoots } from "../src/watcher/scope";
+import { watchRoots } from "@/watcher/scope";
 
 test("watchRoots drops a git dir that lives inside the worktree", () => {
   const root = `${sep}repo`;

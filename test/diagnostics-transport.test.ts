@@ -3,10 +3,10 @@ import { expect, test } from "bun:test";
 import { Effect, Exit, Queue } from "effect";
 import type { Cause } from "effect";
 
-import { isJsonRpcNotification, isJsonRpcRequest } from "../src/diagnostics/jsonrpc";
-import type { JsonRpcMessage } from "../src/diagnostics/jsonrpc";
-import { makeTransport } from "../src/diagnostics/transport";
-import type { LspConnection } from "../src/diagnostics/transport";
+import { isJsonRpcNotification, isJsonRpcRequest } from "@/diagnostics/jsonrpc";
+import type { JsonRpcMessage } from "@/diagnostics/jsonrpc";
+import { makeTransport } from "@/diagnostics/transport";
+import type { LspConnection } from "@/diagnostics/transport";
 
 interface Peer {
   connection: LspConnection;

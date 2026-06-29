@@ -1,7 +1,7 @@
 import { afterEach, expect, test } from "bun:test";
 
-import { emptyActivityLog } from "../src/git/activity";
-import { state } from "../src/state";
+import { emptyActivityLog } from "@/git/activity";
+import { state } from "@/state";
 
 // State is a global singleton shared across test files; reset what this test mutates
 afterEach(() => state.setActivityLog(emptyActivityLog));

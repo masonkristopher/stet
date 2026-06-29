@@ -40,11 +40,25 @@ interface HandshakeConfig {
   readonly onRequest?: (method: string, params: unknown) => Effect.Effect<unknown>;
 }
 
+/** The read-only LSP intents sideye uses, keyed off each server's advertised `*Provider`. */
+export type Capability =
+  | "definition"
+  | "references"
+  | "hover"
+  | "documentSymbol"
+  | "pullDiagnostics";
+
 interface ServerSpec {
   readonly binary: string;
   readonly args: readonly string[];
   /** File extensions (no dot) this server handles; servers may overlap (oxlint lints what tsc owns). */
   readonly extensions: readonly string[];
+  /**
+   * The intents this server can answer, declared statically so intel skips a non-provider without
+   * acquiring it. A pre-acquire filter only; the handshake-advertised set on `ServerHandle` stays
+   * the authoritative gate, so this must not under-declare what the server actually provides.
+   */
+  readonly provides: readonly Capability[];
   /** Npm packages sideye installs into its cache when the server is found neither in repo nor PATH. */
   readonly provision?: { readonly packages: readonly string[] };
   /** Per-server handshake extras (caps, initializationOptions, server-request answers). */
@@ -79,12 +93,14 @@ const registry: Record<string, ServerSpec> = {
         workspaceCapabilities: { configuration: true, workspaceFolders: true },
       };
     },
+    provides: [],
     provision: { packages: ["oxlint"] },
   },
   typescript: {
     args: ["--stdio"],
     binary: "typescript-language-server",
     extensions: codeExtensions,
+    provides: ["definition", "references"],
     provision: { packages: ["typescript-language-server", "typescript"] },
   },
 };
@@ -102,6 +118,13 @@ export function serversForPath(path: string): string[] {
   const extension = path.slice(dot + 1);
   return Object.keys(registry).filter((language) =>
     registry[language]?.extensions.includes(extension),
+  );
+}
+
+/** Servers for this path that statically declare they can answer `capability`, in registry order. */
+export function serversProviding(path: string, capability: Capability): string[] {
+  return serversForPath(path).filter((language) =>
+    registry[language]?.provides.includes(capability),
   );
 }
 
@@ -148,14 +171,6 @@ function provisionSpecFor(language: string): ProvisionSpec | undefined {
   }
   return { args: spec.args, binary: spec.binary, packages: spec.provision.packages };
 }
-
-/** The read-only LSP intents sideye uses, keyed off each server's advertised `*Provider`. */
-export type Capability =
-  | "definition"
-  | "references"
-  | "hover"
-  | "documentSymbol"
-  | "pullDiagnostics";
 
 export interface ServerHandle {
   readonly connection: LspConnection;

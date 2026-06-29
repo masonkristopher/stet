@@ -230,6 +230,26 @@ test("definition returns empty when no acquired server has the capability", asyn
   });
 });
 
+test("definition never acquires a server whose static hint can't answer it", async () => {
+  await withRepo({ "src/a.ts": "const x = 1\n" }, async (dir) => {
+    const acquired: string[] = [];
+    const ts = handle(["definition"], () => Effect.succeed(null), []);
+    const servers = Layer.succeed(LanguageServers)({
+      acquire: (language) => {
+        acquired.push(language);
+        return language === "typescript"
+          ? Effect.succeed(ts)
+          : Effect.fail(new ServerUnavailable({ language, message: "not found" }));
+      },
+    });
+
+    await runDefinition(dir, "src/a.ts", { character: 0, line: 0 }, servers);
+
+    // Oxlint declares no code-intel intents, so it is skipped before any acquire.
+    expect(acquired).toEqual(["typescript"]);
+  });
+});
+
 test("definition returns empty for a file that is not on disk", async () => {
   await withRepo({ "src/a.ts": "const x = 1\n" }, async (dir) => {
     const ts = handle(["definition"], () => Effect.succeed(null), []);

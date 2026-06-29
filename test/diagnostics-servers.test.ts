@@ -2,7 +2,12 @@ import { expect, test } from "bun:test";
 
 import { Effect } from "effect";
 
-import { performHandshake, resolveServerCommand, serversForPath } from "../src/diagnostics/servers";
+import {
+  performHandshake,
+  resolveServerCommand,
+  serversForPath,
+  serversProviding,
+} from "../src/diagnostics/servers";
 import type { LspConnection } from "../src/diagnostics/transport";
 
 test("resolves a source file to every server that handles its extension", () => {
@@ -11,6 +16,14 @@ test("resolves a source file to every server that handles its extension", () => 
   expect(serversForPath("src/a.mjs")).toEqual(["oxlint", "typescript"]);
   expect(serversForPath("README.md")).toEqual([]);
   expect(serversForPath("Makefile")).toEqual([]);
+});
+
+test("serversProviding keeps only servers whose static hint can answer the intent", () => {
+  // Only typescript declares definition/references; oxlint pushes diagnostics and declares neither,
+  // So intel never acquires it for a code-intel pull.
+  expect(serversProviding("src/a.ts", "definition")).toEqual(["typescript"]);
+  expect(serversProviding("src/a.tsx", "references")).toEqual(["typescript"]);
+  expect(serversProviding("README.md", "definition")).toEqual([]);
 });
 
 test("resolveServerCommand returns undefined for a language with no registered server", () => {

@@ -11,7 +11,7 @@ import { pathToFileURL } from "node:url";
 
 import { Context, Data, Effect, Layer } from "effect";
 
-import { LanguageServers, lspLanguageId, serversForPath } from "../diagnostics/servers";
+import { LanguageServers, lspLanguageId, serversProviding } from "../diagnostics/servers";
 import type { Capability, ServerHandle } from "../diagnostics/servers";
 import { relativize } from "../utils/path";
 import { normalizeDefinition, normalizeReferences } from "./protocol";
@@ -62,11 +62,12 @@ export const IntelLive = Layer.effect(
   Effect.gen(function* intelLive() {
     const servers = yield* LanguageServers;
 
-    // The first server for this file that advertises the capability. Acquire failures
-    // (unavailable/installing/spawn) skip that server rather than failing the pull.
+    // The first server for this file that advertises the capability. `serversProviding` drops
+    // Servers whose static hint can't answer it (no wasted acquire); the handshake-advertised set
+    // Stays the gate. Acquire failures (unavailable/installing/spawn) skip that server too.
     function firstCapableServer(repoRoot: string, path: string, capability: Capability) {
       return Effect.gen(function* select() {
-        for (const language of serversForPath(path)) {
+        for (const language of serversProviding(path, capability)) {
           const handle = yield* servers
             .acquire(language, repoRoot)
             .pipe(Effect.catch(() => Effect.succeed<ServerHandle | undefined>(undefined)));

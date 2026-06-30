@@ -28,7 +28,7 @@ describe("runUpgrade short-circuit", () => {
     });
 
     expect(code).toBe(0);
-    expect(logs).toContain("sideye 0.3.3 is already up to date");
+    expect(logs.some((line) => line.includes("sideye 0.3.3 is already up to date"))).toBe(true);
   });
 
   test("does nothing when the current version is ahead of the latest release", async () => {
@@ -39,6 +39,6 @@ describe("runUpgrade short-circuit", () => {
     });
 
     expect(code).toBe(0);
-    expect(logs).toContain("sideye 0.3.3 is already up to date");
+    expect(logs.some((line) => line.includes("sideye 0.3.3 is already up to date"))).toBe(true);
   });
 });

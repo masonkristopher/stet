@@ -44,6 +44,8 @@ import {
   flattenTree,
 } from "./git/tree";
 import { Intel } from "./intel/service";
+import { levelGlyph } from "./log/levels";
+import type { LogLevel } from "./log/levels";
 import { runtime } from "./runtime";
 import { activeThemeName, selection, setSelection } from "./theme/active";
 import { themeNames } from "./theme/registry";
@@ -307,9 +309,16 @@ function createState() {
   const [jumpTarget, setJumpTarget] = createSignal<JumpTarget | undefined>(undefined);
   const [checkerState, setCheckerState] = createSignal<CheckerState>(initialCheckerState([]));
   const [status, setStatus] = createSignal("");
+  const [statusLevel, setStatusLevel] = createSignal<LogLevel>("info");
+  const report = (text: string, level: LogLevel = "info") => {
+    setStatus(text);
+    setStatusLevel(level);
+  };
   // An ephemeral acknowledgment of a user action (copied, scope changed, …),
   // Held for a fixed dwell so it outlives the keystroke that triggered it.
-  const [notice, setNotice] = createSignal<string | undefined>(undefined);
+  const [notice, setNotice] = createSignal<{ text: string; level: LogLevel } | undefined>(
+    undefined,
+  );
   // Set by the background release check; read once on quit to print the post-exit notice.
   const [availableUpdate, setAvailableUpdate] = createSignal<
     { current: string; latest: string } | undefined
@@ -661,33 +670,46 @@ function createState() {
   });
   const countsText = createMemo(() => {
     const value = counts();
-    return `${value.errors > 0 ? `✖${value.errors}` : ""}${value.warnings > 0 ? ` ⚠${value.warnings}` : ""}`.trim();
+    return `${value.errors > 0 ? `${levelGlyph("error")}${value.errors}` : ""}${value.warnings > 0 ? ` ${levelGlyph("warning")}${value.warnings}` : ""}`.trim();
   });
-  const statusRight = createMemo(() => {
+  const statusRightModel = createMemo(() => {
     const hints = "? keys · q quit";
     const width = Math.max(10, Math.min(terminalWidth() - 50, terminalWidth() - hints.length - 4));
+    // Leave room for the leading level glyph + space the status bar prepends.
+    const textWidth = Math.max(1, width - 2);
     // A held acknowledgment wins over ambient status for its dwell, so the user
     // Sees their action confirmed even as checks/activity churn underneath.
     const held = notice();
     if (held !== undefined) {
-      return truncate(held, width);
+      return { level: held.level, text: truncate(held.text, textWidth) };
     }
-    const findings = cursorFindings();
+    const finding = cursorFindings()?.[0];
+    if (finding !== undefined) {
+      return {
+        level: finding.severity satisfies LogLevel,
+        text: truncate(`${finding.checker}: ${finding.message}`, textWidth),
+      };
+    }
     const latest = latestActivity(activityLog());
     const activityText =
       latest === undefined || now() - latest.at >= RECENT_MS
         ? ""
         : `${Math.max(0, Math.round((now() - latest.at) / 1000))}s ago ${latest.path}`;
     const displayStatus = checksRunning() ? "running checks…" : status();
-    return truncate(
-      findings?.[0] !== undefined
-        ? `${findings[0].checker}: ${findings[0].message}`
-        : [activityText, truncated() ? `${displayStatus} · truncated; f for full` : displayStatus]
-            .filter((part) => part !== "")
-            .join(" · "),
-      width,
+    const text = truncate(
+      [activityText, truncated() ? `${displayStatus} · truncated; f for full` : displayStatus]
+        .filter((part) => part !== "")
+        .join(" · "),
+      textWidth,
     );
+    // A glyph belongs only to an actual status message. Activity alone is ambient
+    // And idle is empty, so neither carries a level: the bar renders the text bare,
+    // Never a lone glyph.
+    const level = displayStatus === "" ? undefined : checksRunning() ? "info" : statusLevel();
+    return { level, text };
   });
+  const statusRight = () => statusRightModel().text;
+  const statusRightLevel = () => statusRightModel().level;
 
   // --- navigation ---
   const canGoBack = createMemo(() => canBack(navState()));
@@ -1056,7 +1078,10 @@ function createState() {
         ),
         { signal: controller.signal },
       );
-      setStatus(failures[0] ?? installing ?? "checks finished");
+      report(
+        failures[0] ?? installing ?? "checks finished",
+        failures[0] !== undefined ? "error" : installing !== undefined ? "info" : "success",
+      );
     } catch {
       // Interrupted by a newer run or a worktree switch
     } finally {
@@ -1079,8 +1104,8 @@ function createState() {
   // Hold a user-action acknowledgment for a fixed dwell (~1.5s) so an ambient
   // Status event or the next keystroke can't overwrite it before it's read.
   let noticeTimer: ReturnType<typeof setTimeout> | undefined;
-  function notify(text: string) {
-    setNotice(text);
+  function notify(text: string, level: LogLevel = "info") {
+    setNotice({ level, text });
     clearTimeout(noticeTimer);
     noticeTimer = setTimeout(() => setNotice(undefined), 1500);
   }
@@ -1158,7 +1183,7 @@ function createState() {
       }
     } catch {
       if (!controller.signal.aborted) {
-        notify("couldn't reach the language server");
+        notify("couldn't reach the language server", "error");
       }
     }
   }
@@ -1166,8 +1191,10 @@ function createState() {
   function copy(text: string, message = `copied ${text.split("\n")[0]}`) {
     runtime
       .runPromise(Clipboard.use((clipboard) => clipboard.copy(text)))
-      .then(() => notify(message))
-      .catch((error: unknown) => notify(error instanceof Error ? error.message : String(error)));
+      .then(() => notify(message, "success"))
+      .catch((error: unknown) =>
+        notify(error instanceof Error ? error.message : String(error), "error"),
+      );
   }
 
   // Reads the file fresh with `full: true` rather than reusing the loaded
@@ -1196,9 +1223,11 @@ function createState() {
           copy(content.content, `copied ${path}`);
           return;
         }
-        notify(`can't copy ${path} (${content.kind})`);
+        notify(`can't copy ${path} (${content.kind})`, "warning");
       })
-      .catch((error: unknown) => notify(error instanceof Error ? error.message : String(error)));
+      .catch((error: unknown) =>
+        notify(error instanceof Error ? error.message : String(error), "error"),
+      );
   }
 
   function loadWorktrees(root: string) {
@@ -1224,7 +1253,10 @@ function createState() {
       .catch((error: unknown) => {
         batch(() => {
           setWorktreeComboboxOpen(false);
-          setStatus(error instanceof Error ? (error.message.split("\n")[0] ?? "") : String(error));
+          report(
+            error instanceof Error ? (error.message.split("\n")[0] ?? "") : String(error),
+            "error",
+          );
         });
       });
   }
@@ -1335,7 +1367,7 @@ function createState() {
       return;
     }
     if (!existsSync(worktree.path)) {
-      setStatus(`worktree missing: ${worktree.path}`);
+      report(`worktree missing: ${worktree.path}`, "warning");
       return;
     }
     // The load is async, so a second switch started before the first resolves
@@ -1388,14 +1420,17 @@ function createState() {
         setCheckerState(initialCheckerState(fresh.changed));
         setActivityLog(emptyActivityLog);
         setFocusedPane("tree");
-        setStatus(reason ?? `worktree: ${worktreeLabel(worktree)}`);
+        report(reason ?? `worktree: ${worktreeLabel(worktree)}`);
       });
       void runChecks(fresh);
     } catch (error) {
       if (request !== switchRequest) {
         return;
       }
-      setStatus(error instanceof Error ? (error.message.split("\n")[0] ?? "") : String(error));
+      report(
+        error instanceof Error ? (error.message.split("\n")[0] ?? "") : String(error),
+        "error",
+      );
     }
   }
 
@@ -1764,7 +1799,6 @@ function createState() {
     setSearchComboboxScope,
     setSessionBase,
     setSidebarOpen,
-    setStatus,
     setTerminalHeight,
     setTerminalWidth,
     setThemeComboboxIndex,
@@ -1780,6 +1814,7 @@ function createState() {
     sidebarWidth,
     status,
     statusRight,
+    statusRightLevel,
     switchWorktree,
     tabItems,
     terminalHeight,

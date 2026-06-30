@@ -14,6 +14,7 @@ import { resolveEditorTemplate, resolveIdeTemplate } from "./editor/reference";
 import type { GitModel } from "./git/model";
 import { Git } from "./git/service";
 import { defaultExpandedDirectories, expandAncestorsForPath } from "./git/tree";
+import { logError } from "./log/terminal";
 import { Process } from "./process";
 import { runtime } from "./runtime";
 import { state } from "./state";
@@ -116,7 +117,7 @@ try {
   };
   const crash = (error: unknown) => {
     restoreTerminal();
-    console.error(error instanceof Error ? error.message : String(error));
+    logError(error instanceof Error ? error.message : String(error));
     process.exit(1);
   };
   for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"] as const) {
@@ -195,6 +196,6 @@ try {
     })
     .catch(crash);
 } catch (error) {
-  console.error(error instanceof Error ? error.message : String(error));
+  logError(error instanceof Error ? error.message : String(error));
   process.exit(1);
 }

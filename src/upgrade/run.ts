@@ -1,3 +1,5 @@
+import { logError, logInfo, logSuccess } from "@/log/terminal";
+
 import { upgradeInvocation } from "./commands";
 import { classifyInstall } from "./install-method";
 import { fetchLatestVersion, isNewer } from "./release";
@@ -25,18 +27,18 @@ export async function runUpgrade(input: {
 }) {
   const latest = await (input.fetchLatest ?? fetchLatestVersion)();
   if (latest !== undefined && !isNewer(latest, input.currentVersion)) {
-    console.log(`sideye ${input.currentVersion} is already up to date`);
+    logSuccess(`sideye ${input.currentVersion} is already up to date`);
     return 0;
   }
 
   const invocation = upgradeInvocation(classifyInstall(input.execPath));
 
   if (invocation === undefined) {
-    console.error(unknownGuidance);
+    logError(unknownGuidance);
     return 1;
   }
 
-  console.log(invocation.label);
+  logInfo(invocation.label);
   const proc = Bun.spawn(invocation.argv, {
     stderr: "inherit",
     stdin: "inherit",

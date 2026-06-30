@@ -4,6 +4,7 @@ import { batch, createMemo, Show } from "solid-js";
 import { checkerSummary, directorySummary } from "@/diagnostics/checker";
 import { recencyFraction } from "@/git/activity";
 import type { DirectoryNode, FileTreeRow } from "@/git/tree";
+import { levelGlyph } from "@/log/levels";
 import { state } from "@/state";
 import { useTheme } from "@/theme/context";
 import { kindLetter } from "@/ui-helpers";
@@ -106,13 +107,19 @@ export function TreeRow(props: { row: FileTreeRow; isDoubleClick: (id: string) =
         <box flexDirection="row">
           {summary()?.failed ? <text fg={theme.colors.severity.error}>fail </text> : null}
           {(summary()?.errors ?? 0) > 0 ? (
-            <text fg={theme.colors.severity.error}>{`✖${summary()?.errors} `}</text>
+            <text
+              fg={theme.colors.severity.error}
+            >{`${levelGlyph("error")}${summary()?.errors} `}</text>
           ) : null}
           {summary() !== null && summary()?.errors === 0 && (summary()?.warnings ?? 0) > 0 ? (
-            <text fg={theme.colors.severity.warning}>{`⚠${summary()?.warnings} `}</text>
+            <text
+              fg={theme.colors.severity.warning}
+            >{`${levelGlyph("warning")}${summary()?.warnings} `}</text>
           ) : null}
           {summary()?.errors === 0 && summary()?.warnings === 0 && (summary()?.info ?? 0) > 0 ? (
-            <text fg={theme.colors.severity.info}>{`ℹ${summary()?.info} `}</text>
+            <text
+              fg={theme.colors.severity.info}
+            >{`${levelGlyph("info")}${summary()?.info} `}</text>
           ) : null}
           {summary()?.pending ? <text fg={theme.colors.text.muted}>… </text> : null}
           {summary() !== null &&
@@ -123,7 +130,7 @@ export function TreeRow(props: { row: FileTreeRow; isDoubleClick: (id: string) =
           summary()?.errors === 0 &&
           summary()?.warnings === 0 &&
           (summary()?.info ?? 0) === 0 ? (
-            <text fg={theme.colors.success}>✓ </text>
+            <text fg={theme.colors.success}>{`${levelGlyph("success")} `}</text>
           ) : null}
           {summary()?.unavailable &&
           !summary()?.failed &&
@@ -193,13 +200,17 @@ export function TreeRow(props: { row: FileTreeRow; isDoubleClick: (id: string) =
       <box flexDirection="row">
         {summary().failed ? <text fg={theme.colors.severity.error}>fail </text> : null}
         {summary().errors > 0 ? (
-          <text fg={theme.colors.severity.error}>{`✖${summary().errors} `}</text>
+          <text
+            fg={theme.colors.severity.error}
+          >{`${levelGlyph("error")}${summary().errors} `}</text>
         ) : null}
         {summary().errors === 0 && summary().warnings > 0 ? (
-          <text fg={theme.colors.severity.warning}>{`⚠${summary().warnings} `}</text>
+          <text
+            fg={theme.colors.severity.warning}
+          >{`${levelGlyph("warning")}${summary().warnings} `}</text>
         ) : null}
         {summary().errors === 0 && summary().warnings === 0 && summary().info > 0 ? (
-          <text fg={theme.colors.severity.info}>{`ℹ${summary().info} `}</text>
+          <text fg={theme.colors.severity.info}>{`${levelGlyph("info")}${summary().info} `}</text>
         ) : null}
         {changed !== undefined && changed.warnings.length > 0 ? (
           <text fg={theme.colors.severity.warning}>! </text>
@@ -211,7 +222,7 @@ export function TreeRow(props: { row: FileTreeRow; isDoubleClick: (id: string) =
         summary().errors === 0 &&
         summary().warnings === 0 &&
         summary().info === 0 ? (
-          <text fg={theme.colors.success}>✓ </text>
+          <text fg={theme.colors.success}>{`${levelGlyph("success")} `}</text>
         ) : null}
         {changed !== undefined &&
         !pending() &&

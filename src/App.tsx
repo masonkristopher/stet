@@ -21,6 +21,8 @@ import { buildEditorCommand } from "./editor/reference";
 import { Editor } from "./editor/service";
 import type { Worktree } from "./git/model";
 import { createKeyHandler } from "./keymap";
+import type { LogLevel } from "./log/levels";
+import { log } from "./log/terminal";
 import { runtime } from "./runtime";
 import { state } from "./state";
 import { setAppearance } from "./theme/active";
@@ -76,25 +78,26 @@ export function App() {
     }
   });
 
-  function quit(message?: string) {
+  function quit(message?: { text: string; level: LogLevel }) {
     // The renderer no longer owns the background fibers (the git poll runs on the
     // Shared runtime, not the render tree), so tear down the screen and exit
     // Rather than waiting for an event loop that the poll keeps alive.
     renderer.setTerminalTitle("");
     renderer.destroy();
-    // Log after destroy so the message lands on the restored screen, not the alt buffer.
+    // Log after destroy so the message lands on the restored screen, not the alt
+    // Buffer, at its own severity rather than a hardcoded one.
     if (message !== undefined) {
-      console.log(message);
+      log(message.level, message.text);
     }
     process.exit(0);
   }
 
   // The user-initiated quit (keyboard) surfaces a pending update on the way out, gh-style. The
-  // Worktree-recovery exit calls quit() directly, so a forced "nothing left to inspect" shutdown
-  // Stays silent, as do the crash/signal backstops in main.tsx (which never route here).
+  // Worktree-recovery exit reports its degraded shutdown through the same path; the crash/signal
+  // Backstops in main.tsx never route here.
   function quitWithUpdateNotice() {
     const update = state.availableUpdate();
-    quit(update === undefined ? undefined : formatUpdateNotice(update));
+    quit(update === undefined ? undefined : { level: "info", text: formatUpdateNotice(update) });
   }
 
   // The heartbeat flags a deleted current worktree; recover by switching to the
@@ -126,8 +129,9 @@ export function App() {
       void state.switchWorktree(target, `worktree deleted, switched to ${label}`);
       return;
     }
-    // Nothing recoverable: the repository itself is gone.
-    quit("sideye: worktree deleted, nothing left to inspect");
+    // Nothing recoverable: the repository itself is gone. A clean exit (code 0) of a
+    // Degraded condition reads as a warning, not a crash.
+    quit({ level: "warning", text: "sideye: worktree deleted, nothing left to inspect" });
   });
 
   async function openInEditor(

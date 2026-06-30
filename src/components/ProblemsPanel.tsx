@@ -4,6 +4,7 @@ import { batch, createEffect, For, Show } from "solid-js";
 import { PROBLEMS_HEIGHT } from "@/constants";
 import { problemLocationLabel, sourceLabel } from "@/diagnostics/problems";
 import type { ProblemItem } from "@/diagnostics/problems";
+import { levelGlyph } from "@/log/levels";
 import { state } from "@/state";
 import { useTheme } from "@/theme/context";
 import { truncate } from "@/utils/text";
@@ -39,8 +40,6 @@ export function ProblemsPanel() {
       : severity === "warning"
         ? theme.colors.severity.warning
         : theme.colors.severity.info;
-  const severityIcon = (severity: "error" | "warning" | "info") =>
-    severity === "error" ? "✖" : severity === "warning" ? "⚠" : "ℹ";
 
   return (
     <box
@@ -98,7 +97,9 @@ export function ProblemsPanel() {
                       });
                     }}
                   >
-                    <text fg={theme.colors.severity.error}>{item.isFirst ? "✖ " : "  "}</text>
+                    <text fg={theme.colors.severity.error}>
+                      {item.isFirst ? `${levelGlyph("error")} ` : "  "}
+                    </text>
                     <text fg={theme.colors.text.secondary}>{item.line}</text>
                   </box>
                 );
@@ -106,9 +107,17 @@ export function ProblemsPanel() {
 
               if (item.kind === "file-header") {
                 const counts = [
-                  { color: theme.colors.severity.error, glyph: "✖", n: item.errors },
-                  { color: theme.colors.severity.warning, glyph: "⚠", n: item.warnings },
-                  { color: theme.colors.severity.info, glyph: "ℹ", n: item.info },
+                  {
+                    color: theme.colors.severity.error,
+                    glyph: levelGlyph("error"),
+                    n: item.errors,
+                  },
+                  {
+                    color: theme.colors.severity.warning,
+                    glyph: levelGlyph("warning"),
+                    n: item.warnings,
+                  },
+                  { color: theme.colors.severity.info, glyph: levelGlyph("info"), n: item.info },
                 ].filter((count) => count.n > 0);
                 return (
                   <box
@@ -189,7 +198,7 @@ export function ProblemsPanel() {
                   <box flexDirection="row">
                     <text
                       fg={severityColor(problem.severity)}
-                    >{`${severityIcon(problem.severity)} `}</text>
+                    >{`${levelGlyph(problem.severity)} `}</text>
                     <text fg={theme.colors.text.muted}>{`${lineLabel} `}</text>
                     <text fg={theme.colors.text.secondary}>{truncate(item.summary, budget)}</text>
                   </box>

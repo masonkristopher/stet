@@ -55,16 +55,38 @@ export function Sidebar() {
           },
         }}
       >
-        <For each={state.treeRows()}>
-          {(row) => <TreeRow row={row} isDoubleClick={isDoubleFileClick} />}
-        </For>
-        <Show when={state.treeRows().length < state.paneHeight()}>
-          <box
-            id="tree-filler"
-            width="100%"
-            height={state.paneHeight() - state.treeRows().length}
-            backgroundColor={theme.colors.surface.base}
-          />
+        <Show
+          when={state.treeRows().length > 0}
+          fallback={
+            <box
+              id="tree-empty"
+              width="100%"
+              height={state.paneHeight()}
+              flexDirection="column"
+              justifyContent="center"
+              alignItems="center"
+              backgroundColor={theme.colors.surface.base}
+            >
+              <text fg={theme.colors.text.muted}>
+                {state.changesOnly() ? "no changes" : "no files"}
+              </text>
+              <text fg={theme.colors.text.faint}>
+                {state.changesOnly() ? "press c to show all" : "this repository has no files yet"}
+              </text>
+            </box>
+          }
+        >
+          <For each={state.treeRows()}>
+            {(row) => <TreeRow row={row} isDoubleClick={isDoubleFileClick} />}
+          </For>
+          <Show when={state.treeRows().length < state.paneHeight()}>
+            <box
+              id="tree-filler"
+              width="100%"
+              height={state.paneHeight() - state.treeRows().length}
+              backgroundColor={theme.colors.surface.base}
+            />
+          </Show>
         </Show>
       </scrollbox>
     </box>

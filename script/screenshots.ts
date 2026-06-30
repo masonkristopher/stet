@@ -99,13 +99,15 @@ const openDiffView = ["Ctrl+P", 'Type "DiffView"', "Sleep 400ms", "Enter", "Slee
  * `fixture: true` marks screens that need the temporary diagnostics file planted first.
  */
 const screens = [
-  { name: "sideye", steps: openDiffView },
+  // Let the diff settle and the checks finish (tsserver project load is the slow part) so the hero
+  // Shot shows the resolved "checks finished" state, not a mid-run spinner.
+  { name: "sideye", steps: [openDiffView, "Sleep 16s"].join("\n") },
   {
     /**
      * Pin two changed files into tabs (`ctrl-t`), then land on a third as the active preview, so
      * the strip shows pinned tabs beside the active one. The pinned labels are tinted by
-     * change-kind (DiffView modified = amber, Tabs.tsx added = green), so run against a checkout
-     * where these are changed (this repo by default — the tabs work is uncommitted here).
+     * change-kind (DiffView modified = amber, CaretCard added = green), so pin two files that are
+     * changed in the captured `HEAD~3..HEAD` diff.
      */
     name: "tabs",
     steps: [
@@ -117,7 +119,7 @@ const screens = [
       "Ctrl+T",
       "Sleep 300ms",
       "Ctrl+P",
-      'Type "components/Tabs"',
+      'Type "CaretCard"',
       "Sleep 400ms",
       "Enter",
       "Sleep 700ms",
@@ -149,9 +151,9 @@ const screens = [
   {
     /**
      * Open the diff and let it focus/settle, then open the find bar and type a term present in the
-     * visible hunks ("scrollTop"). Capture the open bar showing the live N/M counter and highlights
-     * (the render test's verified checkpoint). No commit: a too-early `/` or a no-match Enter both
-     * collapse back to a plain diff with no find UI, so generous settles and a real match matter.
+     * visible hunks ("cursorTop", in DiffView's added lines). Capture the open bar showing the live
+     * N/M counter and highlights. No commit: a too-early `/` or a no-match Enter both collapse back
+     * to a plain diff with no find UI, so generous settles and a real match matter.
      */
     name: "find",
     steps: [
@@ -162,7 +164,7 @@ const screens = [
       "Sleep 1500ms",
       'Type "/"',
       "Sleep 600ms",
-      'Type "scrollTop"',
+      'Type "cursorTop"',
       "Sleep 1s",
     ].join("\n"),
   },
@@ -171,6 +173,35 @@ const screens = [
     // Open an unchanged file: plain syntax-highlighted source, no diff gutters.
     name: "read-only",
     steps: ["Ctrl+P", 'Type "process"', "Sleep 400ms", "Enter", "Sleep 800ms"].join("\n"),
+  },
+  {
+    /**
+     * Open a real source diff, jump the caret onto a JSDoc'd exported function with `/`, hop to its
+     * name, and press `K`. The hover card shows the syntax-highlighted signature above the plain
+     * doc text, anchored at the caret over the diff. The long final sleep waits out tsserver's
+     * project load before it answers the first hover (same order as the problems shot). `Type "K"`
+     * sends the shift+K the keymap matches.
+     */
+    name: "hover",
+    steps: [
+      "Ctrl+P",
+      'Type "diff/engine"',
+      "Sleep 500ms",
+      "Enter",
+      "Sleep 1500ms",
+      'Type "/"',
+      "Sleep 300ms",
+      'Type "function highlightSnippet"',
+      "Sleep 500ms",
+      "Enter",
+      "Sleep 500ms",
+      "Escape",
+      "Sleep 300ms",
+      'Type "lll"',
+      "Sleep 400ms",
+      'Type "K"',
+      "Sleep 16s",
+    ].join("\n"),
   },
   {
     // Taller canvas so the full grouped keybindings list shows without scrolling.

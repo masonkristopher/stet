@@ -174,6 +174,8 @@ syntax-highlighted with the same theme as the diff; the docs read as plain text.
 The card clears as soon as you move the caret, scroll, switch files, or press
 `esc`. It's the same read-only LSP request family as go-to-definition.
 
+![hover card anchored at the caret showing a syntax-highlighted type signature above its docs](assets/screenshots/hover.png)
+
 ### Problems
 
 Diagnostics from the repo's language servers stream into a problems panel as

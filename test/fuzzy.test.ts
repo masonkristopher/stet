@@ -47,6 +47,67 @@ describe("fuzzyMatch", () => {
   test("considers candidate starts after the first ten occurrences", () => {
     expect(fuzzyMatch("abc", "aaaaaaaaaa/src/abc.ts")).toBeDefined();
   });
+
+  test("smart case: an uppercase query char outranks a mismatched case", () => {
+    const exact = fuzzyMatch("Tree", "src/Tree.tsx");
+    const wrongCase = fuzzyMatch("Tree", "src/tree.tsx");
+    expect(exact ?? 0).toBeGreaterThan(wrongCase ?? 0);
+  });
+
+  test("an all-lowercase query stays case-insensitive", () => {
+    expect(fuzzyMatch("tree", "src/Tree.tsx")).toBeDefined();
+  });
+
+  test("repeated query chars require the same count in the candidate", () => {
+    expect(fuzzyMatch("ll", "src/all.ts")).toBeDefined();
+    expect(fuzzyMatch("lll", "src/all.ts")).toBeUndefined();
+  });
+});
+
+describe("multi-term queries", () => {
+  const docPath = ".agents/skills/opentui/docs/keymap/core.mdx";
+
+  test("each space-separated term matches a different part of the path", () => {
+    expect(fuzzyMatch("agents keymap", docPath)).toBeDefined();
+  });
+
+  test("term order does not change the score", () => {
+    expect(fuzzyMatch("agents keymap", docPath)).toBe(fuzzyMatch("keymap agents", docPath));
+  });
+
+  test("one non-matching term rejects the whole query", () => {
+    expect(fuzzyMatch("agents zzz", docPath)).toBeUndefined();
+  });
+
+  test("leading, trailing, and repeated whitespace collapse between terms", () => {
+    expect(fuzzyMatch("  git   ts  ", "src/git.ts")).toBeDefined();
+  });
+
+  test("an all-whitespace query matches everything with a neutral score", () => {
+    expect(fuzzyMatch("   ", "src/App.tsx")).toBe(0);
+  });
+
+  test("a second matching term increases the score", () => {
+    expect(fuzzyMatch("agents keymap", docPath) ?? 0).toBeGreaterThan(
+      fuzzyMatch("keymap", docPath) ?? 0,
+    );
+  });
+
+  test("a duplicated term may match the same characters twice", () => {
+    expect(fuzzyMatch("git git", "src/git.ts")).toBeDefined();
+  });
+
+  test("terms can match disjoint parts of the same path", () => {
+    expect(fuzzyMatch("src ts", "src/App.tsx")).toBeDefined();
+  });
+
+  test("smart case applies per term, not to the whole query", () => {
+    expect(fuzzyMatch("Tree keymap", "src/Tree.tsx")).toBeUndefined();
+
+    const exactSecondTerm = fuzzyMatch("Tree tsx", "src/Tree.tsx");
+    const wrongCaseSecondTerm = fuzzyMatch("Tree tsx", "src/tree.tsx");
+    expect(exactSecondTerm ?? 0).toBeGreaterThan(wrongCaseSecondTerm ?? 0);
+  });
 });
 
 describe("rankFiles", () => {
@@ -85,5 +146,32 @@ describe("rankFiles", () => {
 
     expect(results.slice(0, 3)).toEqual(["src/tree.ts", "src/git.ts", "test/git.test.ts"]);
     expect(results.slice(3)).toEqual(["README.md", "src/App.tsx"]);
+  });
+
+  test("ranks a multi-term query, matching each term anywhere in the path", () => {
+    const docPaths = [
+      ".agents/skills/opentui/docs/keymap/core.mdx",
+      "src/keymap.ts",
+      ".agents/README.md",
+      "src/App.tsx",
+    ];
+
+    const results = rankFiles("agents keymap", docPaths, noContext);
+    expect(results).toContain(".agents/skills/opentui/docs/keymap/core.mdx");
+    expect(results).not.toContain("src/App.tsx");
+  });
+
+  test("drops paths missing any term", () => {
+    expect(rankFiles("git zzz", paths, noContext)).toEqual([]);
+  });
+
+  test("an all-whitespace query behaves exactly like an empty query", () => {
+    const options = {
+      changed: new Set(["test/git.test.ts"]),
+      lastChangedAt: new Map([["src/git.ts", 1000]]),
+      limit: 50,
+    };
+
+    expect(rankFiles("   ", paths, options)).toEqual(rankFiles("", paths, options));
   });
 });

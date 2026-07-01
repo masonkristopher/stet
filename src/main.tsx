@@ -148,6 +148,12 @@ try {
     state.setOverflow(options.overflow);
     state.setEditorTemplate(resolveEditorTemplate(options.editor ?? config.editor));
     state.setIdeTemplate(resolveIdeTemplate(options.ide ?? config.ide));
+    // Seed the real terminal size before the first paint. Without this, the shell
+    // Paints once at the default 24 rows (paneHeight 20) before App's terminal
+    // Dimensions effect supplies the true size, so a tree that fits the real pane
+    // Briefly overflows the too-short default and flashes a scrollbar.
+    state.setTerminalWidth(renderer.width);
+    state.setTerminalHeight(renderer.height);
   });
 
   // Paint the shell immediately from the empty model — every effect guards on the

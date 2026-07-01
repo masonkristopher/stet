@@ -419,6 +419,13 @@ function createState() {
   const repoFilePaths = createMemo(() => new Set(repoFiles().map((f) => f.path)));
   const stagedDeletionPaths = createMemo(
     () => {
+      // Until repoFiles loads (deferred poll, empty key) every changed path looks
+      // "Absent from repoFiles", which would render the whole changed set as the
+      // Default tree and then re-render the full tree, a visible jump. A deletion is
+      // Only knowable once repoFiles exists, so report none until then.
+      if (gitModel().repoFilesKey === "") {
+        return new Set<string>();
+      }
       const filePaths = repoFilePaths();
       return new Set([...changedPaths()].filter((p) => !filePaths.has(p)));
     },
@@ -435,6 +442,13 @@ function createState() {
   // Index the flat row list by node id so cursor moves are O(1) rather than O(rows).
   const treeRowsById = createMemo(() => new Map(treeRows().map((row) => [row.node.id, row.index])));
   const focusedRowIndex = createMemo(() => treeRowsById().get(focusedNodeId()) ?? 0);
+
+  // The default tree is the whole repo, so it stays empty until the deferred
+  // RepoFiles poll fills it. parseRepoFiles always folds repoRoot into the key, so
+  // A loaded 0-file repo has a non-empty key: an empty key means "not loaded yet"
+  // (including the pre-startup empty model), and the sidebar reserves blank space
+  // For that window instead of flashing the empty state.
+  const repoFilesLoading = createMemo(() => gitModel().repoFilesKey === "");
   const recencyByPath = createMemo(() => lastChangedAt(activityLog()));
   const problems = createMemo(() => allFindings(checkerState()));
   const counts = createMemo(() => countBySeverity(problems()));
@@ -1926,6 +1940,7 @@ function createState() {
     problems,
     problemsOpen,
     recencyByPath,
+    repoFilesLoading,
     repoRoot,
     resetFind,
     resetSidebarWidth,

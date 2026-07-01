@@ -32,6 +32,7 @@ export function Sidebar() {
       flexDirection="column"
       borderStyle="single"
       borderColor={focused() ? theme.colors.border.focused : theme.colors.border.unfocused}
+      backgroundColor={theme.colors.surface.base}
       onMouseDown={() => state.setFocusedPane("tree")}
     >
       <scrollbox
@@ -48,6 +49,12 @@ export function Sidebar() {
         height={state.paneHeight()}
         scrollY
         viewportCulling
+        // The scrollbox pins its content to minHeight 100%, so it sits exactly at
+        // The viewport edge; on the first layout frame the viewport is briefly 1 row
+        // Short (the horizontal scrollbar transiently claims a row), tipping content
+        // Over and flashing a vertical scrollbar. Unpin it so content tracks the
+        // Actual rows — a 1-row viewport wobble then can't overflow unless the rows do.
+        contentOptions={{ minHeight: 0 }}
         scrollbarOptions={{
           trackOptions: {
             backgroundColor: theme.rgba.transparent,
@@ -58,35 +65,34 @@ export function Sidebar() {
         <Show
           when={state.treeRows().length > 0}
           fallback={
-            <box
-              id="tree-empty"
-              width="100%"
-              height={state.paneHeight()}
-              flexDirection="column"
-              justifyContent="center"
-              alignItems="center"
-              backgroundColor={theme.colors.surface.base}
-            >
-              <text fg={theme.colors.text.muted}>
-                {state.changesOnly() ? "no changes" : "no files"}
-              </text>
-              <text fg={theme.colors.text.faint}>
-                {state.changesOnly() ? "press c to show all" : "this repository has no files yet"}
-              </text>
-            </box>
+            // No rows yet. During the deferred repoFiles load, render nothing: the
+            // Scrollbox is already a fixed paneHeight, so the pane stays blank and
+            // Reserved on its own. An explicit full-height child would instead overlap
+            // The incoming rows mid-swap and flash a scrollbar. Only a genuinely
+            // Loaded, file-less repo gets the real empty state.
+            <Show when={!state.repoFilesLoading()}>
+              <box
+                id="tree-empty"
+                width="100%"
+                height={state.paneHeight()}
+                flexDirection="column"
+                justifyContent="center"
+                alignItems="center"
+                backgroundColor={theme.colors.surface.base}
+              >
+                <text fg={theme.colors.text.muted}>
+                  {state.changesOnly() ? "no changes" : "no files"}
+                </text>
+                <text fg={theme.colors.text.faint}>
+                  {state.changesOnly() ? "press c to show all" : "this repository has no files yet"}
+                </text>
+              </box>
+            </Show>
           }
         >
           <For each={state.treeRows()}>
             {(row) => <TreeRow row={row} isDoubleClick={isDoubleFileClick} />}
           </For>
-          <Show when={state.treeRows().length < state.paneHeight()}>
-            <box
-              id="tree-filler"
-              width="100%"
-              height={state.paneHeight() - state.treeRows().length}
-              backgroundColor={theme.colors.surface.base}
-            />
-          </Show>
         </Show>
       </scrollbox>
     </box>

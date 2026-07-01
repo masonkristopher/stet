@@ -45,19 +45,22 @@ test("shows the changes-only empty state when nothing changed", async () => {
   }
 });
 
-const emptyModel: GitModel = {
+// An empty repository (no files at all) is the other path to zero rows; with the
+// Filter off the headline names that distinct cause. The pre-load empty model now
+// Reads as still-loading (empty key), so seed a loaded-and-empty model: a non-empty
+// RepoFilesKey with zero files, repoRoot signal zeroed so the poll can't race it.
+const loadedEmptyModel: GitModel = {
   changed: [],
   changedByPath: new Map(),
   repoFiles: [],
-  repoFilesKey: "",
-  repoRoot: "",
-  scopeKey: "",
+  repoFilesKey: "loaded",
+  repoRoot: "/loaded-empty-repo",
+  scopeKey: "all:HEAD:",
 };
 
-// An empty repository (no files at all) is the other path to zero rows; with the
-// Filter off the headline names that distinct cause.
 test("shows the empty-repo state when there are no files", async () => {
-  seedState(emptyModel, allScope);
+  seedState(loadedEmptyModel, allScope);
+  state.setRepoRoot("");
 
   // Wide enough that the subtitle stays on one line in the sidebar column, so the
   // Assertion proves the sidebar's own copy rather than the viewer's identical

@@ -4,6 +4,7 @@ import {
   allFindings,
   checkerSummary,
   countBySeverity,
+  directorySummaries,
   findingsLineMap,
   initialCheckerState,
   markPending,
@@ -92,6 +93,63 @@ describe("stateForResolvedChecker", () => {
       "/repo",
     );
     expect(state.get("src/a.ts")?.diagnostics[0]?.source).toBe("ts");
+  });
+});
+
+describe("directorySummaries", () => {
+  test("aggregates severity counts up every ancestor", () => {
+    const state: CheckerState = {
+      diagnostics: new Map([
+        [
+          "src/git/a.ts",
+          {
+            count: 2,
+            diagnostics: [
+              diagnostic({ path: "src/git/a.ts" }),
+              diagnostic({ path: "src/git/a.ts", severity: "warning" }),
+            ],
+            status: "findings",
+          },
+        ],
+        ["src/b.ts", { count: 0, diagnostics: [], status: "clean" }],
+      ]),
+    };
+    const byDirectory = directorySummaries(state);
+
+    expect(byDirectory.get("src/git")).toEqual({
+      errors: 1,
+      failed: false,
+      info: 0,
+      pending: false,
+      unavailable: false,
+      warnings: 1,
+    });
+    expect(byDirectory.get("src")?.errors).toBe(1);
+    expect(byDirectory.get("src")?.warnings).toBe(1);
+  });
+
+  test("propagates pending, failed, and unavailable statuses to ancestors", () => {
+    const state: CheckerState = {
+      diagnostics: new Map([
+        ["src/a.ts", { count: 0, diagnostics: [], status: "pending" }],
+        ["src/git/b.ts", { count: 0, diagnostics: [], status: "failed" }],
+        ["test/c.ts", { count: 0, diagnostics: [], status: "unavailable" }],
+      ]),
+    };
+    const byDirectory = directorySummaries(state);
+
+    expect(byDirectory.get("src")?.pending).toBe(true);
+    expect(byDirectory.get("src")?.failed).toBe(true);
+    expect(byDirectory.get("src/git")?.failed).toBe(true);
+    expect(byDirectory.get("src/git")?.pending).toBe(false);
+    expect(byDirectory.get("test")?.unavailable).toBe(true);
+  });
+
+  test("a directory with no checked descendants has no key", () => {
+    const state: CheckerState = {
+      diagnostics: new Map([["src/a.ts", { count: 0, diagnostics: [], status: "clean" }]]),
+    };
+    expect(directorySummaries(state).has("docs")).toBe(false);
   });
 });
 

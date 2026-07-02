@@ -165,6 +165,37 @@ describe("rankFiles", () => {
     expect(rankFiles("git zzz", paths, noContext)).toEqual([]);
   });
 
+  test("empty query over more paths than the limit equals the full-sort head", () => {
+    const manyPaths = Array.from({ length: 500 }, (_, index) => {
+      const dir = index % 3 === 0 ? "src" : index % 3 === 1 ? "test" : "docs";
+      return `${dir}/f${String(index).padStart(3, "0")}.ts`;
+    });
+    const options = {
+      changed: new Set(manyPaths.filter((_, index) => index % 7 === 0)),
+      lastChangedAt: new Map(
+        manyPaths.filter((_, index) => index % 5 === 0).map((path, index) => [path, 1000 + index]),
+      ),
+      limit: 50,
+    };
+
+    const fullSort = [...manyPaths]
+      .toSorted((a, b) => {
+        const recencyDelta =
+          (options.lastChangedAt.get(b) ?? 0) - (options.lastChangedAt.get(a) ?? 0);
+        if (recencyDelta !== 0) {
+          return recencyDelta;
+        }
+        const changedDelta = (options.changed.has(b) ? 1 : 0) - (options.changed.has(a) ? 1 : 0);
+        if (changedDelta !== 0) {
+          return changedDelta;
+        }
+        return a.localeCompare(b);
+      })
+      .slice(0, options.limit);
+
+    expect(rankFiles("", manyPaths, options)).toEqual(fullSort);
+  });
+
   test("an all-whitespace query behaves exactly like an empty query", () => {
     const options = {
       changed: new Set(["test/git.test.ts"]),

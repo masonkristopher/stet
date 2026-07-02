@@ -126,13 +126,29 @@ describe("buildProblemItems", () => {
 
     expect(items[0]).toEqual({
       errors: 1,
-      id: "file-src/a.ts",
       info: 0,
       kind: "file-header",
       path: "src/a.ts",
       warnings: 1,
     });
     expect(items.filter((item) => item.kind === "problem")).toHaveLength(2);
+  });
+
+  test("separates groups with a spacer row, never before the first", () => {
+    const items = buildProblemItems(
+      stateWith([
+        diagnostic({ message: "a", path: "src/a.ts" }),
+        diagnostic({ message: "b", path: "src/b.ts" }),
+      ]),
+    );
+
+    expect(items.map((item) => item.kind)).toEqual([
+      "file-header",
+      "problem",
+      "spacer",
+      "file-header",
+      "problem",
+    ]);
   });
 
   test("widens the location column to the widest line:col in the group", () => {

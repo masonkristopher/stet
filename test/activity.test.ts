@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  directoryRecency,
   emptyActivityLog,
   FRESH_MS,
   lastChangedAt,
@@ -53,6 +54,30 @@ describe("derived views", () => {
     log = recordActivity(log, [{ kind: "removed", path: "b.ts" }], 2000);
 
     expect(latestActivity(log)).toEqual({ at: 2000, kind: "removed", path: "b.ts" });
+  });
+});
+
+describe("directoryRecency", () => {
+  test("keeps the max descendant timestamp for every ancestor", () => {
+    const byDirectory = directoryRecency(
+      new Map([
+        ["src/git/a.ts", 1000],
+        ["src/git/b.ts", 3000],
+        ["src/c.ts", 2000],
+      ]),
+    );
+
+    expect(byDirectory.get("src/git")).toBe(3000);
+    expect(byDirectory.get("src")).toBe(3000);
+  });
+
+  test("root-level files produce no directory entries", () => {
+    expect(directoryRecency(new Map([["a.ts", 1000]])).size).toBe(0);
+  });
+
+  test("an unrelated directory has no key", () => {
+    const byDirectory = directoryRecency(new Map([["src/a.ts", 1000]]));
+    expect(byDirectory.has("test")).toBe(false);
   });
 });
 

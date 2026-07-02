@@ -35,8 +35,10 @@ export function FileCombobox() {
   }
 
   function onInput(value: string) {
-    state.setFileComboboxQuery(value);
-    state.setFileComboboxIndex(0);
+    batch(() => {
+      state.setFileComboboxQuery(value);
+      state.setFileComboboxIndex(0);
+    });
   }
 
   return (

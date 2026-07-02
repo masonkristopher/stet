@@ -39,6 +39,26 @@ export function lastChangedAt(log: ActivityLog) {
   return new Map(log.events.map((event) => [event.path, event.at]));
 }
 
+/**
+ * Max descendant activity per directory (every ancestor gets a key), one pass over the recency map,
+ * so a collapsed directory row does an O(1) lookup instead of scanning all entries per row.
+ */
+export function directoryRecency(recencyByPath: Map<string, number>) {
+  const byDirectory = new Map<string, number>();
+  for (const [path, at] of recencyByPath) {
+    const parts = path.split("/");
+    let prefix = "";
+    for (const part of parts.slice(0, -1)) {
+      prefix = prefix === "" ? part : `${prefix}/${part}`;
+      const current = byDirectory.get(prefix);
+      if (current === undefined || at > current) {
+        byDirectory.set(prefix, at);
+      }
+    }
+  }
+  return byDirectory;
+}
+
 export function latestActivity(log: ActivityLog): ActivityEvent | undefined {
   return log.events.at(-1);
 }

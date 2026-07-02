@@ -92,6 +92,7 @@ export function seedState(model: GitModel, scope: DiffScope) {
     state.setFocusedPane("tree");
     state.setProblemsOpen(false);
     state.setProblemIndex(0);
+    state.setProblemsScrollTop(0);
     state.setFileComboboxOpen(false);
     state.setFileComboboxQuery("");
     state.setFileComboboxIndex(0);
@@ -107,6 +108,7 @@ export function seedState(model: GitModel, scope: DiffScope) {
     state.setSearchGlob("");
     state.setSearchIndex(0);
     state.setSearchScrollTop(0);
+    state.setSidebarScrollTop(0);
     if (state.searchRegex()) {
       state.toggleSearchRegex();
     }

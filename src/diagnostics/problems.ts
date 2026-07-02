@@ -2,24 +2,25 @@ import { allFindings, checkerNames, countBySeverity } from "./checker";
 import type { CheckerName, CheckerState, Diagnostic } from "./checker";
 
 /**
- * One rendered row of the problems panel. Headers and help sub-lines are decorations between the
- * navigable `problem`/`failure` rows; the renderer and the keymap both walk this flat list, so
- * navigation skips the non-navigable kinds and the highlight covers a `problem` plus the `help` it
- * `owner`s.
+ * One rendered row of the problems panel, each exactly one terminal row (the blank line between
+ * groups is an explicit `spacer` row, so the windowed renderer's slice math stays uniform).
+ * Headers, spacers, and help sub-lines are decorations between the navigable `problem`/`failure`
+ * rows; the renderer and the keymap both walk this flat list, so navigation skips the non-navigable
+ * kinds and the highlight covers a `problem` plus the `help` it `owner`s.
  */
 export type ProblemItem =
-  | { kind: "failure-header"; id: string }
-  | { kind: "failure"; id: string; checker: CheckerName; line: string; isFirst: boolean }
+  | { kind: "spacer" }
+  | { kind: "failure-header" }
+  | { kind: "failure"; checker: CheckerName; line: string; isFirst: boolean }
   | {
       kind: "file-header";
-      id: string;
       path: string;
       errors: number;
       warnings: number;
       info: number;
     }
-  | { kind: "problem"; id: string; problem: Diagnostic; summary: string; labelWidth: number }
-  | { kind: "help"; id: string; owner: number; text: string };
+  | { kind: "problem"; problem: Diagnostic; summary: string; labelWidth: number }
+  | { kind: "help"; owner: number; text: string };
 
 /**
  * The rows the panel cursor can land on: located diagnostics and checker-failure lines (so long
@@ -79,8 +80,13 @@ const severityOrder = { error: 0, info: 2, warning: 1 } as const;
  * Builds the grouped, ordered row list. Checker-process failures lead, under a single header; then
  * diagnostics group by file, with groups ordered by their worst contained severity (then path) so
  * the most important findings stay at the top, and findings ordered by line within a file.
+ * `findings` lets the caller pass an already-computed `allFindings(state)` (the state layer derives
+ * both from one memo) instead of paying the full-sort twice per checker update.
  */
-export function buildProblemItems(state: CheckerState): ProblemItem[] {
+export function buildProblemItems(
+  state: CheckerState,
+  findings: Diagnostic[] = allFindings(state),
+): ProblemItem[] {
   const items: ProblemItem[] = [];
 
   // A failed server stamps the same message onto every file it covers, so collect every failed
@@ -95,15 +101,14 @@ export function buildProblemItems(state: CheckerState): ProblemItem[] {
   });
 
   if (failureMessages.length > 0) {
-    items.push({ id: "failure-header", kind: "failure-header" });
-    failureMessages.forEach(({ checker, message }, messageIndex) => {
+    items.push({ kind: "failure-header" });
+    failureMessages.forEach(({ checker, message }) => {
       message
         .split("\n")
         .filter((line) => line.trim() !== "")
         .forEach((line, lineIndex) => {
           items.push({
             checker,
-            id: `failure-${checker}-${messageIndex}-${lineIndex}`,
             isFirst: lineIndex === 0,
             kind: "failure",
             line,
@@ -112,7 +117,7 @@ export function buildProblemItems(state: CheckerState): ProblemItem[] {
     });
   }
 
-  const groups = [...Map.groupBy(allFindings(state), (diagnostic) => diagnostic.path).entries()]
+  const groups = [...Map.groupBy(findings, (diagnostic) => diagnostic.path).entries()]
     .map(([path, diagnostics]) => {
       const counts = countBySeverity(diagnostics);
       const worst = counts.errors > 0 ? 0 : counts.warnings > 0 ? 1 : 2;
@@ -131,9 +136,13 @@ export function buildProblemItems(state: CheckerState): ProblemItem[] {
     .toSorted((a, b) => a.worst - b.worst || a.path.localeCompare(b.path));
 
   groups.forEach((group) => {
+    // The blank line between groups is a real row, so the windowed renderer can
+    // Treat every item as exactly one terminal row.
+    if (items.length > 0) {
+      items.push({ kind: "spacer" });
+    }
     items.push({
       errors: group.counts.errors,
-      id: `file-${group.path}`,
       info: group.counts.info,
       kind: "file-header",
       path: group.path,
@@ -143,11 +152,10 @@ export function buildProblemItems(state: CheckerState): ProblemItem[] {
       1,
       ...group.diagnostics.map((diagnostic) => problemLocationLabel(diagnostic).length),
     );
-    group.diagnostics.forEach((problem, index) => {
+    group.diagnostics.forEach((problem) => {
       const { help, summary } = splitDiagnosticMessage(problem.message);
       const owner = items.length;
       items.push({
-        id: `problem-${group.path}-${index}`,
         kind: "problem",
         labelWidth,
         problem,
@@ -155,7 +163,6 @@ export function buildProblemItems(state: CheckerState): ProblemItem[] {
       });
       if (help.length > 0) {
         items.push({
-          id: `help-${group.path}-${index}`,
           kind: "help",
           owner,
           text: help.join(" "),

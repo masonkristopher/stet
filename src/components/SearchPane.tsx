@@ -1,5 +1,5 @@
 import { fg, StyledText } from "@opentui/core";
-import type { InputRenderable, MouseEvent, TextRenderable } from "@opentui/core";
+import type { InputRenderable, TextRenderable } from "@opentui/core";
 import { batch, createEffect, createMemo, createSignal, Index, onCleanup, Show } from "solid-js";
 
 import { highlightSnippet, languageForPath } from "@/diff/engine";
@@ -14,6 +14,8 @@ import { fileIcon } from "@/utils/file-icon";
 import { truncate } from "@/utils/text";
 import { isNavigableSearchItem } from "@/viewer/search-items";
 import type { SearchItem } from "@/viewer/search-items";
+
+import { windowWheelHandler } from "./wheel";
 
 // A contiguous run of line rows (one excerpt): highlighted as a block so Shiki
 // Tokenizes with real surrounding context, then mapped back to rows by offset.
@@ -213,27 +215,12 @@ export function SearchPane() {
     });
   };
 
-  const WHEEL_STEP = 3;
-  const onWheel = (event: MouseEvent) => {
-    const direction = event.scroll?.direction;
-    if (direction !== "up" && direction !== "down") {
-      return;
-    }
-    const delta = event.scroll?.delta ?? 1;
-    const maxScroll = Math.max(0, state.searchItems().length - state.searchListHeight());
-    state.setSearchScrollTop(
-      Math.max(
-        0,
-        Math.min(
-          state.searchScrollTop() + (direction === "down" ? 1 : -1) * delta * WHEEL_STEP,
-          maxScroll,
-        ),
-      ),
-    );
-    if (event.scroll !== undefined) {
-      event.scroll.delta = 0;
-    }
-  };
+  const onWheel = windowWheelHandler({
+    rowCount: () => state.searchItems().length,
+    scrollTop: state.searchScrollTop,
+    setScrollTop: state.setSearchScrollTop,
+    viewport: state.searchListHeight,
+  });
 
   // A single click selects (a focus-intent click must never navigate the whole
   // View away, mirroring the diff where a click only moves the cursor); a

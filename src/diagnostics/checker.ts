@@ -60,24 +60,51 @@ export function markPending(
   };
 }
 
-export function directorySummary(path: string, state: CheckerState) {
-  const prefix = path === "" ? "" : `${path}/`;
-  let pending = false;
-  let failed = false;
-  let unavailable = false;
-  const diagnostics: Diagnostic[] = [];
+export interface DirectorySummary {
+  errors: number;
+  failed: boolean;
+  info: number;
+  pending: boolean;
+  unavailable: boolean;
+  warnings: number;
+}
+
+export const emptyDirectorySummary: DirectorySummary = {
+  errors: 0,
+  failed: false,
+  info: 0,
+  pending: false,
+  unavailable: false,
+  warnings: 0,
+};
+
+/**
+ * Aggregate every descendant file's checker state per directory (every ancestor gets a key) in one
+ * pass, so a collapsed directory row does an O(1) lookup instead of scanning the whole state per
+ * row. A directory with no checked descendants has no key; render sites fall back to
+ * `emptyDirectorySummary`, the same zero summary the per-row scan produced.
+ */
+export function directorySummaries(state: CheckerState) {
+  const byDirectory = new Map<string, DirectorySummary>();
   for (const checker of checkerNames) {
     for (const [filePath, fileState] of state[checker]) {
-      if (!filePath.startsWith(prefix)) {
-        continue;
+      const counts = countBySeverity(fileState.diagnostics);
+      const parts = filePath.split("/");
+      let prefix = "";
+      for (const part of parts.slice(0, -1)) {
+        prefix = prefix === "" ? part : `${prefix}/${part}`;
+        const summary = byDirectory.get(prefix) ?? { ...emptyDirectorySummary };
+        summary.errors += counts.errors;
+        summary.warnings += counts.warnings;
+        summary.info += counts.info;
+        summary.pending ||= fileState.status === "pending";
+        summary.failed ||= fileState.status === "failed";
+        summary.unavailable ||= fileState.status === "unavailable";
+        byDirectory.set(prefix, summary);
       }
-      pending ||= fileState.status === "pending";
-      failed ||= fileState.status === "failed";
-      unavailable ||= fileState.status === "unavailable";
-      diagnostics.push(...fileState.diagnostics);
     }
   }
-  return { failed, pending, unavailable, ...countBySeverity(diagnostics) };
+  return byDirectory;
 }
 
 export function checkerSummary(path: string, state: CheckerState) {

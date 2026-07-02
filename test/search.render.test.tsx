@@ -242,4 +242,43 @@ describe("project content search", () => {
       rmSync(repoRoot, { force: true, recursive: true });
     }
   }, 20_000);
+
+  test("a wheel scroll moves the results window without moving the selection", async () => {
+    const lines = Array.from({ length: 60 }, (_, index) => `const needle${index} = ${index}`);
+    const repoRoot = createFixtureRepo("sideye-search-wheel-", {
+      "src/many.ts": "const x = 1\n",
+    });
+    writeFileSync(join(repoRoot, "src", "many.ts"), `${lines.join("\n")}\n`);
+
+    const model = await loadModel(repoRoot, { kind: "all", ref: "HEAD" });
+    seedState(model, { kind: "all", ref: "HEAD" });
+    const { renderer, renderOnce, captureCharFrame, mockInput, mockMouse } = await testRender(
+      () => <App />,
+      { height: 34, width: 120 },
+    );
+    const settleUntil = makeSettleUntil({ captureCharFrame, renderOnce });
+
+    try {
+      await settleUntil("app chrome", (frame) => frame.includes("sideye"), 5);
+      mockInput.pressKey("f", { ctrl: true });
+      await settleUntil("search pane", (frame) => frame.includes("search…"));
+      await mockInput.typeText("needle");
+      await settleUntil("results", (frame) => frame.includes("60 matches in 1 file"));
+      expect(captureCharFrame()).toContain("needle1 ");
+
+      const selectionBefore = state.searchIndex();
+      for (let i = 0; i < 5; i += 1) {
+        // oxlint-disable-next-line no-await-in-loop -- sequential wheel steps
+        await mockMouse.scroll(state.sidebarWidth() + 10, 12, "down");
+        // oxlint-disable-next-line no-await-in-loop -- sequential wheel steps
+        await renderOnce();
+      }
+      await renderOnce();
+      expect(captureCharFrame()).not.toContain("needle1 ");
+      expect(state.searchIndex()).toBe(selectionBefore);
+    } finally {
+      renderer.destroy();
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  }, 20_000);
 });

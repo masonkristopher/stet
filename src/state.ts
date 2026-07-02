@@ -19,6 +19,7 @@ import { PROBLEMS_HEIGHT, SIDEBAR_MIN_WIDTH, SIDEBAR_VIEWER_MIN } from "./consta
 import {
   allFindings,
   countBySeverity,
+  directorySummaries,
   findingsLineMap,
   initialCheckerState,
   markPending,
@@ -36,6 +37,7 @@ import { contentToContextPatch } from "./file/content";
 import type { FileContent } from "./file/content";
 import { File } from "./file/service";
 import {
+  directoryRecency,
   emptyActivityLog,
   lastChangedAt,
   latestActivity,
@@ -317,8 +319,10 @@ function createState() {
   );
   const [sidebarOpen, setSidebarOpen] = createSignal(true);
   const [sidebarWidthOverride, setSidebarWidthOverride] = createSignal<number | null>(null);
+  const [sidebarScrollTop, setSidebarScrollTop] = createSignal(0);
   const [problemsOpen, setProblemsOpen] = createSignal(false);
   const [problemIndex, setProblemIndex] = createSignal(0);
+  const [problemsScrollTop, setProblemsScrollTop] = createSignal(0);
   const [fileComboboxOpen, setFileComboboxOpen] = createSignal(false);
   const [fileComboboxQuery, setFileComboboxQuery] = createSignal("");
   const [fileComboboxIndex, setFileComboboxIndex] = createSignal(0);
@@ -487,6 +491,61 @@ function createState() {
   const treeRowsById = createMemo(() => new Map(treeRows().map((row) => [row.node.id, row.index])));
   const focusedRowIndex = createMemo(() => treeRowsById().get(focusedNodeId()) ?? 0);
 
+  // A windowed uniform-row list (the sidebar, the problems panel) renders only
+  // The rows inside [scrollTop, +viewport), so its renderable count is bounded
+  // By the viewport, not the content. This registers the shared glue: a follow
+  // Effect keeping the cursor framed (editor-style scrolloff) that tracks only
+  // The cursor, viewport, and gate, while rows and the current offset are read
+  // Untracked so a background refresh tick never snaps a wheel-scrolled window
+  // Back to the cursor; and a clamp effect bounding the window when the row
+  // List shrinks under it. The search pane deliberately does not use this: its
+  // Follow is action-driven (setSearchSelection), so a results update never
+  // Re-frames a wheel-scrolled window.
+  function followListWindow(options: {
+    cursor: () => number;
+    viewport: () => number;
+    rowCount: () => number;
+    scrollTop: () => number;
+    setScrollTop: (next: number) => void;
+    active?: () => boolean;
+  }) {
+    createEffect(() => {
+      if (options.active !== undefined && !options.active()) {
+        return;
+      }
+      const top = options.cursor();
+      const viewport = options.viewport();
+      const current = untrack(options.scrollTop);
+      const next = followScrollTop({
+        current,
+        height: 1,
+        margin: 2,
+        maxScroll: Math.max(0, untrack(options.rowCount) - viewport),
+        top,
+        viewport,
+      });
+      if (next !== current) {
+        options.setScrollTop(next);
+      }
+    });
+    createEffect(() => {
+      const maxScroll = Math.max(0, options.rowCount() - options.viewport());
+      if (untrack(options.scrollTop) > maxScroll) {
+        options.setScrollTop(maxScroll);
+      }
+    });
+  }
+
+  followListWindow({
+    cursor: focusedRowIndex,
+    rowCount: () => treeRows().length,
+    scrollTop: sidebarScrollTop,
+    setScrollTop: setSidebarScrollTop,
+    // A thunk, not the memo itself: paneHeight is declared later in this root,
+    // And the effects only run after the whole root body has executed.
+    viewport: () => paneHeight(),
+  });
+
   // The default tree is the whole repo, so it stays empty until the deferred
   // RepoFiles poll fills it. parseRepoFiles always folds repoRoot into the key, so
   // A loaded 0-file repo has a non-empty key: an empty key means "not loaded yet"
@@ -494,6 +553,10 @@ function createState() {
   // For that window instead of flashing the empty state.
   const repoFilesLoading = createMemo(() => gitModel().repoFilesKey === "");
   const recencyByPath = createMemo(() => lastChangedAt(activityLog()));
+  // Per-directory aggregates, one pass each, so collapsed directory rows do O(1)
+  // Lookups instead of scanning every entry per row per render.
+  const directoryRecencyByPath = createMemo(() => directoryRecency(recencyByPath()));
+  const directorySummariesByPath = createMemo(() => directorySummaries(checkerState()));
   const problems = createMemo(() => allFindings(checkerState()));
   const counts = createMemo(() => countBySeverity(problems()));
   const lineMap = createMemo(() => {
@@ -502,24 +565,63 @@ function createState() {
       ? new Map<number, Diagnostic[]>()
       : findingsLineMap(path, checkerState());
   });
-  const allProblemItems = createMemo(() => buildProblemItems(checkerState()));
+  // Reuse the `problems` memo's sorted findings so one checker update pays the
+  // AllFindings sort once, not once here and once inside buildProblemItems.
+  const allProblemItems = createMemo(() => buildProblemItems(checkerState(), problems()));
   // The first row the problems cursor can land on; headers and help sub-lines are
   // Skipped so opening the panel never parks the cursor on a non-navigable row.
   const firstNavigableProblemIndex = createMemo(() => {
     const index = allProblemItems().findIndex(isNavigableProblemItem);
     return index === -1 ? 0 : index;
   });
+
+  // The `active` gate is tracked, so opening the panel frames the cursor at once.
+  followListWindow({
+    active: problemsOpen,
+    cursor: problemIndex,
+    rowCount: () => allProblemItems().length,
+    scrollTop: problemsScrollTop,
+    setScrollTop: setProblemsScrollTop,
+    viewport: () => PROBLEMS_HEIGHT - 2,
+  });
+  // The go-to-file universe: repoFiles plus changed-only paths (staged
+  // Deletions), the same universe the tree renders. Every dependency is
+  // Identity-gated (`repoFiles` is reference-stable across content edits,
+  // `changedPaths` set-equality-gated), so a content-only refresh tick never
+  // Rebuilds this array while the picker is open.
+  const fileComboboxPaths = createMemo(() => {
+    const filePaths = repoFilePaths();
+    return [
+      ...repoFiles().map((file) => file.path),
+      ...[...changedPaths()].filter((path) => !filePaths.has(path)),
+    ];
+  });
+  // The rank context is snapshotted when the picker opens, so a background
+  // Refresh never re-ranks (and never reorders) the list under the cursor while
+  // It is open; the universe above stays live, so a file created mid-open still
+  // Appears. Per-row decorations (recency dot, changed tint) keep reading live
+  // State.
+  const [fileComboboxRankContext, setFileComboboxRankContext] = createSignal({
+    changed: new Set<string>(),
+    lastChangedAt: new Map<string, number>(),
+  });
+  function openFileCombobox() {
+    batch(() => {
+      setFileComboboxRankContext({
+        changed: untrack(changedPaths),
+        lastChangedAt: untrack(recencyByPath),
+      });
+      setFileComboboxQuery("");
+      setFileComboboxIndex(0);
+      setFileComboboxOpen(true);
+    });
+  }
   const fileComboboxResults = createMemo(() => {
     if (!fileComboboxOpen()) {
       return [];
     }
-    const model = gitModel();
-    const allPaths = [
-      ...new Set([...model.repoFiles.map((file) => file.path), ...model.changedByPath.keys()]),
-    ];
-    return rankFiles(fileComboboxQuery(), allPaths, {
-      changed: new Set(model.changedByPath.keys()),
-      lastChangedAt: recencyByPath(),
+    return rankFiles(fileComboboxQuery(), fileComboboxPaths(), {
+      ...fileComboboxRankContext(),
       limit: 50,
     });
   });
@@ -2439,6 +2541,8 @@ function createState() {
     cursorLineNumber,
     cycleTab,
     diffView,
+    directoryRecencyByPath,
+    directorySummariesByPath,
     editorTemplate,
     expandedDirectories,
     fileComboboxIndex,
@@ -2479,6 +2583,7 @@ function createState() {
     notify,
     now,
     nudgeSidebarWidth,
+    openFileCombobox,
     openSearch,
     openThemePicker,
     openViewerDecoration,
@@ -2492,6 +2597,7 @@ function createState() {
     problemIndex,
     problems,
     problemsOpen,
+    problemsScrollTop,
     recencyByPath,
     referencesIndex,
     referencesLabel,
@@ -2560,6 +2666,7 @@ function createState() {
     setPendingRestore,
     setProblemIndex,
     setProblemsOpen,
+    setProblemsScrollTop,
     setReferencesIndex,
     setRepoRoot,
     setScope,
@@ -2573,6 +2680,7 @@ function createState() {
     setSearchSelection,
     setSessionBase,
     setSidebarOpen,
+    setSidebarScrollTop,
     setTerminalHeight,
     setTerminalWidth,
     setThemeComboboxIndex,
@@ -2586,6 +2694,7 @@ function createState() {
     showFileContent,
     showHover,
     sidebarOpen,
+    sidebarScrollTop,
     sidebarWidth,
     status,
     statusHint,

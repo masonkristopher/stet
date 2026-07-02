@@ -342,9 +342,7 @@ export function createKeyHandler(host: HostEffects) {
       }
 
       if (key.ctrl && key.name === "p") {
-        state.setFileComboboxOpen(true);
-        state.setFileComboboxQuery("");
-        state.setFileComboboxIndex(0);
+        state.openFileCombobox();
         return;
       }
 

@@ -281,22 +281,20 @@ export function fuzzyMatch(query: string, path: string): number | undefined {
 export function rankFiles(query: string, paths: string[], options: RankOptions): string[] {
   const terms = queryTerms(query);
   if (terms.length === 0) {
-    return [...paths]
-      .toSorted((a, b) => {
-        const recencyDelta =
-          (options.lastChangedAt.get(b) ?? 0) - (options.lastChangedAt.get(a) ?? 0);
-        if (recencyDelta !== 0) {
-          return recencyDelta;
-        }
+    return topK(paths, options.limit, (a, b) => {
+      const recencyDelta =
+        (options.lastChangedAt.get(b) ?? 0) - (options.lastChangedAt.get(a) ?? 0);
+      if (recencyDelta !== 0) {
+        return recencyDelta;
+      }
 
-        const changedDelta = (options.changed.has(b) ? 1 : 0) - (options.changed.has(a) ? 1 : 0);
-        if (changedDelta !== 0) {
-          return changedDelta;
-        }
+      const changedDelta = (options.changed.has(b) ? 1 : 0) - (options.changed.has(a) ? 1 : 0);
+      if (changedDelta !== 0) {
+        return changedDelta;
+      }
 
-        return a.localeCompare(b);
-      })
-      .slice(0, options.limit);
+      return a.localeCompare(b);
+    });
   }
 
   const prepared = terms.map(prepareQuery);
@@ -309,4 +307,37 @@ export function rankFiles(query: string, paths: string[], options: RankOptions):
     .toSorted((a, b) => b.score - a.score || a.path.localeCompare(b.path))
     .slice(0, options.limit)
     .map((match) => match.path);
+}
+
+/**
+ * The first `limit` items of `[...items].toSorted(compare)` without sorting the whole input:
+ * bounded insertion into a limit-sized sorted prefix, with a fast reject once full. The picker's
+ * empty-query path runs this over every repo path on open, where a full sort is the dominant cost.
+ * Ties insert after existing equals, matching toSorted's stability.
+ */
+function topK<T>(items: T[], limit: number, compare: (a: T, b: T) => number): T[] {
+  const top: T[] = [];
+  for (const item of items) {
+    if (top.length === limit) {
+      const last = top[limit - 1];
+      if (last === undefined || compare(item, last) >= 0) {
+        continue;
+      }
+    }
+    let low = 0;
+    let high = top.length;
+    while (low < high) {
+      const mid = (low + high) >>> 1;
+      if (compare(item, top[mid]) < 0) {
+        high = mid;
+      } else {
+        low = mid + 1;
+      }
+    }
+    top.splice(low, 0, item);
+    if (top.length > limit) {
+      top.pop();
+    }
+  }
+  return top;
 }

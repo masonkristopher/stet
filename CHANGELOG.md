@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/jimmy-guzman/sideye/compare/sideye-v0.4.0...sideye-v0.4.1) (2026-07-02)
+
+
+### Performance Improvements
+
+* **ui:** ⚡️ add virtualization for lists ([#187](https://github.com/jimmy-guzman/sideye/issues/187)) ([9a75867](https://github.com/jimmy-guzman/sideye/commit/9a75867f89b28e6602fb281d73ee5a2d9560c28a))
+
 ## [0.4.0](https://github.com/jimmy-guzman/sideye/compare/sideye-v0.3.5...sideye-v0.4.0) (2026-07-02)
 
 

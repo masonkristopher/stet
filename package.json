@@ -1,6 +1,6 @@
 {
   "name": "sideye",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "private": true,
   "description": "Read-only companion TUI with IDE-grade insight into agent changes",
   "license": "MIT",

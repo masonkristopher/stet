@@ -104,10 +104,10 @@ const screens = [
   { name: "sideye", steps: [openDiffView, "Sleep 16s"].join("\n") },
   {
     /**
-     * Pin two changed files into tabs (`ctrl-t`), then land on a third as the active preview, so
-     * the strip shows pinned tabs beside the active one. The pinned labels are tinted by
-     * change-kind (DiffView modified = amber, CaretCard added = green), so pin two files that are
-     * changed in the captured `HEAD~3..HEAD` diff.
+     * Pin two files into tabs (`ctrl-t`), then land on a third as the active preview, so the strip
+     * shows the two pinned tabs (muted) beside the active preview tab (full-strength, italic). Any
+     * files work; DiffView.tsx and CommandMenu.tsx both sit in the captured `BASE_REF..HEAD`
+     * window.
      */
     name: "tabs",
     steps: [
@@ -119,7 +119,7 @@ const screens = [
       "Ctrl+T",
       "Sleep 300ms",
       "Ctrl+P",
-      'Type "CaretCard"',
+      'Type "components/CommandMenu"',
       "Sleep 400ms",
       "Enter",
       "Sleep 700ms",

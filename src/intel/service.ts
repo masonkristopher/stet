@@ -12,7 +12,7 @@ import { pathToFileURL } from "node:url";
 import { Context, Data, Effect, Layer } from "effect";
 
 import { LanguageServers, lspLanguageId, serversProviding } from "@/diagnostics/servers";
-import type { Capability, ServerHandle } from "@/diagnostics/servers";
+import type { Capability } from "@/diagnostics/servers";
 import { relativize } from "@/utils/path";
 
 import { normalizeDefinition, normalizeReferences, parseHover } from "./protocol";
@@ -76,7 +76,7 @@ export const IntelLive = Layer.effect(
         for (const language of serversProviding(path, capability)) {
           const handle = yield* servers
             .acquire(language, repoRoot)
-            .pipe(Effect.catch(() => Effect.succeed<ServerHandle | undefined>(undefined)));
+            .pipe(Effect.catch(() => Effect.void));
           if (handle !== undefined && handle.capabilities.has(capability)) {
             return handle;
           }

@@ -48,7 +48,7 @@ export function fileDiffSides(
     if (scope.kind === "staged") {
       return { kind: "git", spec: `:${file.path}` };
     }
-    if (scope.kind === "last-commit") {
+    if (scope.kind === "last-commit" || scope.kind === "commit") {
       return { kind: "git", spec: `${scope.headRef ?? "HEAD"}:${file.path}` };
     }
     return { kind: "worktree" };

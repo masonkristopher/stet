@@ -103,10 +103,10 @@ export function assembleChanged(
   numstatOutput: string,
   porcelainOutput: string,
 ): Pick<GitModel, "changed" | "changedByPath" | "scopeKey"> {
-  // Last-commit is a committed-tree-to-committed-tree range, so working-tree
-  // Untracked files have no place in it (same reasoning as staged).
+  // The committed-tree-to-committed-tree ranges (last-commit, a stepped commit)
+  // Have no place for working-tree untracked files (same reasoning as staged).
   const untracked =
-    scope.kind === "staged" || scope.kind === "last-commit"
+    scope.kind === "staged" || scope.kind === "last-commit" || scope.kind === "commit"
       ? []
       : parseUntrackedFiles(untrackedOutput);
   const nameStatus = parseNameStatus(nameStatusOutput);
@@ -241,7 +241,8 @@ export function diffArgs(scope: DiffScope) {
     return base;
   }
 
-  if (scope.kind === "last-commit") {
+  // The range scopes: last-commit (HEAD~1..HEAD) and a stepped commit (parent..sha).
+  if (scope.kind === "last-commit" || scope.kind === "commit") {
     return [...base, scope.ref, scope.headRef ?? "HEAD"];
   }
 

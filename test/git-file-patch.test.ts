@@ -66,6 +66,15 @@ describe("fileDiffSides", () => {
     });
   });
 
+  test("a stepped commit compares the commit's parent tree against the commit sha", () => {
+    expect(
+      fileDiffSides({ headRef: "abcsha", kind: "commit", ref: "parentsha" }, file("src/a.ts")),
+    ).toEqual({
+      newSide: { kind: "git", spec: "abcsha:src/a.ts" },
+      oldSide: { kind: "git", spec: "parentsha:src/a.ts" },
+    });
+  });
+
   test("added and untracked files have no old side", () => {
     expect(
       fileDiffSides({ kind: "all", ref: "HEAD" }, file("src/a.ts", { kind: "added" })),

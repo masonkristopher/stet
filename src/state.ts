@@ -53,6 +53,7 @@ import {
   recordActivity,
 } from "./git/activity";
 import type { ActivityEventKind, ActivityLog } from "./git/activity";
+import type { Commit } from "./git/log";
 import { changedPathsDiffer, EMPTY_TREE_SHA, mergeChanged } from "./git/model";
 import type { ChangedFile, GitModel, Worktree } from "./git/model";
 import { filterPathspecs } from "./git/search";
@@ -333,6 +334,19 @@ function createState() {
   const [sessionBase, setSessionBase] = createSignal("HEAD");
   const [scopeMenuOpen, setScopeMenuOpen] = createSignal(false);
   const [scopeMenuIndex, setScopeMenuIndex] = createSignal(0);
+  // The scope picker is two levels: the kinds list, and a drill-down into recent
+  // Commits (each viewable as its own diff). `scopeMenuIndex` is reused per level.
+  const [scopeMenuView, setScopeMenuView] = createSignal<"kinds" | "commits">("kinds");
+  const [commits, setCommits] = createSignal<Commit[]>([]);
+  const [commitsStatus, setCommitsStatus] = createSignal<"loading" | "ready" | "empty" | "error">(
+    "loading",
+  );
+  // The commit pinned by the active `commit` scope (its subject drives the header
+  // Label, so it survives even after the commit ages out of the reloaded list).
+  const [selectedCommit, setSelectedCommit] = createSignal<Commit | undefined>(undefined);
+  // Wall-clock captured when the commits drill-down opens, for the rows' relative
+  // Dates. Not `now` (the recency clock), which freezes while the repo is idle.
+  const [commitsNow, setCommitsNow] = createSignal(0);
   // The context menu: shared open/index state across the tree and viewer instances
   // (only one is ever open, gated by `commandMenuContext`). The anchor is the global
   // Terminal cell the tree menu opens at; the viewer instance derives its own from
@@ -1997,8 +2011,10 @@ function createState() {
   });
 
   // The active scope's identity, so a scope switch that leaves the path unchanged
-  // Still drifts the anchor off the now-different diff.
-  const scopeIdentity = () => `${scope().kind}:${scope().ref}`;
+  // Still drifts the anchor off the now-different diff. Includes headRef (the pinned
+  // Sha for a commit scope), or two sibling commits sharing a first-parent would read
+  // As the same scope and never drift the hover card / command menu (mirrors scopeKey).
+  const scopeIdentity = () => `${scope().kind}:${scope().ref}:${scope().headRef ?? ""}`;
 
   // Open a caret-anchored decoration, capturing the caret/scroll/file it describes.
   function openViewerDecoration(content: ViewerDecoration) {
@@ -2383,6 +2399,63 @@ function createState() {
     setScope({ kind, ref: cliBaseRef() });
   }
 
+  const LOG_LIMIT = 30;
+
+  // The recent commits are a snapshot loaded when the drill-down opens, guarded so
+  // A stale load (or one from a superseded open) can't overwrite a newer list.
+  let commitsLoad = 0;
+  function loadCommits(root: string) {
+    const token = (commitsLoad += 1);
+    // Clear the prior snapshot so nothing can select a stale row while the reload
+    // Is in flight (the "loading" view hides the list, so this never flashes).
+    setCommits([]);
+    setCommitsStatus("loading");
+    setCommitsNow(Math.floor(Date.now() / 1000));
+    runtime
+      .runPromise(Git.use((git) => git.recentCommits(root, LOG_LIMIT)))
+      .then((loaded) => {
+        if (token === commitsLoad) {
+          setCommits(loaded);
+          setCommitsStatus(loaded.length === 0 ? "empty" : "ready");
+        }
+      })
+      .catch(() => {
+        if (token === commitsLoad) {
+          setCommits([]);
+          setCommitsStatus("error");
+        }
+      });
+  }
+
+  // Pin the viewer to one commit shown as its own diff (its first parent..the
+  // Commit), reusing the range-scope pipeline. Synchronous: the parent came with
+  // The log, so no ref resolution is needed. Returns whether a commit was pinned
+  // (false for an out-of-range index, e.g. an empty/loading list), so the caller
+  // Only closes the picker on a real selection. Bumps the async-scope token so a
+  // Pending last-commit resolution can't clobber the commit just pinned.
+  function selectCommit(index: number) {
+    const commit = commits()[index];
+    if (commit === undefined) {
+      return false;
+    }
+    scopeSelection += 1;
+    setSelectedCommit(commit);
+    setScope({ headRef: commit.sha, kind: "commit", ref: commit.parent });
+    return true;
+  }
+
+  // The header names the active commit by its subject alone (the sha lives in the
+  // Picker); the "commit ·" scope marker at the diff already says it is a commit.
+  // Read from the commit captured at selection, so the label holds even after the
+  // Commit ages out of the reloaded list.
+  const commitScopeLabel = createMemo(() => {
+    const commit = selectedCommit();
+    if (commit === undefined) {
+      return "commit";
+    }
+    return commit.subject.length > 40 ? `${commit.subject.slice(0, 39)}…` : commit.subject;
+  });
+
   // A worktree switch is a new inspection context: the session base re-pins to the
   // New worktree's HEAD and session/last-commit (whose refs pointed into the old
   // Worktree's history) re-resolve against it. We return the resolved base and
@@ -2402,6 +2475,11 @@ function createState() {
         scope: { headRef: "HEAD", kind: "last-commit", ref: parent } satisfies DiffScope,
         sessionBase: head,
       };
+    }
+    if (active.kind === "commit") {
+      // A pinned commit SHA has no meaning in the target worktree; fall back to the
+      // Default all-changes lens (the drill-down reloads against the new history).
+      return { scope: { kind: "all", ref: cliBaseRef() } satisfies DiffScope, sessionBase: head };
     }
     return { scope: active, sessionBase: head };
   }
@@ -2740,6 +2818,10 @@ function createState() {
     commandMenuIndex,
     commandMenuItems,
     commandMenuOpen,
+    commitScopeLabel,
+    commits,
+    commitsNow,
+    commitsStatus,
     copy,
     copyFileContents,
     counts,
@@ -2783,6 +2865,7 @@ function createState() {
     jumpToReference,
     jumpToSearchItem,
     lineMap,
+    loadCommits,
     loadFullContent,
     loadWorktrees,
     mainView,
@@ -2829,6 +2912,7 @@ function createState() {
     scope,
     scopeMenuIndex,
     scopeMenuOpen,
+    scopeMenuView,
     searchCaseSensitive,
     searchFocus,
     searchGlob,
@@ -2843,6 +2927,7 @@ function createState() {
     searchStatus,
     searchTruncated,
     seedNav,
+    selectCommit,
     selectFile,
     selectScope,
     selectedFile,
@@ -2853,6 +2938,7 @@ function createState() {
     setCheckerState,
     setCliBaseRef,
     setCommandMenuIndex,
+    setCommits,
     setCurrentWorktreeDeleted,
     setCursorColumn,
     setCursorIndex,
@@ -2890,6 +2976,7 @@ function createState() {
     setScope,
     setScopeMenuIndex,
     setScopeMenuOpen,
+    setScopeMenuView,
     setSearchFocus,
     setSearchGlob,
     setSearchIndex,

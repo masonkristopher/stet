@@ -162,7 +162,7 @@ describe("scopeMenuLabel", () => {
 describe("helpText", () => {
   test("describes the companion keys clearly", () => {
     expect(helpText()).toContain(
-      "s          open the scope picker (unstaged/staged/all/session/last commit)",
+      "s          open the scope picker (kinds, or drill into recent commits)",
     );
     expect(helpText()).toContain("c          toggle changes-only filter for the tree");
     expect(helpText()).toContain("v          toggle diff <-> full file view");

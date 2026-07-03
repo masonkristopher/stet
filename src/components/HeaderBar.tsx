@@ -22,7 +22,8 @@ export function HeaderBar() {
         <text fg={theme.colors.text.faint}>@{packageJson.version}</text>
       </box>
       <text fg={theme.colors.text.secondary}>
-        {basename(state.gitModel().repoRoot)} · {scopeLabel(state.scope())} ·{" "}
+        {basename(state.gitModel().repoRoot)} ·{" "}
+        {state.scope().kind === "commit" ? state.commitScopeLabel() : scopeLabel(state.scope())} ·{" "}
         {state.gitModel().changed.length} changed
         {state.countsText() === "" ? "" : ` · ${state.countsText()}`}
       </text>

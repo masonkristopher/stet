@@ -1,14 +1,22 @@
 import util from "node:util";
 
-export type ScopeKind = "unstaged" | "staged" | "all" | "session" | "last-commit";
+export type ScopeKind = "unstaged" | "staged" | "all" | "session" | "last-commit" | "commit";
 
-// Picker order, also the single source of truth for the scope list.
-export const scopeKinds = ["unstaged", "staged", "all", "session", "last-commit"] as const;
+// Picker order, also the single source of truth for the scope list. `commit` is
+// Absent: it is entered through the picker's commit drill-down, never applied as a
+// Top-level row (so `indexOf` a `commit` scope is a benign -1).
+export const scopeKinds: readonly ScopeKind[] = [
+  "unstaged",
+  "staged",
+  "all",
+  "session",
+  "last-commit",
+];
 
 export interface DiffScope {
   kind: ScopeKind;
   ref: string;
-  /** The right-hand ref, set only for `last-commit` (the one range scope). */
+  /** The right-hand ref, set for the range scopes (`last-commit` and `commit`). */
   headRef?: string;
 }
 
@@ -112,6 +120,12 @@ export function scopeLabel(scope: DiffScope) {
     return "last commit";
   }
 
+  // The header shows the commit's subject via commitScopeLabel; this short
+  // Sha form is the fallback for any other caller (e.g. the search pane).
+  if (scope.kind === "commit") {
+    return `commit ${scope.headRef?.slice(0, 7) ?? ""}`;
+  }
+
   return `worktree vs ${scope.ref}`;
 }
 
@@ -210,7 +224,7 @@ Problems:
 Anywhere:
   ctrl-p     open the go-to-file palette (type to fuzzy-search, enter jumps)
   ctrl-f     open project search (full-view; regex/case/glob/scope toggles, enter jumps)
-  s          open the scope picker (unstaged/staged/all/session/last commit)
+  s          open the scope picker (kinds, or drill into recent commits)
   e          open in terminal editor (suspends TUI, --editor template)
   o          open in GUI / IDE (renderer stays live, --ide template)
   t          open the theme switcher (filter, preview live, enter applies)

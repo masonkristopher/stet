@@ -18,7 +18,14 @@ import {
 } from "@/git/model";
 import type { ChangedFile, GitModel } from "@/git/model";
 
-import { createFixtureRepo, loadFileDiff, loadModel, loadWorktrees, runGit } from "../test/helpers";
+import {
+  createFixtureRepo,
+  loadFileDiff,
+  loadModel,
+  loadRecentCommits,
+  loadWorktrees,
+  runGit,
+} from "../test/helpers";
 
 function file(path: string, overrides: Partial<ChangedFile> = {}): ChangedFile {
   return {
@@ -112,6 +119,14 @@ describe("scope arguments", () => {
       ...head,
       EMPTY_TREE_SHA,
       "HEAD",
+    ]);
+  });
+
+  test("a stepped commit diffs its parent against the commit sha", () => {
+    expect(diffArgs({ headRef: "abcsha", kind: "commit", ref: "parentsha" })).toEqual([
+      ...head,
+      "parentsha",
+      "abcsha",
     ]);
   });
 
@@ -406,6 +421,38 @@ describe("loadModel in a fixture repo", () => {
         .filter((line) => line.startsWith("+") && !line.startsWith("+++"));
       expect(diff).toContain("rename from src/old.ts");
       expect(addedLines).toEqual(["+const added = true"]);
+    } finally {
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  });
+
+  test("a commit scope loads exactly the files that commit introduced", async () => {
+    const repoRoot = createFixtureRepo("sideye-git-commit-scope-", { "a.txt": "one\n" });
+    try {
+      writeFileSync(join(repoRoot, "b.txt"), "two\n");
+      runGit(repoRoot, ["add", "."]);
+      runGit(repoRoot, ["commit", "-m", "add b"]);
+      writeFileSync(join(repoRoot, "c.txt"), "three\n");
+      runGit(repoRoot, ["add", "."]);
+      runGit(repoRoot, ["commit", "-m", "add c"]);
+
+      const commits = await loadRecentCommits(repoRoot, 30);
+      const middle = commits.find((commit) => commit.subject === "add b");
+      if (middle === undefined) {
+        throw new Error("middle commit missing");
+      }
+
+      const scope = { headRef: middle.sha, kind: "commit", ref: middle.parent } as const;
+      const loaded = await loadModel(repoRoot, scope);
+
+      expect(loaded.changed.map((entry) => entry.path)).toEqual(["b.txt"]);
+
+      const added = loaded.changedByPath.get("b.txt");
+      if (added === undefined) {
+        throw new Error("b.txt missing from the commit model");
+      }
+      const diff = await loadFileDiff(loaded.repoRoot, scope, added);
+      expect(diff).toContain("+two");
     } finally {
       rmSync(repoRoot, { force: true, recursive: true });
     }

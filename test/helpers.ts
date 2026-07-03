@@ -54,6 +54,15 @@ export function loadWorktrees(repoRoot: string) {
   );
 }
 
+export function loadRecentCommits(repoRoot: string, limit: number) {
+  return Effect.runPromise(
+    Git.pipe(
+      Effect.flatMap((git) => git.recentCommits(repoRoot, limit)),
+      Effect.provide(GitTestLive),
+    ),
+  );
+}
+
 export function loadFileDiff(repoRoot: string, scope: DiffScope, changed: ChangedFile) {
   return Effect.runPromise(
     Git.pipe(
@@ -77,6 +86,8 @@ export function seedState(model: GitModel, scope: DiffScope) {
     state.setSessionBase("HEAD");
     state.setScopeMenuOpen(false);
     state.setScopeMenuIndex(0);
+    state.setScopeMenuView("kinds");
+    state.setCommits([]);
     state.setIconsEnabled(true);
     state.setChangesOnly(false);
     state.setNotice(undefined);

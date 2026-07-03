@@ -73,7 +73,7 @@ const KEY_HELP: { entries: [combo: string, action: string][]; heading: string }[
   },
   {
     entries: [
-      ["s", "scope picker: all/staged/unstaged/session/last commit"],
+      ["s", "scope picker: kinds, or drill into recent commits"],
       ["t", "theme switcher: filter, live-preview, apply"],
       ["w", "switch to another git worktree"],
       ["c", "toggle changes-only filter for the tree"],

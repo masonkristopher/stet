@@ -41,6 +41,19 @@ export function createKeyHandler(host: HostEffects) {
     }
   };
 
+  // Open the scope picker on the kinds level, reading as "where am I now": on the
+  // Active kind, or the "commits" drill-down row when a commit scope is active (its
+  // SHA is not a top-level kind, so indexOf is a benign -1).
+  const openScopeMenu = () => {
+    state.setScopeMenuView("kinds");
+    state.setScopeMenuIndex(
+      state.scope().kind === "commit"
+        ? scopeKinds.length
+        : Math.max(0, scopeKinds.indexOf(state.scope().kind)),
+    );
+    state.setScopeMenuOpen(true);
+  };
+
   return (key: KeyEvent) => {
     batch(() => {
       if (key.ctrl && key.name === "c") {
@@ -75,19 +88,44 @@ export function createKeyHandler(host: HostEffects) {
       }
 
       if (state.scopeMenuOpen()) {
-        const lastIndex = scopeKinds.length - 1;
-        if (key.name === "escape" || key.name === "s") {
+        const inCommits = state.scopeMenuView() === "commits";
+        // Level 1 is the kinds plus a trailing "commits" drill-down row (at index
+        // ScopeKinds.length); level 2 is the loaded commit list.
+        const lastIndex = inCommits ? Math.max(0, state.commits().length - 1) : scopeKinds.length;
+        const onCommitsRow = !inCommits && state.scopeMenuIndex() === scopeKinds.length;
+        if (key.name === "escape" || (key.name === "left" && inCommits)) {
+          // Esc (or left) backs out of the drill-down first, then closes the picker.
+          if (inCommits) {
+            state.setScopeMenuView("kinds");
+            state.setScopeMenuIndex(scopeKinds.length);
+          } else {
+            state.setScopeMenuOpen(false);
+          }
+        } else if (key.name === "s") {
+          // `s` opened the picker, so it closes it from either level.
           state.setScopeMenuOpen(false);
         } else if (key.name === "j" || key.name === "down") {
           state.setScopeMenuIndex(Math.min(state.scopeMenuIndex() + 1, lastIndex));
         } else if (key.name === "k" || key.name === "up") {
           state.setScopeMenuIndex(Math.max(state.scopeMenuIndex() - 1, 0));
+        } else if ((key.name === "return" || key.name === "right") && onCommitsRow) {
+          // Drill into the commit list rather than applying a scope.
+          state.setScopeMenuView("commits");
+          state.setScopeMenuIndex(0);
+          state.loadCommits(state.gitModel().repoRoot);
         } else if (key.name === "return") {
-          const kind = scopeKinds[state.scopeMenuIndex()];
-          if (kind !== undefined) {
-            state.selectScope(kind);
+          if (inCommits) {
+            // Only close on a real selection; Enter on a loading/empty list is a no-op.
+            if (state.selectCommit(state.scopeMenuIndex())) {
+              state.setScopeMenuOpen(false);
+            }
+          } else {
+            const kind = scopeKinds[state.scopeMenuIndex()];
+            if (kind !== undefined) {
+              state.selectScope(kind);
+            }
+            state.setScopeMenuOpen(false);
           }
-          state.setScopeMenuOpen(false);
         }
         return;
       }
@@ -193,8 +231,7 @@ export function createKeyHandler(host: HostEffects) {
         // Leaving the pane; the ScopeMenu branch earlier in the chain owns the
         // Keys once open, and a pick reruns the search via the git-model dep.
         if (key.ctrl && key.name === "s") {
-          state.setScopeMenuIndex(Math.max(0, scopeKinds.indexOf(state.scope().kind)));
-          state.setScopeMenuOpen(true);
+          openScopeMenu();
           return;
         }
         if (state.searchFocus() !== "results") {
@@ -496,9 +533,7 @@ export function createKeyHandler(host: HostEffects) {
       }
 
       if (key.name === "s") {
-        // Open the picker on the active scope so it reads as "where am I now".
-        state.setScopeMenuIndex(Math.max(0, scopeKinds.indexOf(state.scope().kind)));
-        state.setScopeMenuOpen(true);
+        openScopeMenu();
         return;
       }
 

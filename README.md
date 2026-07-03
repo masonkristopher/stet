@@ -118,7 +118,8 @@ remembered position, and a tab's label is tinted by its diff status.
 ### Switch scope
 
 Press `s` to pick what the diff compares: all changes, staged, unstaged,
-everything since sideye launched, or just the last commit.
+everything since sideye launched, or just the last commit. The picker also drills
+into recent commits (`commits →`), so you can view any of them as its own diff.
 
 ![scope picker listing the five diff scopes with the active one marked](assets/screenshots/scope-picker.png)
 
@@ -249,13 +250,13 @@ repo's own, then your `PATH`), so diagnostics work out of the box. Pass
 
 ### workspace
 
-| Key | Action                                         |
-| --- | ---------------------------------------------- |
-| `s` | scope picker: unstaged/staged/all/session/last |
-| `t` | theme switcher: filter, live-preview, apply    |
-| `w` | switch to another git worktree                 |
-| `c` | toggle changes-only filter for the tree        |
-| `r` | re-run checks                                  |
+| Key | Action                                            |
+| --- | ------------------------------------------------- |
+| `s` | scope picker: kinds, or drill into recent commits |
+| `t` | theme switcher: filter, live-preview, apply       |
+| `w` | switch to another git worktree                    |
+| `c` | toggle changes-only filter for the tree           |
+| `r` | re-run checks                                     |
 
 ### layout
 

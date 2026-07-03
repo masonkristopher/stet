@@ -23,7 +23,7 @@ describe("App rendering", () => {
 
     expect(frame).toContain("sideye");
     expect(frame).toContain("worktree vs HEAD");
-    expect(frame).toContain("src/");
+    expect(frame).toContain("src");
     expect(frame).toContain("q quit");
 
     renderer.destroy();

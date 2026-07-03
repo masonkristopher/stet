@@ -79,7 +79,7 @@ describe("sidebar windowing", () => {
     await renderOnce();
     await renderOnce();
     expect(state.treeRows().length).toBeLessThan(5);
-    expect(sidebarFrame()).toContain("big/");
+    expect(sidebarFrame()).toContain("big");
     expect(sidebarFrame()).not.toContain(".txt");
 
     renderer.destroy();

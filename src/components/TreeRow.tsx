@@ -113,7 +113,7 @@ function DirectoryRow(props: { node: DirectoryNode; row: FileTreeRow }) {
             </text>
           </box>
         </box>
-        <text fg={nameFg()}>{truncateName(`${props.node.name}/`, maxNameLen())}</text>
+        <text fg={nameFg()}>{truncateName(props.node.name, maxNameLen())}</text>
         <RecencyDot at={recencyAt()} />
       </box>
       <box flexDirection="row">

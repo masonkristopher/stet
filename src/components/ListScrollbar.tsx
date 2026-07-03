@@ -8,7 +8,7 @@ import { scrollbarThumb } from "./scrollbar";
  * A hand-drawn scroll-position indicator for a windowed list: one width-1 column whose thumb is
  * derived from the window's own (rowCount, viewport, scrollTop), since a viewport-windowed list
  * mounts only the visible slice and leaves the native scrollbox nothing to measure. Shared by the
- * sidebar, problems panel, and search results, the same three surfaces that reuse
+ * sidebar, problems panel, search results, and the references overlay, the same surfaces that reuse
  * `windowWheelHandler`.
  *
  * It is one visual element, so it renders as one `<text>` (not a renderable per cell): thumb cells

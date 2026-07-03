@@ -18,7 +18,12 @@ import { formatCopyReference } from "./clipboard/reference";
 import { Clipboard } from "./clipboard/service";
 import { buildCommandMenuItems } from "./components/command-menu/items";
 import type { CommandAction, CommandMenuInput } from "./components/command-menu/items";
-import { PROBLEMS_HEIGHT, SIDEBAR_MIN_WIDTH, SIDEBAR_VIEWER_MIN } from "./constants";
+import {
+  PROBLEMS_HEIGHT,
+  REFERENCES_MAX_ROWS,
+  SIDEBAR_MIN_WIDTH,
+  SIDEBAR_VIEWER_MIN,
+} from "./constants";
 import {
   allFindings,
   countBySeverity,
@@ -61,7 +66,7 @@ import {
   flattenTree,
 } from "./git/tree";
 import type { HoverSegment, NormalizedLocation } from "./intel/protocol";
-import { attachReferencePreviews, byReferenceOrder } from "./intel/references";
+import { attachReferencePreviews, buildReferenceRows, byReferenceOrder } from "./intel/references";
 import type { ReferenceResult } from "./intel/references";
 import { Intel } from "./intel/service";
 import { levelGlyph } from "./log/levels";
@@ -381,6 +386,7 @@ function createState() {
   >("loading");
   const [referencesResults, setReferencesResults] = createSignal<ReferenceResult[]>([]);
   const [referencesIndex, setReferencesIndex] = createSignal(0);
+  const [referencesScrollTop, setReferencesScrollTop] = createSignal(0);
   const [referencesLabel, setReferencesLabel] = createSignal<"references" | "definitions">(
     "references",
   );
@@ -614,6 +620,29 @@ function createState() {
     scrollTop: problemsScrollTop,
     setScrollTop: setProblemsScrollTop,
     viewport: () => PROBLEMS_HEIGHT - 2,
+  });
+
+  // The references overlay windows its rows like the problems panel rather than leaning on a
+  // Native scrollbox: the visible slice is `referencesScrollTop`, followed off the cursor's row
+  // Position (headers offset it, so `referencesIndex` in results space is mapped to a row index).
+  const referencesRows = createMemo(() => buildReferenceRows(referencesResults()));
+  const referencesViewport = createMemo(() =>
+    Math.min(REFERENCES_MAX_ROWS, Math.max(1, referencesRows().length)),
+  );
+  const referencesCursorRow = createMemo(() => {
+    const target = referencesIndex();
+    const row = referencesRows().findIndex(
+      (entry) => entry.kind === "match" && entry.index === target,
+    );
+    return row === -1 ? 0 : row;
+  });
+  followListWindow({
+    active: referencesOpen,
+    cursor: referencesCursorRow,
+    rowCount: () => referencesRows().length,
+    scrollTop: referencesScrollTop,
+    setScrollTop: setReferencesScrollTop,
+    viewport: referencesViewport,
   });
   // The go-to-file universe: repoFiles plus changed-only paths (staged
   // Deletions), the same universe the tree renders. Every dependency is
@@ -1852,6 +1881,7 @@ function createState() {
     setReferencesOpen(false);
     setReferencesResults([]);
     setReferencesIndex(0);
+    setReferencesScrollTop(0);
     setReferencesStatus("loading");
   }
 
@@ -1865,6 +1895,7 @@ function createState() {
       setReferencesLabel(label);
       setReferencesResults(results);
       setReferencesIndex(0);
+      setReferencesScrollTop(0);
       setReferencesStatus("ready");
       setReferencesOpen(true);
     });
@@ -2765,6 +2796,7 @@ function createState() {
     nudgeSidebarWidth,
     openCommandMenu,
     openFileCombobox,
+    openReferences,
     openSearch,
     openThemePicker,
     openViewerDecoration,
@@ -2784,7 +2816,10 @@ function createState() {
     referencesLabel,
     referencesOpen,
     referencesResults,
+    referencesRows,
+    referencesScrollTop,
     referencesStatus,
+    referencesViewport,
     repoFilesLoading,
     repoRoot,
     resetFind,
@@ -2850,6 +2885,7 @@ function createState() {
     setProblemsOpen,
     setProblemsScrollTop,
     setReferencesIndex,
+    setReferencesScrollTop,
     setRepoRoot,
     setScope,
     setScopeMenuIndex,

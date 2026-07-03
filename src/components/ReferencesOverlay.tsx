@@ -1,8 +1,8 @@
-import type { ScrollBoxRenderable } from "@opentui/core";
-import { createEffect, createMemo, createSignal, For, onCleanup, Show } from "solid-js";
+import { createEffect, createMemo, createSignal, Index, onCleanup, Show } from "solid-js";
 
 import { highlightSnippet, languageForPath } from "@/diff/engine";
 import type { RenderSpan } from "@/diff/hast";
+import type { ReferenceRow } from "@/intel/references";
 import { levelColor, levelGlyph } from "@/log/levels";
 import { state } from "@/state";
 import { activeThemeName } from "@/theme/active";
@@ -10,18 +10,23 @@ import { useTheme } from "@/theme/context";
 
 import { CodeLine } from "./CodeLine";
 import { FileIcon } from "./FileIcon";
+import { ListScrollbar } from "./ListScrollbar";
+import { windowWheelHandler } from "./wheel";
+
+const asHeader = (row: ReferenceRow) => (row.kind === "header" ? row : undefined);
+const asMatch = (row: ReferenceRow) => (row.kind === "match" ? row : undefined);
 
 // A query-less palette-family overlay: the results list for `textDocument/references`
 // (and go-to-definition's multi-result case). Mirrors the FileCombobox's chrome minus
 // The input; every status (loading/empty/error/ready) is a designed screen so it never
 // Shows a blank pane, and the box grows in place rather than reflowing the diff beneath it.
+//
+// The list windows like the problems panel (an explicit `referencesScrollTop` followed off
+// The cursor), not a native scrollbox: `scrollChildIntoView` scroll-follow was unreliable in
+// The full app (its delta depends on render/layout timing under `viewportCulling`), while the
+// Windowed pattern derives the visible slice declaratively and is the one the panes ship.
 export function ReferencesOverlay() {
   const theme = useTheme();
-  let listRef: ScrollBoxRenderable | undefined;
-
-  createEffect(() => {
-    listRef?.scrollChildIntoView(`references-${state.referencesIndex()}`);
-  });
 
   const results = () => state.referencesResults();
   const fileCount = createMemo(() => new Set(results().map((match) => match.path)).size);
@@ -34,6 +39,22 @@ export function ReferencesOverlay() {
     const count = results().length;
     return `${count} ${state.referencesLabel()} in ${fileCount()} file${fileCount() === 1 ? "" : "s"}`;
   };
+
+  const viewport = () => state.referencesViewport();
+  const visibleRows = createMemo(() => {
+    const start = state.referencesScrollTop();
+    return state.referencesRows().slice(start, start + viewport());
+  });
+  const onWheel = windowWheelHandler({
+    rowCount: () => state.referencesRows().length,
+    scrollTop: state.referencesScrollTop,
+    setScrollTop: state.setReferencesScrollTop,
+    viewport,
+  });
+  const rowBg = (row: ReferenceRow) =>
+    row.kind === "match" && row.index === state.referencesIndex()
+      ? theme.colors.surface.cursor
+      : theme.colors.surface.panel;
 
   // Each preview is one scattered source line, so it highlights as a standalone
   // Snippet keyed by result index; a new result set or a theme flip clears the
@@ -103,58 +124,55 @@ export function ReferencesOverlay() {
         </box>
       </Show>
       <Show when={state.referencesStatus() === "ready"}>
-        <scrollbox
-          ref={(el) => (listRef = el)}
-          width="100%"
-          height={Math.min(14, Math.max(1, results().length + fileCount()))}
-          scrollY
-          viewportCulling
-          scrollbarOptions={{
-            trackOptions: {
-              backgroundColor: theme.rgba.transparent,
-              foregroundColor: theme.colors.scrollbar.thumb,
-            },
-          }}
-        >
-          {/* Result index is the cursor space; a file header renders above the first
-              match of each file. Ids by index so reordering never moves a live id. */}
-          <For each={results()}>
-            {(match, index) => (
-              <box width="100%" flexDirection="column">
-                <Show when={index() === 0 || results()[index() - 1]?.path !== match.path}>
-                  <box flexDirection="row" paddingLeft={1} paddingRight={1}>
-                    <FileIcon name={match.path.split("/").at(-1) ?? match.path} />
-                    <text fg={theme.colors.text.strong}>{match.path}</text>
-                  </box>
-                </Show>
+        <box width="100%" height={viewport()} flexDirection="row" onMouseScroll={onWheel}>
+          <box ref={(el) => (el.selectable = false)} flexGrow={1} flexDirection="column">
+            {/* Windowed slice: only the visible rows mount, so a large result set never
+                stalls the renderer. A slot swaps kind in place as the window scrolls. */}
+            <Index each={visibleRows()}>
+              {(row) => (
                 <box
-                  id={`references-${index()}`}
-                  // Non-selectable so a click on the row jumps without starting a text
-                  // Selection (a stray highlight), the way the viewer's diff rows do.
                   ref={(el) => (el.selectable = false)}
                   width="100%"
-                  flexDirection="row"
-                  paddingLeft={1}
-                  paddingRight={1}
-                  backgroundColor={
-                    index() === state.referencesIndex()
-                      ? theme.colors.surface.cursor
-                      : theme.colors.surface.panel
-                  }
-                  onMouseDown={() => state.jumpToReference(index())}
+                  height={1}
+                  backgroundColor={rowBg(row())}
+                  onMouseDown={() => {
+                    const match = asMatch(row());
+                    if (match !== undefined) {
+                      state.jumpToReference(match.index);
+                    }
+                  }}
                 >
-                  <text fg={theme.colors.text.muted}>
-                    {`${`${match.line}:${match.column}`.padEnd(locWidth())}  `}
-                  </text>
-                  <CodeLine
-                    spans={() => rowSpans(index(), match.text)}
-                    width={() => Math.max(8, state.overlayWidth() - locWidth() - 6)}
-                  />
+                  <Show when={asHeader(row())}>
+                    {(header) => (
+                      <box flexDirection="row" paddingLeft={1} paddingRight={1}>
+                        <FileIcon name={header().path.split("/").at(-1) ?? header().path} />
+                        <text fg={theme.colors.text.strong}>{header().path}</text>
+                      </box>
+                    )}
+                  </Show>
+                  <Show when={asMatch(row())}>
+                    {(match) => (
+                      <box width="100%" flexDirection="row" paddingLeft={1} paddingRight={1}>
+                        <text fg={theme.colors.text.muted}>
+                          {`${`${match().match.line}:${match().match.column}`.padEnd(locWidth())}  `}
+                        </text>
+                        <CodeLine
+                          spans={() => rowSpans(match().index, match().match.text)}
+                          width={() => Math.max(8, state.overlayWidth() - locWidth() - 7)}
+                        />
+                      </box>
+                    )}
+                  </Show>
                 </box>
-              </box>
-            )}
-          </For>
-        </scrollbox>
+              )}
+            </Index>
+          </box>
+          <ListScrollbar
+            rowCount={() => state.referencesRows().length}
+            viewport={viewport}
+            scrollTop={state.referencesScrollTop}
+          />
+        </box>
       </Show>
       <box height={1} paddingLeft={1} paddingRight={1}>
         <text fg={theme.colors.text.muted}>

@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 
-import { attachReferencePreviews, byReferenceOrder } from "@/intel/references";
+import { attachReferencePreviews, buildReferenceRows, byReferenceOrder } from "@/intel/references";
 
 const loc = (path: string, line: number, column = 1) => ({ column, line, path });
 
@@ -36,6 +36,18 @@ test("byReferenceOrder groups by path, then orders by line and column", () => {
     loc("src/a.ts", 5, 1),
     loc("src/a.ts", 5, 2),
     loc("src/b.ts", 1, 1),
+  ]);
+});
+
+test("buildReferenceRows inserts a header before each file run and keeps match indices", () => {
+  const match = (path: string, line: number) => ({ column: 1, line, path, text: `L${line}` });
+  const results = [match("src/a.ts", 1), match("src/a.ts", 2), match("src/b.ts", 9)];
+  expect(buildReferenceRows(results)).toEqual([
+    { kind: "header", path: "src/a.ts" },
+    { index: 0, kind: "match", match: results[0] },
+    { index: 1, kind: "match", match: results[1] },
+    { kind: "header", path: "src/b.ts" },
+    { index: 2, kind: "match", match: results[2] },
   ]);
 });
 

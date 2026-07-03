@@ -89,4 +89,60 @@ describe("references overlay", () => {
       rmSync(otherRoot, { force: true, recursive: true });
     }
   }, 20_000);
+
+  test("scrolls the viewport to follow the cursor past the visible window", async () => {
+    const repoRoot = createFixtureRepo("sideye-references-", {
+      "notes.txt": "alpha beta\n",
+      "package.json": `${JSON.stringify({ scripts: { lint: "exit 0", typecheck: "exit 0" } })}\n`,
+    });
+    writeFileSync(join(repoRoot, "notes.txt"), "alpha beta\ngamma delta\n");
+
+    const model = await loadModel(repoRoot, { kind: "all", ref: "HEAD" });
+    seedState(model, { kind: "all", ref: "HEAD" });
+    const { renderer, renderOnce, captureCharFrame, mockInput } = await testRender(() => <App />, {
+      height: 30,
+      width: 110,
+    });
+    const settleUntil = makeSettleUntil({ captureCharFrame, renderOnce });
+
+    try {
+      await settleUntil("caret on the added line", (frame) => /ln 2:1\b/.test(frame));
+
+      // Seed enough results across files to overflow the 14-row viewport, each with a
+      // Unique marker so scroll position reads straight off the captured char frame.
+      const results = Array.from({ length: 5 }, (_file, file) =>
+        Array.from({ length: 6 }, (_row, row) => {
+          const n = file * 6 + row;
+          return {
+            column: 1,
+            line: row + 1,
+            path: `src/file${file}.ts`,
+            text: `marker_${String(n).padStart(3, "0")}`,
+          };
+        }),
+      ).flat();
+      state.openReferences("references", results);
+
+      const top = await settleUntil("overlay open at the top", (frame) =>
+        frame.includes("marker_000"),
+      );
+      expect(top).not.toContain("marker_029");
+
+      // Ctrl-n is down in the references keymap; drive the cursor to the last result.
+      for (let i = 0; i < 29; i += 1) {
+        mockInput.pressKey("n", { ctrl: true });
+      }
+
+      // The fix: the viewport follows the cursor, so the last result is now on screen and
+      // The first file has scrolled out. Under the bug the highlight moved but the window
+      // Stayed put, so marker_029 never entered the frame.
+      const scrolled = await settleUntil("viewport followed the cursor", (frame) =>
+        frame.includes("marker_029"),
+      );
+      expect(scrolled).not.toContain("marker_000");
+    } finally {
+      renderer.destroy();
+      rmSync(repoRoot, { force: true, recursive: true });
+    }
+  }, 20_000);
 });

@@ -29,7 +29,14 @@ export function isNewer(candidate: string, base: string) {
 }
 
 export function formatUpdateNotice(update: { current: string; latest: string }) {
-  return `A new release of sideye is available: ${update.current} -> ${update.latest}  ·  run "sideye upgrade" to update  ·  ${releasesPageUrl}`;
+  const segments = [
+    `A new release of sideye is available: ${update.current} -> ${update.latest}`,
+    `run "sideye upgrade" to update`,
+    releasesPageUrl,
+  ];
+  // Stack the segments so a narrow terminal never hard-wraps mid-segment; the "\n  "
+  // Indent aligns continuation lines under the "ℹ " marker log() prepends.
+  return segments.join("\n  ");
 }
 
 /**

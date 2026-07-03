@@ -39,9 +39,11 @@ describe("isNewer", () => {
 });
 
 describe("formatUpdateNotice", () => {
-  test("renders the current and latest versions with the releases link", () => {
-    expect(formatUpdateNotice({ current: "0.3.3", latest: "0.4.0" })).toBe(
-      'A new release of sideye is available: 0.3.3 -> 0.4.0  ·  run "sideye upgrade" to update  ·  https://github.com/jimmy-guzman/sideye/releases/latest',
-    );
+  test("stacks the versions, upgrade hint, and releases link on their own lines", () => {
+    expect(formatUpdateNotice({ current: "0.3.3", latest: "0.4.0" }).split("\n")).toEqual([
+      "A new release of sideye is available: 0.3.3 -> 0.4.0",
+      '  run "sideye upgrade" to update',
+      "  https://github.com/jimmy-guzman/sideye/releases/latest",
+    ]);
   });
 });

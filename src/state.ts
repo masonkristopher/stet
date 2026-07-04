@@ -38,10 +38,18 @@ import { buildProblemItems, isNavigableProblemItem } from "./diagnostics/problem
 import { Provisioner } from "./diagnostics/provision";
 import { serversProviding } from "./diagnostics/servers";
 import { Diagnostics } from "./diagnostics/service";
-import { DiffEngine, highlightSnippet, structureDiff } from "./diff/engine";
+import { DiffEngine, highlightSnippet, languageForPath, structureDiff } from "./diff/engine";
 import type { DiffRender, RenderInput } from "./diff/engine";
 import { followScrollTop } from "./diff/follow";
 import type { RenderSpan } from "./diff/hast";
+import {
+  applyCollapsedRegions,
+  foldKey,
+  foldRegionsFor,
+  remapCursorAfterToggle,
+} from "./diff/regions";
+import type { GapSource } from "./diff/regions";
+import type { DiffRow, NavigableLine } from "./diff/rows";
 import { firstWord, lastWord, nextWord, prevWord, wordAt } from "./diff/words";
 import { contentToContextPatch } from "./file/content";
 import type { FileContent } from "./file/content";
@@ -366,6 +374,18 @@ function createState() {
   const [expandedDirectories, setExpandedDirectories] = createSignal(new Set<string>());
   const [fileView, setFileView] = createSignal(false);
   const [fullContentPaths, setFullContentPaths] = createSignal(new Set<string>());
+  // Viewer folds/gaps for the current file (reset on file switch): a `Set` of folded
+  // Fold-region keys and a `Set` of expanded gap keys, both feeding `collapsedRender`.
+  // Their opposite defaults (a fold starts open, a gap starts collapsed) are why they
+  // Are two sets, not one; the transform that consumes them is shared.
+  const [foldedRegions, setFoldedRegions] = createSignal(new Set<string>());
+  const [expandedGaps, setExpandedGaps] = createSignal(new Set<string>());
+  // The current file's revealed-gap source, loaded lazily on the first gap expansion.
+  const [gapSource, setGapSource] = createSignal<
+    | { path: string; status: "loading" | "error" }
+    | { path: string; status: "loaded"; lines: string[] }
+    | undefined
+  >(undefined);
   const [focusedNodeId, setFocusedNodeId] = createSignal("");
   const [focusedPane, setFocusedPane] = createSignal<"tree" | "diff" | "problems" | "search">(
     "tree",
@@ -1138,7 +1158,53 @@ function createState() {
     ),
   );
 
-  const navigableLines = createMemo(() => diffView()?.render.navigable ?? []);
+  const loadedGapSource = (): GapSource | undefined => {
+    const source = gapSource();
+    return source?.status === "loaded" ? { lines: source.lines } : undefined;
+  };
+  // Fold by structure: markdown files fold by heading section, everything else by
+  // Indentation. The same `languageForPath` the highlighter uses, so the fold model
+  // Agrees with the rendered language.
+  const foldMode = () => {
+    const language = languageForPath(diffView()?.path ?? "");
+    return language === "markdown" || language === "mdx" ? "markdown" : "indent";
+  };
+  // The single "collapsed regions" transform: the raw render folded/gapped for the
+  // Current state. `navigableLines` and the viewer's rows both read it, so the caret
+  // Indexes only visible lines and can never land inside a collapsed region. Keyed on
+  // The fold/gap sets and the loaded source (not the caret), so cursor moves don't
+  // Recompute it. `truncated`/`truncatedHidden` stay on the raw `render` deliberately:
+  // The maxLines cap is about the whole file, not what the user folded away.
+  const collapsedRender = createMemo(() => {
+    const view = diffView();
+    if (view === undefined) {
+      return { navigable: [] as NavigableLine[], rows: [] as DiffRow[] };
+    }
+    return applyCollapsedRegions(view.render.rows, {
+      expandedGaps: expandedGaps(),
+      folded: foldedRegions(),
+      gapSource: loadedGapSource(),
+      mode: foldMode(),
+    });
+  });
+  const navigableLines = createMemo(() => collapsedRender().navigable);
+  const viewerRows = () => collapsedRender().rows;
+  // The navigable list for a hypothetical fold/gap state, so a toggle can remap the
+  // Caret against the next lines within one synchronous batch (no memo-timing race).
+  const collapsedNavigableFor = (folded: ReadonlySet<string>, gaps: ReadonlySet<string>) => {
+    const view = diffView();
+    if (view === undefined) {
+      return [] as NavigableLine[];
+    }
+    return applyCollapsedRegions(view.render.rows, {
+      expandedGaps: gaps,
+      folded,
+      gapSource: loadedGapSource(),
+      mode: foldMode(),
+    }).navigable;
+  };
+  // Folds shrink `navigableLines`, so the caret can end up past its end; the Viewer's
+  // Existing cursor clamp (keyed on `navigableLines().length`) already re-homes it.
   const truncated = createMemo(() => {
     const content = diffView()?.fileContent;
     return (
@@ -1183,6 +1249,19 @@ function createState() {
 
   // A file switch ends any active find so highlights never bleed across files.
   createEffect(on(selectedPath, () => batch(resetFind)));
+
+  // Folds/gaps are per file (the #181 v1 decision): a file switch clears them and
+  // Drops any loaded gap source, so a returned-to file opens fully expanded. A scope
+  // Change clears them too, since the gap keys (`gap:N` hunk ordinals) and the loaded
+  // `gapSource` (the scope's new-side text) are both scope-relative, so keeping them
+  // Could reveal mismatched lines from the previous scope's snapshot.
+  const resetFolds = () => {
+    setFoldedRegions(new Set<string>());
+    setExpandedGaps(new Set<string>());
+    setGapSource(undefined);
+  };
+  createEffect(on(selectedPath, () => batch(resetFolds)));
+  createEffect(on(scope, () => batch(resetFolds)));
 
   // Live theme preview: while the picker is open, the highlighted row is the
   // Active selection, so moving (keys, hover, wheel) or filtering re-themes the
@@ -1722,6 +1801,166 @@ function createState() {
         setCursorColumn(lastWord(lines[index - 1]?.content ?? ""));
       });
     }
+  }
+
+  // Toggle one fold, keeping the caret on its file line (or the fold header once the
+  // Line it was on is hidden). The next navigable list is computed purely so the remap
+  // Lands in the same batch as the set write, with no reliance on memo recomputation.
+  function toggleFold(key: string) {
+    const previous = navigableLines();
+    const next = new Set(foldedRegions());
+    if (next.has(key)) {
+      next.delete(key);
+    } else {
+      next.add(key);
+    }
+    const nextLines = collapsedNavigableFor(next, expandedGaps());
+    batch(() => {
+      setFoldedRegions(next);
+      setCursorRow(remapCursorAfterToggle(previous, cursorIndex(), nextLines));
+    });
+  }
+
+  // Toggle one git-elided gap; expanding one lazily loads the file's source so the
+  // Revealed lines can be filled (until it resolves the gap stays a collapsed marker).
+  function toggleGap(key: string) {
+    const previous = navigableLines();
+    const next = new Set(expandedGaps());
+    const expanding = !next.has(key);
+    if (expanding) {
+      next.add(key);
+    } else {
+      next.delete(key);
+    }
+    const nextLines = collapsedNavigableFor(foldedRegions(), next);
+    batch(() => {
+      setExpandedGaps(next);
+      setCursorRow(remapCursorAfterToggle(previous, cursorIndex(), nextLines));
+    });
+    if (expanding) {
+      ensureGapSource();
+    }
+  }
+
+  function ensureGapSource() {
+    const path = selectedPath();
+    const file = selectedFile();
+    if (path === undefined || file === undefined) {
+      return;
+    }
+    const current = gapSource();
+    if (current?.path === path && current.status !== "error") {
+      return;
+    }
+    setGapSource({ path, status: "loading" });
+    const model = gitModel();
+    runtime
+      .runPromise(Git.use((git) => git.fileSource(model.repoRoot, scope(), file)))
+      .then((content) => {
+        if (selectedPath() !== path) {
+          return;
+        }
+        if (content.kind !== "text") {
+          setGapSource({ path, status: "error" });
+          return;
+        }
+        // Revealing lines shifts the index of everything below them; keep the caret on
+        // Its file line across the async load. The synchronous toggle could not remap
+        // Yet (the source was not loaded, so it revealed nothing), so do it here.
+        batch(() => {
+          const previous = navigableLines();
+          const anchor = cursorIndex();
+          setGapSource({
+            lines: content.text.replace(/\r?\n$/, "").split(/\r?\n/),
+            path,
+            status: "loaded",
+          });
+          setCursorRow(remapCursorAfterToggle(previous, anchor, navigableLines()));
+        });
+      })
+      .catch(() => {
+        if (selectedPath() === path) {
+          setGapSource({ path, status: "error" });
+        }
+      });
+  }
+
+  // The `z` action: fold/unfold the region at the caret. Unfold when the caret sits on
+  // A folded header; otherwise fold the region it heads or is nested in; failing that,
+  // Toggle the git-elided gap nearest the caret (hunk's "nearest to the selection").
+  function toggleRegionAtCaret() {
+    const lines = navigableLines();
+    const index = cursorIndex();
+    const caret = lines[index];
+    if (caret === undefined) {
+      return;
+    }
+    if (foldedRegions().has(foldKey(caret))) {
+      toggleFold(foldKey(caret));
+      return;
+    }
+    const regions = foldRegionsFor(lines, foldMode());
+    const region =
+      regions.find((candidate) => candidate.headerNavIndex === index) ??
+      regions.find(
+        (candidate) => candidate.headerNavIndex < index && index <= candidate.endNavIndex,
+      );
+    if (region !== undefined) {
+      toggleFold(region.key);
+      return;
+    }
+    const gap = nearestGapKey(index);
+    if (gap !== undefined) {
+      toggleGap(gap);
+    }
+  }
+
+  function nearestGapKey(cursorRow: number) {
+    const rows = viewerRows();
+    const caretPos = rows.findIndex((row) => row.kind === "line" && row.navIndex === cursorRow);
+    const from = caretPos === -1 ? rows.length - 1 : caretPos;
+    for (let index = from; index >= 0; index -= 1) {
+      const row = rows[index];
+      if (row?.kind === "marker" && row.regionKind === "gap") {
+        return row.key;
+      }
+    }
+    for (let index = from + 1; index < rows.length; index += 1) {
+      const row = rows[index];
+      if (row?.kind === "marker" && row.regionKind === "gap") {
+        return row.key;
+      }
+    }
+    return undefined;
+  }
+
+  // A jump (diagnostic, symbol, reference, find) may target a line a fold is hiding.
+  // Clear the fold(s) covering it so the jump can land; the Viewer's jump effect
+  // Re-runs on the resulting navigable change and finds the now-visible line.
+  function revealLineForJump(line: number) {
+    const view = diffView();
+    if (view === undefined) {
+      return false;
+    }
+    const rawIndex = view.render.navigable.findIndex((navigable) => navigable.newLine === line);
+    if (rawIndex === -1) {
+      return false;
+    }
+    const covering = foldRegionsFor(view.render.navigable, foldMode()).filter(
+      (region) =>
+        region.headerNavIndex < rawIndex &&
+        rawIndex <= region.endNavIndex &&
+        foldedRegions().has(region.key),
+    );
+    if (covering.length === 0) {
+      return false;
+    }
+    const next = new Set(foldedRegions());
+    for (const region of covering) {
+      next.delete(region.key);
+    }
+    setFoldedRegions(next);
+    return true;
   }
 
   let checksController: AbortController | undefined;
@@ -3210,6 +3449,7 @@ function createState() {
     resetFind,
     resetSidebarWidth,
     resolveViewerDecoration,
+    revealLineForJump,
     runChecks,
     scope,
     scopeMenuIndex,
@@ -3323,8 +3563,11 @@ function createState() {
     themeComboboxOpen,
     themeComboboxOrigin,
     themeComboboxResults,
+    toggleFold,
+    toggleGap,
     togglePinActiveTab,
     toggleReferencesDirection,
+    toggleRegionAtCaret,
     toggleSearchCase,
     toggleSearchGroup,
     toggleSearchRegex,
@@ -3335,6 +3578,7 @@ function createState() {
     truncatedHidden,
     viewerDecoration,
     viewerHeight,
+    viewerRows,
     viewerScrollTop,
     viewerScrollX,
     worktreeComboboxIndex,

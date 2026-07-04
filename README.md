@@ -106,6 +106,19 @@ supports. Unchanged files open read-only with no diff gutters, just the source.
 
 ![read-only file view showing a source file with syntax highlighting and no diff gutters](assets/screenshots/read-only.png)
 
+### Fold code
+
+Press `z` in the viewer to fold the block at the caret behind a `▸ N lines
+folded` marker (the header line stays), so a long file reads by structure instead
+of scrolling; `z` again unfolds it. Folding follows the file's structure: code
+folds by indentation, and markdown folds by heading section (down to the next
+same-or-higher heading). The same key expands a git-elided gap (the `⋯ N
+unmodified lines` marker) to reveal the unchanged lines around a hunk. Click any
+marker to toggle it. Folding is per file and resets when you switch files. (Wrap
+moved to `x`.)
+
+![a source diff with a function folded behind a "17 lines folded" marker](assets/screenshots/folding.png)
+
 ### Browse, go back, and pin tabs
 
 Browsing the tree previews files in one calm view, so nothing piles up; the
@@ -267,7 +280,8 @@ repo's own, then your `PATH`), so diagnostics work out of the box. Pass
 | `/`         | find in the viewer; `n`/`N` cycle, `esc` clears      |
 | `ctrl-f`    | project search pane; regex/case/glob/scope toggles   |
 | `v`         | toggle diff <-> full file view for a changed file    |
-| `z`         | toggle long-line wrap in the viewer                  |
+| `z`         | fold / unfold the region at the caret, or a git gap  |
+| `x`         | toggle long-line wrap in the viewer                  |
 | `f`         | load full content when truncated                     |
 | `ctrl-d/u`  | half-page cursor movement in the viewer              |
 | `g` / `G`   | jump to first / last line                            |

@@ -184,6 +184,31 @@ const screens = [
   },
   {
     /**
+     * Open a source file, jump the caret onto a function header with `/`, and press `z` to fold its
+     * body: the block collapses behind a `▸ N lines folded` marker while the header stays. `Type
+     * "z"` reaches the diff pane's fold toggle (the caret is inside the function after the jump).
+     */
+    name: "folding",
+    steps: [
+      "Ctrl+P",
+      'Type "git/tree"',
+      "Sleep 500ms",
+      "Enter",
+      "Sleep 1500ms",
+      'Type "/"',
+      "Sleep 300ms",
+      'Type "function flattenTree"',
+      "Sleep 500ms",
+      "Enter",
+      "Sleep 500ms",
+      "Escape",
+      "Sleep 300ms",
+      'Type "z"',
+      "Sleep 1200ms",
+    ].join("\n"),
+  },
+  {
+    /**
      * Open a real source diff, jump the caret onto a JSDoc'd exported function with `/`, hop to its
      * name, and press `K`. The hover card shows the syntax-highlighted signature above the plain
      * doc text, anchored at the caret over the diff. The long final sleep waits out tsserver's

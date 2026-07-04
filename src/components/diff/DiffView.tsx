@@ -92,7 +92,7 @@ export function DiffView() {
   const scrollX = state.viewerScrollX;
   const setScrollX = state.setViewerScrollX;
 
-  const rows = createMemo<DiffRow[]>(() => state.diffView()?.render.rows ?? []);
+  const rows = createMemo<DiffRow[]>(() => state.viewerRows());
   const wrap = () => state.overflow() === "wrap";
   const findMatchSet = createMemo(() => new Set(state.findMatches()));
 
@@ -429,8 +429,33 @@ export function DiffView() {
   const lineLabel = (row: DiffLineRow) =>
     String(row.newLine ?? row.oldLine ?? "").padStart(numberWidth());
 
-  const separatorText = (row: DiffRow) => (row.kind === "separator" ? row.text : "");
   const asLineRow = (row: DiffRow) => (isLineRow(row) ? row : undefined);
+  // A collapsed-region marker: a fold (`▸ N lines folded`), a collapsed git gap
+  // (`⋯ N unmodified lines`), or an expanded gap's re-collapse handle (`⋯ hide N …`).
+  const markerGlyph = (row: DiffRow) =>
+    row.kind === "marker" && row.regionKind === "fold" ? "▸" : "⋯";
+  const markerLabel = (row: DiffRow) => {
+    if (row.kind !== "marker") {
+      return "";
+    }
+    const noun = row.count === 1 ? "line" : "lines";
+    if (row.regionKind === "fold") {
+      return `${row.count} ${noun} folded`;
+    }
+    return row.collapsed
+      ? `${row.count} unmodified ${noun}`
+      : `hide ${row.count} unmodified ${noun}`;
+  };
+  const toggleMarker = (row: DiffRow) => {
+    if (row.kind !== "marker") {
+      return;
+    }
+    if (row.regionKind === "fold") {
+      state.toggleFold(row.key);
+    } else {
+      state.toggleGap(row.key);
+    }
+  };
 
   return (
     <box position="relative" width="100%" height={state.viewerHeight()}>
@@ -460,9 +485,21 @@ export function DiffView() {
             <Show
               when={asLineRow(row())}
               fallback={
-                <box width="100%" height={1} backgroundColor={theme.colors.surface.panel}>
+                <box
+                  ref={(el) => (el.selectable = false)}
+                  width="100%"
+                  height={1}
+                  backgroundColor={theme.colors.surface.panel}
+                  onMouseDown={(event: MouseEvent) => {
+                    event.stopPropagation();
+                    batch(() => {
+                      state.setFocusedPane("diff");
+                      toggleMarker(row());
+                    });
+                  }}
+                >
                   <text fg={theme.colors.text.faint}>
-                    {`${"⋯".padStart(numberWidth())} ${separatorText(row())}`}
+                    {`${markerGlyph(row()).padStart(numberWidth())} ${markerLabel(row())}`}
                   </text>
                 </box>
               }

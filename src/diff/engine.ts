@@ -117,7 +117,7 @@ function sizeOf(render: DiffRender) {
       for (const span of row.spans) {
         units += span.text.length;
       }
-    } else {
+    } else if (row.kind === "separator") {
       units += row.text.length;
     }
   }

@@ -11,9 +11,9 @@ import { createFixtureRepo, loadModel, makeSettleUntil, seedState } from "./help
 // Count the terminal rows the long line occupies: scroll mode keeps it on one
 // Truncated row (the trailing marker is off-screen); wrap mode flows it across
 // Several rows and the marker reappears on a continuation row. A `1 -> auto`
-// Box-height transition used to leave a `z` toggle stuck at one row.
+// Box-height transition used to leave an `x` toggle stuck at one row.
 describe("long-line wrap toggle", () => {
-  test("z wraps a long changed line and back un-wraps it", async () => {
+  test("x wraps a long changed line and back un-wraps it", async () => {
     // Distinct tokens so a continuation row is unambiguous, and a trailing marker
     // Far past any plausible content width so it only renders once wrapped.
     const words = Array.from({ length: 16 }, (_, index) => `tok${index}`).join(" ");
@@ -39,14 +39,14 @@ describe("long-line wrap toggle", () => {
       expect(scrolled).not.toContain("ENDMARKER");
 
       // Toggle to wrap: the line now flows across rows and the marker appears.
-      mockInput.pressKey("z");
+      mockInput.pressKey("x");
       const wrapped = await settleUntil("long line wrapped", (frame) =>
         frame.includes("ENDMARKER"),
       );
       expect(wrapped).toContain("ENDMARKER");
 
       // Toggle back to scroll: the marker is truncated away again.
-      mockInput.pressKey("z");
+      mockInput.pressKey("x");
       const reScrolled = await settleUntil(
         "long line truncated again",
         (frame) => frame.includes("tok0") && !frame.includes("ENDMARKER"),

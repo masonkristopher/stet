@@ -116,8 +116,17 @@ export function Viewer() {
         state.setCursorColumn(
           jump.column === undefined ? firstWord(content) : caretForColumn(content, jump.column),
         );
+        // A jump's explicit line:col supersedes any remembered restore for the same
+        // Target; consume both so a later restore pass can't overwrite the caret
+        // (their effect ordering is not guaranteed once folds churn navigableLines).
+        state.setPendingRestore(undefined);
         state.setJumpTarget(undefined);
       });
+      return;
+    }
+    // A fold may be hiding the target line; clearing it re-runs this effect (which
+    // Reads `navigableLines`) so the now-visible line is found on the next pass.
+    if (state.revealLineForJump(jump.line)) {
       return;
     }
     if (state.truncated() && !state.fullContentPaths().has(jump.path)) {

@@ -29,7 +29,7 @@ export interface DiffMetaInput {
 }
 
 export type DiffRow =
-  | { kind: "separator"; text: string }
+  | { kind: "separator"; text: string; count: number }
   | {
       kind: "line";
       navIndex: number;
@@ -37,6 +37,17 @@ export type DiffRow =
       oldLine?: number;
       newLine?: number;
       spans: RenderSpan[];
+    }
+  // A collapsed region placeholder produced by `applyCollapsedRegions`, never by
+  // `buildDiffRows`: a user fold (▸ N lines folded) or an expandable git-elided gap
+  // (⋯ N unmodified lines). Non-navigable, so the caret skips it like a separator.
+  | {
+      kind: "marker";
+      regionKind: "fold" | "gap";
+      key: string;
+      count: number;
+      /** A collapsed gap/fold shows its "expand" affordance; an expanded gap shows "hide". */
+      collapsed: boolean;
     };
 
 export type DiffLineRow = Extract<DiffRow, { kind: "line" }>;
@@ -106,7 +117,11 @@ export function buildDiffRows(
     // Separator so the gutter's line-number jump isn't read as contiguous. Zero
     // (a hunk at line 1, e.g. the whole-file context patch) gets no separator.
     if (hunk.collapsedBefore > 0) {
-      rows.push({ kind: "separator", text: collapsedLabel(hunk.collapsedBefore) });
+      rows.push({
+        count: hunk.collapsedBefore,
+        kind: "separator",
+        text: collapsedLabel(hunk.collapsedBefore),
+      });
     }
     let oldLine = hunk.deletionStart;
     let newLine = hunk.additionStart;

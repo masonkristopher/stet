@@ -51,6 +51,15 @@ export class Git extends Context.Service<
       scope: DiffScope,
       file: ChangedFile,
     ) => Effect.Effect<string, GitError>;
+    /**
+     * The full text of the side an expanded gap reveals (the new side, or the old side for a
+     * deletion). Loaded lazily on the first gap expansion in a file, never on the diff hot path.
+     */
+    readonly fileSource: (
+      repoRoot: string,
+      scope: DiffScope,
+      file: ChangedFile,
+    ) => Effect.Effect<SideContent, GitError>;
     readonly gitDir: (repoRoot: string) => Effect.Effect<string, GitError>;
     /** The SHA HEAD points at, or the empty tree on a commitless repo. */
     readonly headRef: (repoRoot: string) => Effect.Effect<string, GitError>;
@@ -76,6 +85,24 @@ export const GitLive = Layer.effect(
   Git,
   Effect.gen(function* gitLive() {
     const process = yield* Process;
+
+    // No retryTransient on `git show`: a bad spec (submodule gitlink, ref gone
+    // Mid-flight) should fail fast into the fallback, not retry.
+    const fetchSide = (
+      repoRoot: string,
+      side: PatchSide,
+      worktreePath: string,
+    ): Effect.Effect<SideContent, CommandError> => {
+      if (side.kind === "git") {
+        return process
+          .run(["git", "show", side.spec], repoRoot)
+          .pipe(Effect.map((result) => classifySideBytes(result.stdoutBytes)));
+      }
+      if (side.kind === "worktree") {
+        return Effect.promise(() => readWorktreeSide(repoRoot, worktreePath));
+      }
+      return Effect.succeed({ kind: "text", text: "" });
+    };
 
     return {
       changedFiles: (repoRoot, scope) =>
@@ -138,25 +165,12 @@ export const GitLive = Layer.effect(
             Effect.mapError(toGitError),
           );
 
-        // No retryTransient on `git show`: a bad spec (submodule gitlink, ref gone
-        // Mid-flight) should fail fast into the fallback, not retry.
-        const fetchSide = (side: PatchSide): Effect.Effect<SideContent, CommandError> => {
-          if (side.kind === "git") {
-            return process
-              .run(["git", "show", side.spec], repoRoot)
-              .pipe(Effect.map((result) => classifySideBytes(result.stdoutBytes)));
-          }
-          if (side.kind === "worktree") {
-            return Effect.promise(() => readWorktreeSide(repoRoot, file.path));
-          }
-          return Effect.succeed({ kind: "text", text: "" });
-        };
-
         const { newSide, oldSide } = fileDiffSides(scope, file);
 
-        return Effect.all([fetchSide(oldSide), fetchSide(newSide)], {
-          concurrency: "unbounded",
-        }).pipe(
+        return Effect.all(
+          [fetchSide(repoRoot, oldSide, file.path), fetchSide(repoRoot, newSide, file.path)],
+          { concurrency: "unbounded" },
+        ).pipe(
           Effect.map(([oldContent, newContent]) => buildFilePatch(file, oldContent, newContent)),
           // A `git show` failure (submodule gitlink, ref gone mid-flight) falls
           // Back to the pathspec diff; scoped to CommandError so nothing else is
@@ -165,6 +179,12 @@ export const GitLive = Layer.effect(
           Effect.flatMap((built) =>
             built.kind === "patch" ? Effect.succeed(built.patch) : pathspecDiff,
           ),
+        );
+      },
+      fileSource: (repoRoot, scope, file) => {
+        const { newSide, oldSide } = fileDiffSides(scope, file);
+        return fetchSide(repoRoot, file.kind === "deleted" ? oldSide : newSide, file.path).pipe(
+          Effect.mapError(toGitError),
         );
       },
       // The per-worktree git dir, absolute. In a linked worktree this resolves

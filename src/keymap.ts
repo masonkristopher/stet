@@ -584,7 +584,7 @@ export function createKeyHandler(host: HostEffects) {
         return;
       }
 
-      if (key.name === "z" && state.mainView() === "file") {
+      if (key.name === "x" && !key.ctrl && state.mainView() === "file") {
         const wrapping = state.overflow() === "wrap";
         state.setOverflow(wrapping ? "scroll" : "wrap");
         state.notify(wrapping ? "wrap off" : "wrap on");
@@ -799,6 +799,9 @@ export function createKeyHandler(host: HostEffects) {
           // The caret hops words; `tab` is the way back to the tree (a no-op here
           // At the first word). h no longer focuses the tree.
           state.caretPrevWord();
+        } else if (key.name === "z") {
+          // Fold/unfold the region at the caret (an indent block or a git-elided gap).
+          state.toggleRegionAtCaret();
         }
         return;
       }

@@ -8,7 +8,7 @@ import { App } from "@/App";
 import { createFixtureRepo, loadModel, makeSettleUntil, seedState } from "./helpers";
 
 describe("word wrap toggle", () => {
-  test("z toggles long-line handling between scroll and wrap", async () => {
+  test("x toggles long-line handling between scroll and wrap", async () => {
     const repoRoot = createFixtureRepo("sideye-wrap-", { "src/a.ts": "export const a = 1\n" });
     const model = await loadModel(repoRoot, { kind: "all", ref: "HEAD" });
     seedState(model, { kind: "all", ref: "HEAD" });
@@ -21,11 +21,11 @@ describe("word wrap toggle", () => {
     try {
       await settleUntil("app chrome", (frame) => frame.includes("sideye"), 5);
 
-      mockInput.pressKey("z");
+      mockInput.pressKey("x");
       const wrapped = await settleUntil("wrap on", (frame) => frame.includes("wrap on"));
       expect(wrapped).toContain("wrap on");
 
-      mockInput.pressKey("z");
+      mockInput.pressKey("x");
       const scrolled = await settleUntil("wrap off", (frame) => frame.includes("wrap off"));
       expect(scrolled).toContain("wrap off");
     } finally {

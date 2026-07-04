@@ -38,22 +38,26 @@ describe("buildDiffRows", () => {
     });
     expect(hiddenLines).toBe(0);
     expect(
-      rows.map((row) =>
-        row.kind === "separator"
-          ? `S:${row.text}`
-          : `${row.type}:${row.oldLine ?? "-"}/${row.newLine ?? "-"}`,
-      ),
+      rows.map((row) => {
+        if (row.kind === "separator") {
+          return `S:${row.text}`;
+        }
+        if (row.kind === "line") {
+          return `${row.type}:${row.oldLine ?? "-"}/${row.newLine ?? "-"}`;
+        }
+        return `M:${row.key}`;
+      }),
     ).toEqual(["context:1/1", "remove:2/-", "add:-/2", "context:3/3", "context:4/4"]);
   });
 
   test("emits a 'N unmodified lines' separator for the lines collapsed before a hunk", () => {
     const { rows } = buildDiffRows(sampleMeta(6), [], [], { full: false, maxLines: 1600 });
-    expect(rows[0]).toEqual({ kind: "separator", text: "6 unmodified lines" });
+    expect(rows[0]).toEqual({ count: 6, kind: "separator", text: "6 unmodified lines" });
   });
 
   test("singularizes the separator label for a single collapsed line", () => {
     const { rows } = buildDiffRows(sampleMeta(1), [], [], { full: false, maxLines: 1600 });
-    expect(rows[0]).toEqual({ kind: "separator", text: "1 unmodified line" });
+    expect(rows[0]).toEqual({ count: 1, kind: "separator", text: "1 unmodified line" });
   });
 
   test("emits no separator when nothing is collapsed before the hunk (e.g. full-file view)", () => {

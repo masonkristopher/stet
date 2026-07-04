@@ -72,6 +72,7 @@ import type { HoverSegment, NormalizedLocation, NormalizedSymbol } from "./intel
 import { attachReferencePreviews, buildReferenceRows, byReferenceOrder } from "./intel/references";
 import type { ReferenceResult } from "./intel/references";
 import { Intel } from "./intel/service";
+import type { IntelRequestError } from "./intel/service";
 import { levelGlyph } from "./log/levels";
 import type { LogLevel } from "./log/levels";
 import { runtime } from "./runtime";
@@ -403,9 +404,9 @@ function createState() {
   const [referencesResults, setReferencesResults] = createSignal<ReferenceResult[]>([]);
   const [referencesIndex, setReferencesIndex] = createSignal(0);
   const [referencesScrollTop, setReferencesScrollTop] = createSignal(0);
-  const [referencesLabel, setReferencesLabel] = createSignal<"references" | "definitions">(
-    "references",
-  );
+  const [referencesLabel, setReferencesLabel] = createSignal<
+    "references" | "definitions" | "incoming calls" | "outgoing calls"
+  >("references");
   const [symbolsOpen, setSymbolsOpen] = createSignal(false);
   const [symbolsStatus, setSymbolsStatus] = createSignal<
     "loading" | "ready" | "empty" | "error" | "unsupported"
@@ -1809,25 +1810,36 @@ function createState() {
   let intelController: AbortController | undefined;
   // Jump the viewer to the definition of the symbol under the caret. Read-only LSP pull
   // (`textDocument/definition`) over the warm server pool; degrades to a notice, never throws.
-  async function goToDefinition() {
-    // A fresh invocation supersedes any in-flight lookup, even when the guards below no-op, so a
-    // Stale result can't land a jump after the user has moved on.
-    intelController?.abort();
+  // The shared precondition for a caret-anchored pull: the caret must sit on a symbol in the
+  // Current file's text. A gap or line-level caret has no position to resolve, and a removed
+  // (old-only) line isn't in the file the server reads. Returns the file line (1-based) so the
+  // Caller can pass `line - 1` as the LSP position; undefined (after a notice) means don't pull.
+  function caretTarget() {
     const path = selectedPath();
     const line = cursorLineNumber();
     if (path === undefined || line === undefined) {
-      return;
+      return undefined;
     }
-    // The caret must sit on a symbol in the current file's text: a gap or line-level caret has no
-    // Position to resolve, and a removed (old-only) line isn't in the file the server reads.
     if (caretWord() === undefined) {
       notify("no symbol at caret");
-      return;
+      return undefined;
     }
     if (cursorLine()?.newLine === undefined) {
       notify("can't resolve a removed line");
+      return undefined;
+    }
+    return { line, path };
+  }
+
+  async function goToDefinition() {
+    // A fresh invocation supersedes any in-flight lookup, even when the guard below no-ops, so a
+    // Stale result can't land a jump after the user has moved on.
+    intelController?.abort();
+    const caret = caretTarget();
+    if (caret === undefined) {
       return;
     }
+    const { line, path } = caret;
     const controller = new AbortController();
     intelController = controller;
     setIntelStatus("resolving definition…");
@@ -1915,6 +1927,7 @@ function createState() {
   }
 
   function resetReferencesState() {
+    hierarchyAnchor = undefined;
     setReferencesOpen(false);
     setReferencesResults([]);
     setReferencesIndex(0);
@@ -1926,8 +1939,24 @@ function createState() {
   // Effect below can close it when a worktree switch moves off that repo.
   let referencesRoot: string | undefined;
 
-  function openReferences(label: "references" | "definitions", results: ReferenceResult[]) {
+  // What produced the open overlay when it is a call hierarchy: the caret it was pulled from plus
+  // The current direction, so `Tab` can re-resolve the other direction against the same symbol.
+  // References/definitions carry no direction, so they leave this undefined and `Tab` is a no-op.
+  interface HierarchyAnchor {
+    root: string;
+    path: string;
+    position: { character: number; line: number };
+    direction: "incoming" | "outgoing";
+  }
+  let hierarchyAnchor: HierarchyAnchor | undefined;
+
+  function openReferences(
+    label: ReturnType<typeof referencesLabel>,
+    results: ReferenceResult[],
+    anchor?: HierarchyAnchor,
+  ) {
     referencesRoot = repoRoot();
+    hierarchyAnchor = anchor;
     batch(() => {
       setReferencesLabel(label);
       setReferencesResults(results);
@@ -1938,45 +1967,31 @@ function createState() {
     });
   }
 
-  // Find every use of the symbol under the caret via `textDocument/references`. Opens the
-  // Results overlay at once in a loading state, then resolves it in place to the list, an
-  // Empty screen, or an error; read-only, degrades to a notice, never throws.
-  async function findReferences() {
-    intelController?.abort();
-    const path = selectedPath();
-    const line = cursorLineNumber();
-    if (path === undefined || line === undefined) {
-      return;
-    }
-    if (caretWord() === undefined) {
-      notify("no symbol at caret");
-      return;
-    }
-    if (cursorLine()?.newLine === undefined) {
-      notify("can't resolve a removed line");
-      return;
-    }
-    const controller = new AbortController();
-    intelController = controller;
-    const requestRoot = repoRoot();
+  // Drive a location-list pull (references or a call hierarchy) into the references overlay: open it
+  // At once in a loading state, then resolve in place to the list, an empty screen, or an error.
+  // The `anchor` is the direction context for a hierarchy (undefined for references, which clears any
+  // Prior one so `Tab` is a no-op); `label` drives the header and empty text. The caller owns the
+  // Abort/controller setup, so the deliberate "supersede even when a guard no-ops" behavior stays put.
+  async function openReferencesPull(
+    controller: AbortController,
+    requestRoot: string,
+    label: ReturnType<typeof referencesLabel>,
+    anchor: HierarchyAnchor | undefined,
+    pull: () => Effect.Effect<NormalizedLocation[], IntelRequestError, Intel>,
+  ) {
     referencesRoot = requestRoot;
+    hierarchyAnchor = anchor;
     batch(() => {
-      // References takes over the shared intel slot; drop any definition indicator its
-      // Superseded pull left behind, since this flow shows progress in the overlay instead.
+      // Drop any definition indicator a superseded pull left behind; progress shows in the overlay.
       setIntelStatus(undefined);
-      setReferencesLabel("references");
+      setReferencesLabel(label);
       setReferencesResults([]);
       setReferencesIndex(0);
       setReferencesStatus("loading");
       setReferencesOpen(true);
     });
     try {
-      const locations = await runtime.runPromise(
-        Intel.use((intel) =>
-          intel.references(requestRoot, path, { character: cursorColumn(), line: line - 1 }),
-        ),
-        { signal: controller.signal },
-      );
+      const locations = await runtime.runPromise(pull(), { signal: controller.signal });
       // A superseding request or a worktree switch drops this result: the newer request
       // Owns the overlay, and a stale root would resolve previews against the wrong repo.
       if (intelController !== controller || repoRoot() !== requestRoot) {
@@ -1993,12 +2008,33 @@ function createState() {
       if (intelController !== controller || repoRoot() !== requestRoot) {
         return;
       }
-      openReferences("references", attachReferencePreviews(inRepo, linesByPath));
+      openReferences(label, attachReferencePreviews(inRepo, linesByPath), anchor);
     } catch {
       if (intelController === controller) {
         setReferencesStatus("error");
       }
     }
+  }
+
+  // Find every use of the symbol under the caret via `textDocument/references`. Opens the
+  // Results overlay at once in a loading state, then resolves it in place to the list, an
+  // Empty screen, or an error; read-only, degrades to a notice, never throws.
+  async function findReferences() {
+    intelController?.abort();
+    const caret = caretTarget();
+    if (caret === undefined) {
+      return;
+    }
+    const { line, path } = caret;
+    const controller = new AbortController();
+    intelController = controller;
+    const requestRoot = repoRoot();
+    // A plain references pull has no direction, so its undefined anchor clears any a prior open left.
+    await openReferencesPull(controller, requestRoot, "references", undefined, () =>
+      Intel.use((intel) =>
+        intel.references(requestRoot, path, { character: cursorColumn(), line: line - 1 }),
+      ),
+    );
   }
 
   function closeReferences() {
@@ -2032,6 +2068,52 @@ function createState() {
       closeReferences();
     }
   });
+
+  const hierarchyLabel = (anchor: HierarchyAnchor) =>
+    anchor.direction === "incoming" ? "incoming calls" : "outgoing calls";
+
+  // The driver for the call hierarchy and its direction toggle: a two-step `prepare` → resolve pull
+  // Surfaced through the references overlay via `openReferencesPull`. `Tab` calls back in with the
+  // Flipped anchor, superseding the prior direction via the shared controller.
+  async function runHierarchy(anchor: HierarchyAnchor) {
+    intelController?.abort();
+    const controller = new AbortController();
+    intelController = controller;
+    await openReferencesPull(controller, anchor.root, hierarchyLabel(anchor), anchor, () =>
+      Intel.use((intel) =>
+        intel.callHierarchy(anchor.root, anchor.path, anchor.position, anchor.direction),
+      ),
+    );
+  }
+
+  // Call hierarchy (Shift+H) for the symbol under the caret, opening on incoming calls (who calls
+  // This); `Tab` flips to outgoing. Read-only two-step LSP pull, degrades to a notice, never throws.
+  function callHierarchy() {
+    intelController?.abort();
+    const caret = caretTarget();
+    if (caret === undefined) {
+      return;
+    }
+    const { line, path } = caret;
+    void runHierarchy({
+      direction: "incoming",
+      path,
+      position: { character: cursorColumn(), line: line - 1 },
+      root: repoRoot(),
+    });
+  }
+
+  // Flip the open call hierarchy's direction (incoming↔outgoing) and re-resolve the same symbol. A
+  // No-op when the overlay is references/definitions, which carry no direction.
+  function toggleReferencesDirection() {
+    const anchor = hierarchyAnchor;
+    if (anchor !== undefined) {
+      void runHierarchy({
+        ...anchor,
+        direction: anchor.direction === "incoming" ? "outgoing" : "incoming",
+      });
+    }
+  }
 
   // The symbol outline overlay. Its own controller (not the shared `intelController`), since
   // It owns a separate overlay from definition/references and the two must not clobber each
@@ -2220,19 +2302,11 @@ function createState() {
   // Decoration seam instead of a jump; degrades to an empty/error card, never throws.
   async function showHover() {
     hoverController?.abort();
-    const path = selectedPath();
-    const line = cursorLineNumber();
-    if (path === undefined || line === undefined) {
+    const caret = caretTarget();
+    if (caret === undefined) {
       return;
     }
-    if (caretWord() === undefined) {
-      notify("no symbol at caret");
-      return;
-    }
-    if (cursorLine()?.newLine === undefined) {
-      notify("can't resolve a removed line");
-      return;
-    }
+    const { line, path } = caret;
     const controller = new AbortController();
     hoverController = controller;
     const requestRoot = repoRoot();
@@ -2434,6 +2508,10 @@ function createState() {
       }
       case "findReferences": {
         void findReferences();
+        return;
+      }
+      case "callHierarchy": {
+        callHierarchy();
         return;
       }
       case "showHover": {
@@ -2964,6 +3042,7 @@ function createState() {
     activityLog,
     allProblemItems,
     availableUpdate,
+    callHierarchy,
     canGoBack,
     canGoForward,
     caretColumn,
@@ -3195,6 +3274,7 @@ function createState() {
     themeComboboxOrigin,
     themeComboboxResults,
     togglePinActiveTab,
+    toggleReferencesDirection,
     toggleSearchCase,
     toggleSearchGroup,
     toggleSearchRegex,

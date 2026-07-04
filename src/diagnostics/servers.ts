@@ -47,6 +47,7 @@ export type Capability =
   | "references"
   | "hover"
   | "documentSymbol"
+  | "callHierarchy"
   | "pullDiagnostics";
 
 interface ServerSpec {
@@ -134,7 +135,7 @@ const registry: Record<string, ServerSpec> = {
     args: ["--stdio"],
     binary: "typescript-language-server",
     extensions: codeExtensions,
-    provides: ["definition", "references", "hover", "documentSymbol"],
+    provides: ["definition", "references", "hover", "documentSymbol", "callHierarchy"],
     provision: { packages: ["typescript-language-server", "typescript"] },
   },
   yaml: {
@@ -253,6 +254,7 @@ const capabilityProviders = [
   ["references", "referencesProvider"],
   ["hover", "hoverProvider"],
   ["documentSymbol", "documentSymbolProvider"],
+  ["callHierarchy", "callHierarchyProvider"],
   ["pullDiagnostics", "diagnosticProvider"],
 ] as const satisfies readonly (readonly [Capability, string])[];
 
@@ -291,8 +293,11 @@ export function performHandshake(
           // Edit/format/rename: read-only. linkSupport lets definition reply with `LocationLink`s,
           // Which carry the symbol's name range. hierarchicalDocumentSymbolSupport is what makes a
           // Server return the nested `DocumentSymbol[]` (with `children`); without it it downgrades
-          // To a flat `SymbolInformation[]` and the outline loses all nesting.
+          // To a flat `SymbolInformation[]` and the outline loses all nesting. A server only
+          // Advertises `callHierarchyProvider` when the client advertises the matching client cap,
+          // So it is declared here or the two-step prepare/resolve pull stays unavailable.
           textDocument: {
+            callHierarchy: { dynamicRegistration: false },
             definition: { dynamicRegistration: false, linkSupport: true },
             documentSymbol: { dynamicRegistration: false, hierarchicalDocumentSymbolSupport: true },
             hover: { dynamicRegistration: false },

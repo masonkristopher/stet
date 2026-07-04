@@ -2,8 +2,11 @@ import { expect, test } from "bun:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 import {
+  firstHierarchyItem,
   normalizeDefinition,
   normalizeDocumentSymbols,
+  normalizeIncomingCalls,
+  normalizeOutgoingCalls,
   normalizeReferences,
   parseHover,
   SymbolKind,
@@ -178,5 +181,44 @@ test("normalizeDocumentSymbols reads a flat SymbolInformation[] at depth 0, posi
   expect(normalizeDocumentSymbols(reply)).toEqual([
     { column: 1, depth: 0, kind: SymbolKind.Function, line: 2, name: "first" },
     { column: 3, depth: 0, kind: SymbolKind.Variable, line: 5, name: "second" },
+  ]);
+});
+
+// A hierarchy item carries a whole-declaration `range` and a name-only `selectionRange`; the
+// Normalizer reads the name position, so give the two different starts to prove it picks the latter.
+const hierarchyItem = (data?: unknown) => ({
+  data,
+  kind: SymbolKind.Function,
+  name: "target",
+  range: { end: { character: 0, line: 10 }, start: { character: 0, line: 3 } },
+  selectionRange: range,
+  uri,
+});
+
+test("firstHierarchyItem returns the first valid item verbatim, keeping its opaque data", () => {
+  const item = hierarchyItem({ id: 7 });
+  expect(firstHierarchyItem([item])).toBe(item);
+  expect(firstHierarchyItem([item])?.data).toEqual({ id: 7 });
+});
+
+test("firstHierarchyItem returns undefined for null, an empty array, and all-malformed items", () => {
+  expect(firstHierarchyItem(null)).toBeUndefined();
+  expect(firstHierarchyItem([])).toBeUndefined();
+  expect(firstHierarchyItem([{ nope: true }, null])).toBeUndefined();
+});
+
+test("normalizeIncomingCalls reads the caller under `from`, dropping calls without a valid from", () => {
+  const reply = [
+    { from: hierarchyItem(), fromRanges: [range] },
+    { from: { nope: true }, fromRanges: [] },
+    null,
+  ];
+  expect(normalizeIncomingCalls(reply)).toEqual([{ column: 3, line: 5, path }]);
+  expect(normalizeIncomingCalls(null)).toEqual([]);
+});
+
+test("normalizeOutgoingCalls reads the callee under `to`", () => {
+  expect(normalizeOutgoingCalls([{ fromRanges: [range], to: hierarchyItem() }])).toEqual([
+    { column: 3, line: 5, path },
   ]);
 });

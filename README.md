@@ -37,7 +37,8 @@ problems. You decide what to say next.
 - Marks recent activity and lets you jump to the latest touched file.
 - Shows diagnostics in the tree, in the viewer, and in a problems panel.
 - Navigates code through read-only language-server pulls: go to definition, find
-  references, hover for type and docs, and a symbol outline of the open file.
+  references, call hierarchy, hover for type and docs, and a symbol outline of the
+  open file.
 - Copies a reference and snippet to paste back into the agent conversation: the
   file `path` in the tree and `path:line:col` in the viewer (`path:line` after
   clicking a line number).
@@ -184,6 +185,17 @@ The results open in a palette-family overlay grouped by file, each row showing
 result, `esc` closes. Same read-only LSP request family as go-to-definition,
 over the same servers.
 
+### Call hierarchy
+
+Put the caret on a function or method and press `Shift+H` to list its callers in
+the same overlay as find-references. `Tab` flips direction: incoming calls (who
+calls this) to outgoing calls (what this calls) and back, the footer showing
+which way you're looking. `↑`/`↓` move, `enter` or a click jumps to a caller or
+callee, `esc` closes. It's a two-step read-only LSP request (prepare, then
+resolve the edges), over the same servers as go-to-definition.
+
+![call hierarchy overlay listing the callers of a function grouped by file, each with its source line, and a direction toggle hint in the footer](assets/screenshots/call-hierarchy.png)
+
 ### Hover
 
 Press `K` with the caret on a symbol to show its type and docs in a small card
@@ -238,22 +250,23 @@ repo's own, then your `PATH`), so diagnostics work out of the box. Pass
 
 ### viewer
 
-| Key         | Action                                              |
-| ----------- | --------------------------------------------------- |
-| `/`         | find in the viewer; `n`/`N` cycle, `esc` clears     |
-| `ctrl-f`    | project search pane; regex/case/glob/scope toggles  |
-| `v`         | toggle diff <-> full file view for a changed file   |
-| `z`         | toggle long-line wrap in the viewer                 |
-| `f`         | load full content when truncated                    |
-| `ctrl-d/u`  | half-page cursor movement in the viewer             |
-| `g` / `G`   | jump to first / last line                           |
-| `F12`       | go to definition of the symbol under the caret      |
-| `Shift+F12` | find references to the symbol under the caret       |
-| `K`         | hover: type and docs for the symbol under the caret |
-| `S`         | find symbols: outline of the open file              |
-| `<` / `>`   | back / forward through viewer history               |
-| `y`         | copy `path`, `path:line`, or `path:line:col`        |
-| `Y`         | copy the entire contents of the viewed file         |
+| Key         | Action                                               |
+| ----------- | ---------------------------------------------------- |
+| `/`         | find in the viewer; `n`/`N` cycle, `esc` clears      |
+| `ctrl-f`    | project search pane; regex/case/glob/scope toggles   |
+| `v`         | toggle diff <-> full file view for a changed file    |
+| `z`         | toggle long-line wrap in the viewer                  |
+| `f`         | load full content when truncated                     |
+| `ctrl-d/u`  | half-page cursor movement in the viewer              |
+| `g` / `G`   | jump to first / last line                            |
+| `F12`       | go to definition of the symbol under the caret       |
+| `Shift+F12` | find references to the symbol under the caret        |
+| `Shift+H`   | call hierarchy of the symbol (`Tab` flips direction) |
+| `K`         | hover: type and docs for the symbol under the caret  |
+| `S`         | find symbols: outline of the open file               |
+| `<` / `>`   | back / forward through viewer history                |
+| `y`         | copy `path`, `path:line`, or `path:line:col`         |
+| `Y`         | copy the entire contents of the viewed file          |
 
 ### tabs
 
@@ -305,8 +318,9 @@ to pin it as a tab. Clicks also work in the overlays and the search pane: a go-t
 worktree to switch to, or a theme to apply (hovering a theme previews it
 live); a click on a search result selects it and a double-click opens it. Clicking a pane focuses it, and the wheel scrolls whichever
 pane the pointer is over. Right-click a tree row or a viewer symbol for a context
-menu of the actions that apply there (go to definition, find references, hover,
-copy, open in editor), the same menu `Shift+F10` opens on the focused pane.
+menu of the actions that apply there (go to definition, find references, call
+hierarchy, hover, copy, open in editor), the same menu `Shift+F10` opens on the
+focused pane.
 
 ## Configuration
 

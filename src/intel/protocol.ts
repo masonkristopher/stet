@@ -26,6 +26,19 @@ interface LspLocationLink {
   targetSelectionRange?: LspRange;
 }
 
+// A `CallHierarchyItem`: the two-step pull carries the prepared item back to the resolve request
+// Verbatim, so `data` (opaque, server-defined) must ride along untouched or the resolve loses the
+// Server's anchor.
+interface LspHierarchyItem {
+  name: string;
+  kind: number;
+  uri: string;
+  range: LspRange;
+  selectionRange: LspRange;
+  detail?: string;
+  data?: unknown;
+}
+
 export interface NormalizedLocation {
   path: string;
   /** 1-based (LSP positions are 0-based). */
@@ -98,6 +111,55 @@ export function normalizeDefinition(reply: unknown): NormalizedLocation[] {
 /** `textDocument/references` replies with a `Location[]` or null (never a single or a link). */
 export function normalizeReferences(reply: unknown): NormalizedLocation[] {
   return Array.isArray(reply) ? reply.map(mapItem).filter(isNormalized) : [];
+}
+
+function isHierarchyItem(value: unknown): value is LspHierarchyItem {
+  return (
+    isObject(value) &&
+    typeof value.name === "string" &&
+    typeof value.kind === "number" &&
+    typeof value.uri === "string" &&
+    isRange(value.range) &&
+    isRange(value.selectionRange)
+  );
+}
+
+// A hierarchy row jumps to the symbol's name (`selectionRange`), like an outline entry, not to the
+// Whole declaration or an individual call site: one row per related symbol, navigable to it.
+function hierarchyItemLocation(item: LspHierarchyItem): NormalizedLocation | undefined {
+  return locationFrom(item.uri, item.selectionRange.start);
+}
+
+/**
+ * `textDocument/prepareCallHierarchy` replies with a `CallHierarchyItem[]` or null. Returns the
+ * first item verbatim (its opaque `data` intact) to feed the resolve step, or undefined when the
+ * caret is not on a resolvable symbol so the caller degrades to empty.
+ */
+export function firstHierarchyItem(reply: unknown): LspHierarchyItem | undefined {
+  return Array.isArray(reply) ? reply.find(isHierarchyItem) : undefined;
+}
+
+// Incoming calls wrap the caller under `from`, outgoing calls the callee under `to`; both carry the
+// Call-site ranges (`fromRanges`) we don't surface, since each row is the related symbol itself.
+function normalizeCalls(reply: unknown, key: "from" | "to"): NormalizedLocation[] {
+  if (!Array.isArray(reply)) {
+    return [];
+  }
+  return reply
+    .map((call) =>
+      isObject(call) && isHierarchyItem(call[key]) ? hierarchyItemLocation(call[key]) : undefined,
+    )
+    .filter(isNormalized);
+}
+
+/** `callHierarchy/incomingCalls` replies with a `CallHierarchyIncomingCall[]` (`{ from }`) or null. */
+export function normalizeIncomingCalls(reply: unknown): NormalizedLocation[] {
+  return normalizeCalls(reply, "from");
+}
+
+/** `callHierarchy/outgoingCalls` replies with a `CallHierarchyOutgoingCall[]` (`{ to }`) or null. */
+export function normalizeOutgoingCalls(reply: unknown): NormalizedLocation[] {
+  return normalizeCalls(reply, "to");
 }
 
 /**

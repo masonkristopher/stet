@@ -213,6 +213,36 @@ const screens = [
   },
   {
     /**
+     * Open the file that defines a widely-called function, jump the caret to its line with `/`,
+     * then hop three words (`lll` is word-forward: export → async → function → highlightSnippet)
+     * onto the name, since prepareCallHierarchy needs the identifier itself. Press Shift+H: the
+     * overlay lists the callers grouped by file with the `⇥ direction` hint in the footer. The long
+     * sleep waits out tsserver's project load before prepare/resolve answers (same order as the
+     * hover/find-symbols shots). `Type "H"` sends the shift+H the keymap matches.
+     */
+    name: "call-hierarchy",
+    steps: [
+      "Ctrl+P",
+      'Type "diff/engine"',
+      "Sleep 500ms",
+      "Enter",
+      "Sleep 1500ms",
+      'Type "/"',
+      "Sleep 300ms",
+      'Type "function highlightSnippet"',
+      "Sleep 500ms",
+      "Enter",
+      "Sleep 500ms",
+      "Escape",
+      "Sleep 300ms",
+      'Type "lll"',
+      "Sleep 400ms",
+      'Type "H"',
+      "Sleep 16s",
+    ].join("\n"),
+  },
+  {
+    /**
      * Open a symbol-rich source file, then press S to open the outline overlay. Arrow down a few
      * rows so the shot shows the selection tint mid-list alongside the kind icons, nesting indent,
      * and line:col column. The long sleep waits out tsserver's project load before documentSymbol

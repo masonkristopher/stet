@@ -12,6 +12,7 @@
 export type CommandAction =
   | { kind: "goToDefinition" }
   | { kind: "findReferences" }
+  | { kind: "callHierarchy" }
   | { kind: "showHover" }
   | { kind: "findSymbols" }
   | { kind: "copyReference"; path: string; line: number | undefined; column: number | undefined }
@@ -56,6 +57,7 @@ function viewerItems(input: CommandMenuInput): CommandMenuItem[] {
     ? [
         { action: { kind: "goToDefinition" }, label: "Go to definition" },
         { action: { kind: "findReferences" }, label: "Find references" },
+        { action: { kind: "callHierarchy" }, label: "Call hierarchy" },
         { action: { kind: "showHover" }, label: "Quick info" },
       ]
     : [];

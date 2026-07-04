@@ -476,3 +476,175 @@ test("symbols degrades a server error to IntelRequestError and still closes the 
     ]);
   });
 });
+
+// A `CallHierarchyItem`/`TypeHierarchyItem`: the prepare reply the resolve step carries back verbatim.
+const hierarchyItem = (uri: string, data: unknown) => ({
+  data,
+  kind: 12,
+  name: "target",
+  range: { end: { character: 9, line: 4 }, start: { character: 2, line: 4 } },
+  selectionRange: { end: { character: 9, line: 4 }, start: { character: 2, line: 4 } },
+  uri,
+});
+
+test("call hierarchy prepares then resolves incoming calls, normalizing each caller", async () => {
+  await withRepo(
+    { "src/a.ts": "function target() {}\n", "src/caller.ts": "target()\n" },
+    async (dir) => {
+      const log: Recorded[] = [];
+      const prepared = hierarchyItem(pathToFileURL(join(dir, "src/a.ts")).href, { id: 7 });
+      const callerUri = pathToFileURL(join(dir, "src/caller.ts")).href;
+      const ts = handle(
+        ["callHierarchy"],
+        (method) => {
+          if (method === "textDocument/prepareCallHierarchy") {
+            return Effect.succeed([prepared]);
+          }
+          if (method === "callHierarchy/incomingCalls") {
+            return Effect.succeed([
+              {
+                from: { ...prepared, name: "caller", uri: callerUri },
+                fromRanges: [prepared.range],
+              },
+            ]);
+          }
+          return Effect.succeed(null);
+        },
+        log,
+      );
+
+      const result = await Effect.runPromise(
+        Intel.pipe(
+          Effect.flatMap((intel) =>
+            intel.callHierarchy(dir, "src/a.ts", { character: 9, line: 0 }, "incoming"),
+          ),
+          Effect.provide(IntelLive.pipe(Layer.provide(fakeServers({ typescript: ts })))),
+        ),
+      );
+
+      // The caller resolves to its name range, relativized under the repo root.
+      expect(result).toEqual([{ column: 3, line: 5, path: "src/caller.ts" }]);
+      // One open, the two-step prepare/resolve, one close: the doc stays open across both requests.
+      expect(log.map((entry) => entry.method)).toEqual([
+        "textDocument/didOpen",
+        "textDocument/prepareCallHierarchy",
+        "callHierarchy/incomingCalls",
+        "textDocument/didClose",
+      ]);
+      // The prepare item rides back to the resolve request verbatim, its opaque `data` intact.
+      expect(log[2]?.params).toMatchObject({ item: { data: { id: 7 }, name: "target" } });
+    },
+  );
+});
+
+test("call hierarchy resolves outgoing calls when the direction is outgoing", async () => {
+  await withRepo({ "src/a.ts": "function caller() { callee() }\n" }, async (dir) => {
+    const log: Recorded[] = [];
+    const uri = pathToFileURL(join(dir, "src/a.ts")).href;
+    const prepared = hierarchyItem(uri, null);
+    const ts = handle(
+      ["callHierarchy"],
+      (method) => {
+        if (method === "textDocument/prepareCallHierarchy") {
+          return Effect.succeed([prepared]);
+        }
+        if (method === "callHierarchy/outgoingCalls") {
+          return Effect.succeed([{ fromRanges: [prepared.range], to: prepared }]);
+        }
+        return Effect.succeed(null);
+      },
+      log,
+    );
+
+    const result = await Effect.runPromise(
+      Intel.pipe(
+        Effect.flatMap((intel) =>
+          intel.callHierarchy(dir, "src/a.ts", { character: 9, line: 0 }, "outgoing"),
+        ),
+        Effect.provide(IntelLive.pipe(Layer.provide(fakeServers({ typescript: ts })))),
+      ),
+    );
+
+    expect(result).toEqual([{ column: 3, line: 5, path: "src/a.ts" }]);
+    expect(log.map((entry) => entry.method)).toEqual([
+      "textDocument/didOpen",
+      "textDocument/prepareCallHierarchy",
+      "callHierarchy/outgoingCalls",
+      "textDocument/didClose",
+    ]);
+  });
+});
+
+test("call hierarchy returns empty without resolving when the caret is not on a symbol", async () => {
+  await withRepo({ "src/a.ts": "const x = 1\n" }, async (dir) => {
+    const log: Recorded[] = [];
+    // A caret off any symbol: prepare yields nothing, so the resolve step never fires.
+    const ts = handle(["callHierarchy"], () => Effect.succeed(null), log);
+
+    const result = await Effect.runPromise(
+      Intel.pipe(
+        Effect.flatMap((intel) =>
+          intel.callHierarchy(dir, "src/a.ts", { character: 0, line: 0 }, "incoming"),
+        ),
+        Effect.provide(IntelLive.pipe(Layer.provide(fakeServers({ typescript: ts })))),
+      ),
+    );
+
+    expect(result).toEqual([]);
+    expect(log.map((entry) => entry.method)).toEqual([
+      "textDocument/didOpen",
+      "textDocument/prepareCallHierarchy",
+      "textDocument/didClose",
+    ]);
+  });
+});
+
+test("call hierarchy returns empty when no acquired server advertises it", async () => {
+  await withRepo({ "src/a.ts": "const x = 1\n" }, async (dir) => {
+    const servers = fakeServers({ typescript: handle([], () => Effect.succeed(null), []) });
+    const result = await Effect.runPromise(
+      Intel.pipe(
+        Effect.flatMap((intel) =>
+          intel.callHierarchy(dir, "src/a.ts", { character: 0, line: 0 }, "incoming"),
+        ),
+        Effect.provide(IntelLive.pipe(Layer.provide(servers))),
+      ),
+    );
+    expect(result).toEqual([]);
+  });
+});
+
+test("call hierarchy degrades a failing resolve to IntelRequestError and still closes", async () => {
+  await withRepo({ "src/a.ts": "function target() {}\n" }, async (dir) => {
+    const log: Recorded[] = [];
+    const prepared = hierarchyItem(pathToFileURL(join(dir, "src/a.ts")).href, null);
+    const ts = handle(
+      ["callHierarchy"],
+      (method) =>
+        method === "textDocument/prepareCallHierarchy"
+          ? Effect.succeed([prepared])
+          : Effect.fail(new LspRequestError({ message: "boom", method })),
+      log,
+    );
+
+    const error = await Effect.runPromise(
+      Intel.pipe(
+        Effect.flatMap((intel) =>
+          intel.callHierarchy(dir, "src/a.ts", { character: 9, line: 0 }, "incoming"),
+        ),
+        Effect.flip,
+        Effect.provide(IntelLive.pipe(Layer.provide(fakeServers({ typescript: ts })))),
+      ),
+    );
+
+    expect(error).toBeInstanceOf(IntelRequestError);
+    expect(error.method).toBe("callHierarchy/incomingCalls");
+    // The acquireRelease finalizer closes the document even though the resolve failed.
+    expect(log.map((entry) => entry.method)).toEqual([
+      "textDocument/didOpen",
+      "textDocument/prepareCallHierarchy",
+      "callHierarchy/incomingCalls",
+      "textDocument/didClose",
+    ]);
+  });
+});

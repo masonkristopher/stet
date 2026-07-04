@@ -355,6 +355,10 @@ export function createKeyHandler(host: HostEffects) {
           state.closeReferences();
         } else if (key.name === "return") {
           state.jumpToReference(state.referencesIndex());
+        } else if (key.name === "tab") {
+          // Flip a call hierarchy's direction (incoming↔outgoing) in place; a no-op for
+          // References/definitions, which carry no direction.
+          state.toggleReferencesDirection();
         } else if (key.name === "down" || (key.ctrl && key.name === "n")) {
           state.setReferencesIndex(
             Math.min(
@@ -690,6 +694,14 @@ export function createKeyHandler(host: HostEffects) {
       // (Shift+K, the established LSP hover key). The action reads the caret and guards itself.
       if ((key.name === "K" || (key.name === "k" && key.shift)) && fileViewShowing) {
         void state.showHover();
+        return;
+      }
+
+      // Call hierarchy for the symbol under the caret (Shift+H): who calls this / what this calls,
+      // In the references overlay with a Tab direction toggle. Bare uppercase like Shift+K, chosen
+      // Over Ctrl+F12 since modified F-keys aren't portably delivered. The action guards itself.
+      if ((key.name === "H" || (key.name === "h" && key.shift)) && fileViewShowing) {
+        state.callHierarchy();
         return;
       }
 

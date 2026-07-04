@@ -318,6 +318,103 @@ test("definition returns empty for a file that is not on disk", async () => {
   });
 });
 
+function runImplementation(
+  repoRoot: string,
+  path: string,
+  position: { line: number; character: number },
+  servers: Layer.Layer<LanguageServers>,
+) {
+  return Effect.runPromise(
+    Intel.pipe(
+      Effect.flatMap((intel) => intel.implementation(repoRoot, path, position)),
+      Effect.provide(IntelLive.pipe(Layer.provide(servers))),
+    ),
+  );
+}
+
+test("implementation opens the file, requests at the caret, normalizes, then closes", async () => {
+  await withRepo(
+    { "src/iface.ts": "export interface Shape {}\n", "src/impl.ts": "export class Impl {}\n" },
+    async (dir) => {
+      const log: Recorded[] = [];
+      const targetUri = pathToFileURL(join(dir, "src/impl.ts")).href;
+      const ts = handle(
+        ["implementation"],
+        (method) =>
+          method === "textDocument/implementation"
+            ? Effect.succeed({ range: definitionRange, uri: targetUri })
+            : Effect.succeed(null),
+        log,
+      );
+
+      const result = await runImplementation(
+        dir,
+        "src/iface.ts",
+        { character: 17, line: 0 },
+        fakeServers({ oxlint: handle([], () => Effect.succeed(null), []), typescript: ts }),
+      );
+
+      expect(result).toEqual([{ column: 3, line: 5, path: "src/impl.ts" }]);
+      expect(log.map((entry) => entry.method)).toEqual([
+        "textDocument/didOpen",
+        "textDocument/implementation",
+        "textDocument/didClose",
+      ]);
+      expect(log[1]?.params).toMatchObject({
+        position: { character: 17, line: 0 },
+        textDocument: { uri: pathToFileURL(join(dir, "src/iface.ts")).href },
+      });
+    },
+  );
+});
+
+test("implementation lists every concrete body from an interface member", async () => {
+  await withRepo(
+    {
+      "src/a.ts": "export class A {}\n",
+      "src/b.ts": "export class B {}\n",
+      "src/iface.ts": "export interface Shape {}\n",
+    },
+    async (dir) => {
+      const ts = handle(
+        ["implementation"],
+        (method) =>
+          method === "textDocument/implementation"
+            ? Effect.succeed([
+                { range: definitionRange, uri: pathToFileURL(join(dir, "src/a.ts")).href },
+                { range: definitionRange, uri: pathToFileURL(join(dir, "src/b.ts")).href },
+              ])
+            : Effect.succeed(null),
+        [],
+      );
+
+      const result = await runImplementation(
+        dir,
+        "src/iface.ts",
+        { character: 17, line: 0 },
+        fakeServers({ typescript: ts }),
+      );
+
+      expect(result).toEqual([
+        { column: 3, line: 5, path: "src/a.ts" },
+        { column: 3, line: 5, path: "src/b.ts" },
+      ]);
+    },
+  );
+});
+
+test("implementation returns empty when no acquired server has the capability", async () => {
+  await withRepo({ "src/a.ts": "const x = 1\n" }, async (dir) => {
+    const servers = fakeServers({
+      oxlint: handle([], () => Effect.succeed(null), []),
+      typescript: handle([], () => Effect.succeed(null), []),
+    });
+    expect(await runImplementation(dir, "src/a.ts", { character: 0, line: 0 }, servers)).toEqual(
+      [],
+    );
+  });
+});
+
 test("references sends includeDeclaration context and maps the Location array", async () => {
   await withRepo({ "src/a.ts": "const x = 1\n" }, async (dir) => {
     const log: Recorded[] = [];

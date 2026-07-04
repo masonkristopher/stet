@@ -213,6 +213,36 @@ const screens = [
   },
   {
     /**
+     * Open the file that declares a widely-implemented interface, jump the caret to its declaration
+     * with `/`, then hop two words (`ll` is word-forward: export → interface → LspConnection) onto
+     * the interface name, since implementation resolves the symbol under the caret. Press Shift+I:
+     * the overlay lists every concrete implementor grouped by file with each source line. The long
+     * sleep waits out tsserver's project load before implementation answers (same order as the
+     * hover/call-hierarchy shots). `Type "I"` sends the shift+I the keymap matches.
+     */
+    name: "find-implementations",
+    steps: [
+      "Ctrl+P",
+      'Type "diagnostics/transport"',
+      "Sleep 500ms",
+      "Enter",
+      "Sleep 1500ms",
+      'Type "/"',
+      "Sleep 300ms",
+      'Type "interface LspConnection"',
+      "Sleep 500ms",
+      "Enter",
+      "Sleep 500ms",
+      "Escape",
+      "Sleep 300ms",
+      'Type "ll"',
+      "Sleep 400ms",
+      'Type "I"',
+      "Sleep 16s",
+    ].join("\n"),
+  },
+  {
+    /**
      * Open the file that defines a widely-called function, jump the caret to its line with `/`,
      * then hop three words (`lll` is word-forward: export → async → function → highlightSnippet)
      * onto the name, since prepareCallHierarchy needs the identifier itself. Press Shift+H: the

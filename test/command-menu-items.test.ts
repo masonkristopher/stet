@@ -32,6 +32,7 @@ describe("buildCommandMenuItems", () => {
     expect(labels(viewer())).toEqual([
       "Go to definition",
       "Find references",
+      "Find implementations",
       "Call hierarchy",
       "Quick info",
       "Find symbols",

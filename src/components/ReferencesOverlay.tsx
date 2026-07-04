@@ -43,10 +43,10 @@ export function ReferencesOverlay() {
     const noun = count === 1 ? label.replace(/s$/, "") : label;
     return `${count} ${noun} in ${fileCount()} file${fileCount() === 1 ? "" : "s"}`;
   };
-  // A call hierarchy carries a direction Tab flips; references/definitions don't, so the hint only
-  // Advertises the toggle where it does something.
+  // A call hierarchy carries a direction Tab flips; the other overlays (references, definitions,
+  // Implementations) don't, so the hint only advertises the toggle for the two directional labels.
   const isHierarchy = () =>
-    state.referencesLabel() !== "references" && state.referencesLabel() !== "definitions";
+    state.referencesLabel() === "incoming calls" || state.referencesLabel() === "outgoing calls";
 
   const viewport = () => state.referencesViewport();
   const visibleRows = createMemo(() => {

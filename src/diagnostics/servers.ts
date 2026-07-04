@@ -48,6 +48,7 @@ export type Capability =
   | "hover"
   | "documentSymbol"
   | "callHierarchy"
+  | "implementation"
   | "pullDiagnostics";
 
 interface ServerSpec {
@@ -135,7 +136,14 @@ const registry: Record<string, ServerSpec> = {
     args: ["--stdio"],
     binary: "typescript-language-server",
     extensions: codeExtensions,
-    provides: ["definition", "references", "hover", "documentSymbol", "callHierarchy"],
+    provides: [
+      "definition",
+      "references",
+      "hover",
+      "documentSymbol",
+      "callHierarchy",
+      "implementation",
+    ],
     provision: { packages: ["typescript-language-server", "typescript"] },
   },
   yaml: {
@@ -255,6 +263,7 @@ const capabilityProviders = [
   ["hover", "hoverProvider"],
   ["documentSymbol", "documentSymbolProvider"],
   ["callHierarchy", "callHierarchyProvider"],
+  ["implementation", "implementationProvider"],
   ["pullDiagnostics", "diagnosticProvider"],
 ] as const satisfies readonly (readonly [Capability, string])[];
 
@@ -301,6 +310,7 @@ export function performHandshake(
             definition: { dynamicRegistration: false, linkSupport: true },
             documentSymbol: { dynamicRegistration: false, hierarchicalDocumentSymbolSupport: true },
             hover: { dynamicRegistration: false },
+            implementation: { dynamicRegistration: false, linkSupport: true },
             publishDiagnostics: { relatedInformation: true, versionSupport: false },
             references: { dynamicRegistration: false },
             synchronization: { didSave: false, dynamicRegistration: false },

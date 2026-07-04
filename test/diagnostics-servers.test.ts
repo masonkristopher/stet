@@ -64,6 +64,7 @@ test("serversProviding keeps only servers whose static hint can answer the inten
   // So intel never acquires it for a code-intel pull.
   expect(serversProviding("src/a.ts", "definition")).toEqual(["typescript"]);
   expect(serversProviding("src/a.tsx", "references")).toEqual(["typescript"]);
+  expect(serversProviding("src/a.ts", "implementation")).toEqual(["typescript"]);
   // Json and yaml only push diagnostics (validation-only), so they never surface for a code-intel pull.
   expect(serversProviding("package.json", "definition")).toEqual([]);
   expect(serversProviding("config.yaml", "hover")).toEqual([]);
@@ -97,6 +98,7 @@ test("handshake parses advertised providers into the capability set", async () =
                 definitionProvider: true,
                 documentSymbolProvider: { label: "TypeScript" },
                 hoverProvider: true,
+                implementationProvider: true,
                 referencesProvider: true,
               },
             }
@@ -111,6 +113,7 @@ test("handshake parses advertised providers into the capability set", async () =
   expect(handle.capabilities.has("references")).toBe(true);
   expect(handle.capabilities.has("hover")).toBe(true);
   expect(handle.capabilities.has("documentSymbol")).toBe(true);
+  expect(handle.capabilities.has("implementation")).toBe(true);
   expect(handle.capabilities.has("pullDiagnostics")).toBe(false);
   expect(requested).toEqual(["initialize"]);
   expect(notified).toEqual(["initialized"]);
@@ -156,12 +159,19 @@ test("handshake treats a malformed provider value as unsupported", async () => {
     openDocument: () => Effect.void,
     published: Effect.sync(() => new Map<string, unknown[]>()),
     request: () =>
-      Effect.succeed({ capabilities: { definitionProvider: null, referencesProvider: 0 } }),
+      Effect.succeed({
+        capabilities: {
+          definitionProvider: null,
+          implementationProvider: 0,
+          referencesProvider: 0,
+        },
+      }),
     whenProjectLoaded: Effect.void,
   };
 
   const handle = await Effect.runPromise(performHandshake(connection, "/repo"));
 
   expect(handle.capabilities.has("definition")).toBe(false);
+  expect(handle.capabilities.has("implementation")).toBe(false);
   expect(handle.capabilities.has("references")).toBe(false);
 });

@@ -705,6 +705,14 @@ export function createKeyHandler(host: HostEffects) {
         return;
       }
 
+      // Find implementations for the symbol under the caret (Shift+I): a concrete symbol jumps to its
+      // Single implementation, an interface/abstract member lists every concrete body in the
+      // References overlay. Bare uppercase like Shift+K/Shift+H. The action guards itself.
+      if ((key.name === "I" || (key.name === "i" && key.shift)) && fileViewShowing) {
+        void state.findImplementations();
+        return;
+      }
+
       if ((key.name === "Y" || (key.name === "y" && key.shift)) && fileViewShowing) {
         state.copyFileContents();
         return;

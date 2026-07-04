@@ -37,8 +37,8 @@ problems. You decide what to say next.
 - Marks recent activity and lets you jump to the latest touched file.
 - Shows diagnostics in the tree, in the viewer, and in a problems panel.
 - Navigates code through read-only language-server pulls: go to definition, find
-  references, call hierarchy, hover for type and docs, and a symbol outline of the
-  open file.
+  references, find implementations, call hierarchy, hover for type and docs, and a
+  symbol outline of the open file.
 - Copies a reference and snippet to paste back into the agent conversation: the
   file `path` in the tree and `path:line:col` in the viewer (`path:line` after
   clicking a line number).
@@ -185,6 +185,18 @@ The results open in a palette-family overlay grouped by file, each row showing
 result, `esc` closes. Same read-only LSP request family as go-to-definition,
 over the same servers.
 
+### Find implementations
+
+Put the caret on an interface or abstract member and press `Shift+I` to jump past
+the abstraction to its concrete bodies. A single implementation jumps straight
+there; more than one opens the same overlay as find-references, grouped by file
+with each row's source line, to pick from. On a plain concrete symbol the server
+returns one location and it collapses to a jump. It's a read-only LSP request
+over the same servers as go-to-definition, distinct from it: definition lands on
+the abstract declaration, implementations land on the concrete bodies.
+
+![find implementations overlay listing an interface's concrete implementations grouped by file, each with its source line](assets/screenshots/find-implementations.png)
+
 ### Call hierarchy
 
 Put the caret on a function or method and press `Shift+H` to list its callers in
@@ -261,6 +273,7 @@ repo's own, then your `PATH`), so diagnostics work out of the box. Pass
 | `g` / `G`   | jump to first / last line                            |
 | `F12`       | go to definition of the symbol under the caret       |
 | `Shift+F12` | find references to the symbol under the caret        |
+| `Shift+I`   | find implementations of the symbol under the caret   |
 | `Shift+H`   | call hierarchy of the symbol (`Tab` flips direction) |
 | `K`         | hover: type and docs for the symbol under the caret  |
 | `S`         | find symbols: outline of the open file               |
@@ -318,9 +331,9 @@ to pin it as a tab. Clicks also work in the overlays and the search pane: a go-t
 worktree to switch to, or a theme to apply (hovering a theme previews it
 live); a click on a search result selects it and a double-click opens it. Clicking a pane focuses it, and the wheel scrolls whichever
 pane the pointer is over. Right-click a tree row or a viewer symbol for a context
-menu of the actions that apply there (go to definition, find references, call
-hierarchy, hover, copy, open in editor), the same menu `Shift+F10` opens on the
-focused pane.
+menu of the actions that apply there (go to definition, find references, find
+implementations, call hierarchy, hover, copy, open in editor), the same menu
+`Shift+F10` opens on the focused pane.
 
 ## Configuration
 

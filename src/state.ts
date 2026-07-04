@@ -405,7 +405,7 @@ function createState() {
   const [referencesIndex, setReferencesIndex] = createSignal(0);
   const [referencesScrollTop, setReferencesScrollTop] = createSignal(0);
   const [referencesLabel, setReferencesLabel] = createSignal<
-    "references" | "definitions" | "incoming calls" | "outgoing calls"
+    "references" | "definitions" | "implementations" | "incoming calls" | "outgoing calls"
   >("references");
   const [symbolsOpen, setSymbolsOpen] = createSignal(false);
   const [symbolsStatus, setSymbolsStatus] = createSignal<
@@ -1831,33 +1831,30 @@ function createState() {
     return { line, path };
   }
 
-  async function goToDefinition() {
-    // A fresh invocation supersedes any in-flight lookup, even when the guard below no-ops, so a
-    // Stale result can't land a jump after the user has moved on.
-    intelController?.abort();
-    const caret = caretTarget();
-    if (caret === undefined) {
-      return;
-    }
-    const { line, path } = caret;
-    const controller = new AbortController();
-    intelController = controller;
-    setIntelStatus("resolving definition…");
-    const requestRoot = repoRoot();
+  // The jump-or-list pull shared by go-to-definition and find-implementations: both resolve the
+  // Caret to locations, then a single in-repo target jumps while several open the references
+  // Overlay to pick from. They differ only in the LSP method, the in-flight status, the overlay
+  // Label, and the notices. The caller owns the abort/controller/caret setup (so the deliberate
+  // "supersede even when a guard no-ops" behavior stays there), and passes a `pull` thunk closing
+  // Over the resolved caret; this owns the status indicator and the result handling.
+  async function resolveAndJump(
+    controller: AbortController,
+    requestRoot: string,
+    statusText: string,
+    label: "definitions" | "implementations",
+    notices: { none: string; outside: string },
+    pull: () => Effect.Effect<NormalizedLocation[], IntelRequestError, Intel>,
+  ) {
+    setIntelStatus(statusText);
     try {
-      const locations = await runtime.runPromise(
-        Intel.use((intel) =>
-          intel.definition(requestRoot, path, { character: cursorColumn(), line: line - 1 }),
-        ),
-        { signal: controller.signal },
-      );
+      const locations = await runtime.runPromise(pull(), { signal: controller.signal });
       // A worktree switch mid-request leaves these paths resolving against the old repo, so a jump
       // Would land on a stale or missing file; drop the result unless the root still matches.
       if (controller.signal.aborted || repoRoot() !== requestRoot) {
         return;
       }
       if (locations.length === 0) {
-        notify("no definition");
+        notify(notices.none);
         return;
       }
       // The service relativizes in-repo paths; an out-of-repo target (e.g. node_modules) stays
@@ -1867,17 +1864,17 @@ function createState() {
         .toSorted(byReferenceOrder);
       const target = inRepo[0];
       if (target === undefined) {
-        notify("definition outside repo");
+        notify(notices.outside);
         return;
       }
-      // More than one definition (e.g. an overloaded symbol) is a pick, not a jump: read
-      // Each target's source line and hand the set to the shared references overlay.
+      // More than one result (an overloaded symbol, or an interface with several implementors) is a
+      // Pick, not a jump: read each target's source line and hand the set to the references overlay.
       if (inRepo.length > 1) {
         const linesByPath = await readReferenceLines(requestRoot, inRepo, controller.signal);
         if (intelController !== controller || repoRoot() !== requestRoot) {
           return;
         }
-        openReferences("definitions", attachReferencePreviews(inRepo, linesByPath));
+        openReferences(label, attachReferencePreviews(inRepo, linesByPath));
         return;
       }
       batch(() => {
@@ -1889,12 +1886,60 @@ function createState() {
         notify("language server unreachable", "error");
       }
     } finally {
-      // A superseding F12 installs its own controller and indicator, so only the
-      // Latest invocation clears the busy state; the aborted one leaves it alone.
+      // A superseding request installs its own controller and indicator, so only the latest
+      // Invocation clears the busy state; the aborted one leaves it alone.
       if (intelController === controller) {
         setIntelStatus(undefined);
       }
     }
+  }
+
+  async function goToDefinition() {
+    // A fresh invocation supersedes any in-flight lookup, even when the guard below no-ops, so a
+    // Stale result can't land a jump after the user has moved on.
+    intelController?.abort();
+    const caret = caretTarget();
+    if (caret === undefined) {
+      return;
+    }
+    const { line, path } = caret;
+    const controller = new AbortController();
+    intelController = controller;
+    const requestRoot = repoRoot();
+    await resolveAndJump(
+      controller,
+      requestRoot,
+      "resolving definition…",
+      "definitions",
+      { none: "no definition", outside: "definition outside repo" },
+      () =>
+        Intel.use((intel) =>
+          intel.definition(requestRoot, path, { character: cursorColumn(), line: line - 1 }),
+        ),
+    );
+  }
+
+  async function findImplementations() {
+    intelController?.abort();
+    const caret = caretTarget();
+    if (caret === undefined) {
+      return;
+    }
+    const { line, path } = caret;
+    const controller = new AbortController();
+    intelController = controller;
+    const requestRoot = repoRoot();
+    await resolveAndJump(
+      controller,
+      requestRoot,
+      "resolving implementations…",
+      "implementations",
+      { none: "no implementations", outside: "implementations outside repo" },
+      () =>
+        Intel.use((intel) =>
+          intel.implementation(requestRoot, path, { character: cursorColumn(), line: line - 1 }),
+        ),
+    );
   }
 
   // Read each referenced file's lines once (keyed by path) so the overlay can show a
@@ -2514,6 +2559,10 @@ function createState() {
         callHierarchy();
         return;
       }
+      case "findImplementations": {
+        void findImplementations();
+        return;
+      }
       case "showHover": {
         void showHover();
         return;
@@ -3093,6 +3142,7 @@ function createState() {
     fileComboboxResults,
     fileView,
     findActive,
+    findImplementations,
     findMatchPos,
     findMatches,
     findOpen,

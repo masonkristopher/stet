@@ -69,6 +69,11 @@ export class Intel extends Context.Service<
       path: string,
       position: Position,
     ) => Effect.Effect<HoverSegment[], IntelRequestError>;
+    readonly implementation: (
+      repoRoot: string,
+      path: string,
+      position: Position,
+    ) => Effect.Effect<NormalizedLocation[], IntelRequestError>;
     readonly symbols: (
       repoRoot: string,
       path: string,
@@ -270,6 +275,17 @@ export const IntelLive = Layer.effect(
         ),
       hover: (repoRoot, path, position) =>
         pull(repoRoot, path, position, "hover", "textDocument/hover", {}, parseHover, []),
+      implementation: (repoRoot, path, position) =>
+        pull(
+          repoRoot,
+          path,
+          position,
+          "implementation",
+          "textDocument/implementation",
+          {},
+          relativizeLocations(repoRoot, normalizeDefinition),
+          [],
+        ),
       references: (repoRoot, path, position) =>
         pull(
           repoRoot,

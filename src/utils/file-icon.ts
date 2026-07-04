@@ -11,14 +11,15 @@
  * The glyph name behind each code (for future edits): file = cod-file, folder(_open) =
  * fa-folder(_open), and per entry below: ts dev-typescript, tsx/jsx dev-react, js dev-javascript,
  * json cod-json, md dev-markdown, css dev-css3, html dev-html5, rs dev-rust, py dev-python, go
- * dev-go, sh cod-terminal_bash, toml custom-toml, yaml dev-yaml, lock fa-lock, image
- * fa-file_image_o, java/jar/class dev-java, kt/kts seti-kotlin, groovy/gvy dev-groovy, scala/sc
- * dev-scala, gradle dev-gradle (also build/settings.gradle(.kts), gradlew(.bat),
- * gradle.properties), maven seti-maven (pom.xml), node dev-nodejs_small, tsconfig seti-tsconfig,
- * bun dev-bun (also bunfig.toml), docker dev-docker, make seti-makefile, license seti-license (also
- * NOTICE and license-style filenames), git dev-git, config/env/conf seti-config (also the dotfile
- * fallback), book fa-book, csv seti-csv, http fa-paper_plane, astro custom-astro, pdf
- * fa-file_pdf_o, video fa-file_video_o, symlink oct-file_symlink_file.
+ * dev-go, rb dev-ruby (also the .rb.tmpl Homebrew formula template), sh cod-terminal_bash, toml
+ * custom-toml, yaml dev-yaml, lock fa-lock, image fa-file_image_o, java/jar/class dev-java, kt/kts
+ * seti-kotlin, groovy/gvy dev-groovy, scala/sc dev-scala, gradle dev-gradle (also
+ * build/settings.gradle(.kts), gradlew(.bat), gradle.properties), maven seti-maven (pom.xml), node
+ * dev-nodejs_small, tsconfig seti-tsconfig, bun dev-bun (also bunfig.toml), docker dev-docker, make
+ * seti-makefile, license seti-license (also NOTICE and license-style filenames), git dev-git,
+ * config/env/conf seti-config (also the dotfile fallback), book fa-book, csv seti-csv, http
+ * fa-paper_plane, astro custom-astro, pdf fa-file_pdf_o, video fa-file_video_o, symlink
+ * oct-file_symlink_file.
  */
 
 const DEFAULT_FILE = "\u{ea7b}";
@@ -28,6 +29,7 @@ const FOLDER_OPEN = "\u{f07c}";
 const SYMLINK = "\u{f481}";
 const JAVA = "\u{e738}";
 const GRADLE = "\u{e7f2}";
+const RUBY = "\u{e739}";
 const LICENSE = "\u{e60a}";
 
 /** Exact-filename matches, checked before the extension table. */
@@ -75,6 +77,7 @@ const BY_SUFFIX = new Map([
   ["rs", "\u{e7a8}"],
   ["py", "\u{e73c}"],
   ["go", "\u{e724}"],
+  ["rb", RUBY],
   ["sh", "\u{ebca}"],
   ["bash", "\u{ebca}"],
   ["zsh", "\u{ebca}"],
@@ -145,6 +148,11 @@ export function fileIcon(name: string) {
 
   if (isLicenseFile(lower)) {
     return LICENSE;
+  }
+
+  // A Homebrew formula template is Ruby behind a .tmpl wrapper; icon it as Ruby.
+  if (lower.endsWith(".rb.tmpl")) {
+    return RUBY;
   }
 
   const dot = lower.lastIndexOf(".");

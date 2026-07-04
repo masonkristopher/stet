@@ -88,6 +88,15 @@ describe("fileIcon", () => {
     expect(fileIcon("build.gradle.kts")).not.toBe(fileIcon("script.kts"));
   });
 
+  test("matches Ruby files, and peels a .rb.tmpl template to the Ruby glyph", () => {
+    expect(fileIcon("Formula.rb")).toBe("\u{e739}");
+    expect(fileIcon("sideye.rb.tmpl")).toBe("\u{e739}");
+    expect(fileIcon("sideye.rb.tmpl")).toBe(fileIcon("Formula.rb"));
+    // Only .rb.tmpl is peeled: other .tmpl files and a bare .tmpl stay generic.
+    expect(fileIcon("config.yaml.tmpl")).toBe("\u{ea7b}");
+    expect(fileIcon("release.tmpl")).toBe("\u{ea7b}");
+  });
+
   test("marks .conf files with the config glyph", () => {
     expect(fileIcon("nginx.conf")).toBe("\u{e615}");
     expect(fileIcon("redis.conf")).toBe("\u{e615}");

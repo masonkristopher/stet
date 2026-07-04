@@ -226,14 +226,21 @@ function attach(lang: string) {
 // String equality, so a `docker/Dockerfile` would otherwise miss and fall back to
 // Plain text. `.gradle` is the Groovy build DSL, which @pierre/diffs doesn't map;
 // `.gradle.kts` already resolves to kts via its extension, so only bare `.gradle`
-// Needs the override.
+// Needs the override. `.rb.tmpl` is the Homebrew formula template: Ruby behind a
+// `.tmpl` wrapper the library reads as plain text, so peel it to the underlying Ruby.
 /**
  * The Shiki language a file highlights as, shared by the diff and any surface that renders code
  * from that file (search results), so their colors agree.
  */
 export function languageForPath(name: string) {
   const base = name.slice(name.lastIndexOf("/") + 1);
-  return base.endsWith(".gradle") ? "groovy" : getFiletypeFromFileName(base);
+  if (base.endsWith(".gradle")) {
+    return "groovy";
+  }
+  if (base.endsWith(".rb.tmpl")) {
+    return "ruby";
+  }
+  return getFiletypeFromFileName(base);
 }
 
 async function ensureLanguages(meta: { name: string; prevName?: string }) {

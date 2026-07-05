@@ -10,6 +10,7 @@ import { columnToIndex, markRange, sliceSpansWindow } from "@/diff/spans";
 import type { HighlightSpan } from "@/diff/spans";
 import { visibleWindow, visibleWindowVariable } from "@/diff/windowing";
 import { wordAt } from "@/diff/words";
+import { levelGlyph } from "@/log/levels";
 import { state } from "@/state";
 import { useTheme } from "@/theme/context";
 import { caretCell } from "@/viewer/anchor";
@@ -44,18 +45,11 @@ function StyledLine(props: {
       return;
     }
     const { row } = props;
-    const sign = row.type === "add" ? "+" : row.type === "remove" ? "-" : " ";
-    const signColor =
-      row.type === "add"
-        ? theme.colors.diff.addedSign
-        : row.type === "remove"
-          ? theme.colors.diff.removedSign
-          : theme.colors.text.faint;
-    // Scroll mode: render the horizontal window [scrollX, scrollX+width) so all
-    // Lines shift together (the sign stays fixed). Wrap mode keeps full spans.
+    // The change bar and line metadata live in the fixed gutter (so they stay put while
+    // The code scrolls); this buffer renders code only.
     const windowed = props.wrap
       ? row.spans
-      : sliceSpansWindow(row.spans, props.scrollX, props.width - 1);
+      : sliceSpansWindow(row.spans, props.scrollX, props.width);
     // The caret word gets a background. Its range is in content display columns;
     // In scroll mode the window starts at scrollX, so shift the range by it. In
     // Wrap mode the column styling follows the word wherever it wraps.
@@ -64,13 +58,12 @@ function StyledLine(props: {
       props.caret === undefined
         ? windowed
         : markRange(windowed, props.caret.from - offset, props.caret.to - offset);
-    ref.content = new StyledText([
-      fg(signColor)(sign),
-      ...spans.map((part) => {
+    ref.content = new StyledText(
+      spans.map((part) => {
         const chunk = fg(part.fg ?? theme.colors.text.primary)(part.text);
         return part.highlight === true ? bg(theme.colors.caret.wordBg)(chunk) : chunk;
       }),
-    ]);
+    );
   });
   return (
     <text
@@ -150,7 +143,10 @@ export function DiffView() {
     }
     return String(max).length;
   });
-  const gutterWidth = () => numberWidth() + 1;
+  // The gutter is a change bar, the number, then the glyph: fixed cells left of the code,
+  // So a clean line reserves the bar/glyph columns and never shifts (bar + number + space
+  // + glyph + space).
+  const gutterWidth = () => numberWidth() + 4;
 
   const contentWidth = () =>
     Math.max(1, state.terminalWidth() - state.sidebarWidth() - 2 - gutterWidth());
@@ -168,10 +164,8 @@ export function DiffView() {
       if (row.kind !== "line") {
         return 1;
       }
-      // Include the +/-/space sign StyledLine prepends, so the measured wrap
-      // Width matches what actually renders (the sign only shifts the first row).
-      const sign = row.type === "add" ? "+" : row.type === "remove" ? "-" : " ";
-      return measurer.measure(sign + row.spans.map((span) => span.text).join(""), width);
+      // The gutter (bar/number/glyph) is fixed, so the content that wraps is code only.
+      return measurer.measure(row.spans.map((span) => span.text).join(""), width);
     });
   });
 
@@ -186,7 +180,7 @@ export function DiffView() {
     }
     return max;
   });
-  const maxScrollX = () => Math.max(0, longestLine() - (contentWidth() - 1));
+  const maxScrollX = () => Math.max(0, longestLine() - contentWidth());
 
   // The deepest the viewport can scroll: total content height (sum of per-row
   // Heights — `rows().length` in non-wrap, the wrapped total otherwise) minus the
@@ -337,7 +331,10 @@ export function DiffView() {
     }
     const content = state.cursorLineContent();
     const from = Bun.stringWidth(content.slice(0, word.start));
-    return { from, to: from + Bun.stringWidth(content.slice(word.start, word.end)) };
+    return {
+      from,
+      to: from + Bun.stringWidth(content.slice(word.start, word.end)),
+    };
   });
 
   // The cursor row's cumulative top, the same sum the vertical-follow effect uses,
@@ -367,7 +364,7 @@ export function DiffView() {
     }
     return caretCell({
       caretFrom: caretRange()?.from ?? 0,
-      contentLeft: gutterWidth() + 1,
+      contentLeft: gutterWidth(),
       cursorTop: top,
       scrollTop: state.viewerScrollTop(),
       scrollX: state.viewerScrollX(),
@@ -405,53 +402,88 @@ export function DiffView() {
       margin: CARET_SCROLL_MARGIN,
       maxScroll: maxScrollX(),
       to: range.to,
-      viewport: contentWidth() - 1,
+      viewport: contentWidth(),
     });
     if (next !== current) {
       setScrollX(next);
     }
   });
 
-  // The gutter carries two orthogonal signals on separate channels: its background
-  // Is the diff state (add/remove), and its line-number digits take the diagnostic
-  // Severity color. They never fight, and a severity number only ever lands on a
-  // Green (added) or base (context) gutter since removed lines have no new-line number.
+  // The gutter reads left to right as change bar, number, glyph, then code, carrying two
+  // Orthogonal signals on separate channels: the far-left change bar and the number digits
+  // Take the diff state (add green / remove red / context neutral), a dedicated glyph cell
+  // Takes the diagnostic severity. The bar is a single ¼-block glyph, add vs remove told
+  // Apart by color alone (a deliberate call: equal footprint over a NO_COLOR distinction,
+  // Which the +/- column used to carry). It is a Block Element (reliably one cell wide),
+  // Never Box-Drawing, whose rarer glyphs fall back to a mis-metriced font and misalign the
+  // Gutter. The severity glyph only ever lands on an added or context row since a removed
+  // Line has no new-line number to map findings by.
   const findingsFor = (row: DiffLineRow) =>
     row.newLine === undefined ? undefined : state.lineMap().get(row.newLine);
 
-  const gutterNumberColor = (row: DiffLineRow) => {
+  const gutterNumberColor = (row: DiffLineRow) =>
+    row.type === "add"
+      ? theme.colors.diff.addedSign
+      : row.type === "remove"
+        ? theme.colors.diff.removedSign
+        : theme.colors.diff.lineNumberFg;
+
+  const changeBar = (row: DiffLineRow) => (row.type === "context" ? " " : "▎");
+  const changeBarColor = (row: DiffLineRow) =>
+    row.type === "add"
+      ? theme.colors.diff.addedSign
+      : row.type === "remove"
+        ? theme.colors.diff.removedSign
+        : theme.colors.text.faint;
+
+  // The strongest severity on the line, or undefined when it has no findings. Feeds a
+  // Bare glyph (paired with color per the severity rule, so it reads under NO_COLOR)
+  // Rather than recoloring the number.
+  const lineSeverity = (row: DiffLineRow) => {
     const findings = findingsFor(row);
     if (findings === undefined) {
-      return theme.colors.diff.lineNumberFg;
+      return undefined;
     }
     return findings.some((finding) => finding.severity === "error")
-      ? theme.colors.severity.error
+      ? "error"
       : findings.some((finding) => finding.severity === "warning")
-        ? theme.colors.severity.warning
-        : theme.colors.severity.info;
+        ? "warning"
+        : "info";
   };
 
-  // Each line's background resolves in two steps: its diff state, then a cursor lift
-  // That brightens that state rather than replacing it, so a selected add/remove line
-  // Stays its own color; only a plain context line falls back to the neutral highlight.
-  const gutterState = (row: DiffLineRow) =>
-    row.type === "add"
-      ? { active: theme.rgba.addedLineNumberBgActive, normal: theme.colors.diff.addedLineNumberBg }
-      : row.type === "remove"
-        ? {
-            active: theme.rgba.removedLineNumberBgActive,
-            normal: theme.colors.diff.removedLineNumberBg,
-          }
-        : undefined;
+  // A width-1 glyph cell (blank when the line is clean, so the gutter never shifts),
+  // Colored by severity. `severity.info` directly, not `levelColor` (which maps info to
+  // A neutral text role for status lines, not the info-diagnostic hue used here).
+  const diagnosticGlyph = (row: DiffLineRow) => {
+    const severity = lineSeverity(row);
+    return severity === undefined ? " " : levelGlyph(severity);
+  };
+  const diagnosticColor = (row: DiffLineRow) => {
+    const severity = lineSeverity(row);
+    return severity === undefined
+      ? theme.colors.diff.lineNumberFg
+      : theme.colors.severity[severity];
+  };
 
+  // Each line's background: a find match wins, else a faint add/remove tint (the change
+  // Bar and colored number carry the diff state; this is just a subtle block cue). The
+  // Cursor lift brightens whatever state the line has rather than replacing it, so a
+  // Selected tinted line stays its own color; a context line falls back to the neutral
+  // Cursor highlight (or nothing when it isn't the cursor).
   const contentState = (row: DiffLineRow) => {
     if (findMatchSet().has(row.navIndex)) {
-      return { active: theme.rgba.findMatchBgActive, normal: theme.colors.find.matchBg };
+      return {
+        active: theme.rgba.findMatchBgActive,
+        normal: theme.colors.find.matchBg,
+      };
     }
     return row.type === "add"
       ? { active: theme.rgba.addedBgActive, normal: theme.colors.diff.addedBg }
       : row.type === "remove"
-        ? { active: theme.rgba.removedBgActive, normal: theme.colors.diff.removedBg }
+        ? {
+            active: theme.rgba.removedBgActive,
+            normal: theme.colors.diff.removedBg,
+          }
         : undefined;
   };
 
@@ -459,6 +491,19 @@ export function DiffView() {
     background: { normal: string; active: RGBA } | undefined,
     cursor: boolean,
   ) => (cursor ? (background?.active ?? theme.colors.surface.cursor) : background?.normal);
+
+  // The gutter shares the line's add/remove tint so a changed line reads as one band edge
+  // To edge. It follows diff state only, not the find match (a search hit stays a
+  // Content-only highlight; the changed-line band stays stable underneath it).
+  const gutterState = (row: DiffLineRow) =>
+    row.type === "add"
+      ? { active: theme.rgba.addedBgActive, normal: theme.colors.diff.addedBg }
+      : row.type === "remove"
+        ? {
+            active: theme.rgba.removedBgActive,
+            normal: theme.colors.diff.removedBg,
+          }
+        : undefined;
 
   const gutterBackground = (row: DiffLineRow) =>
     resolveBackground(gutterState(row), isCursor(row) || isSelected(row));
@@ -538,7 +583,9 @@ export function DiffView() {
                   }}
                 >
                   <text ref={(el) => (el.selectable = false)} fg={theme.colors.text.faint}>
-                    {`${markerGlyph(row()).padStart(numberWidth())} ${markerLabel(row())}`}
+                    {`${markerGlyph(row())
+                      .padStart(numberWidth() + 1)
+                      .padEnd(gutterWidth())}${markerLabel(row())}`}
                   </text>
                 </box>
               }
@@ -585,7 +632,7 @@ export function DiffView() {
                       // Stays approximate, the v1 wrap caret limitation).
                       const column =
                         event.x -
-                        (state.sidebarWidth() + 1 + gutterWidth() + 1) +
+                        (state.sidebarWidth() + 1 + gutterWidth()) +
                         (wrap() ? 0 : scrollX());
                       if (column >= 0) {
                         const index = columnToIndex(content, column);
@@ -630,10 +677,24 @@ export function DiffView() {
                 >
                   <text
                     ref={(el) => (el.selectable = false)}
+                    fg={changeBarColor(line())}
+                    bg={gutterBackground(line())}
+                  >
+                    {changeBar(line())}
+                  </text>
+                  <text
+                    ref={(el) => (el.selectable = false)}
                     fg={gutterNumberColor(line())}
                     bg={gutterBackground(line())}
                   >
                     {`${lineLabel(line())} `}
+                  </text>
+                  <text
+                    ref={(el) => (el.selectable = false)}
+                    fg={diagnosticColor(line())}
+                    bg={gutterBackground(line())}
+                  >
+                    {`${diagnosticGlyph(line())} `}
                   </text>
                   <box
                     ref={(el) => (el.selectable = false)}
@@ -658,7 +719,7 @@ export function DiffView() {
       <CaretCard
         cursorTop={cursorTop}
         caretFrom={() => caretRange()?.from}
-        contentLeft={() => gutterWidth() + 1}
+        contentLeft={() => gutterWidth()}
         innerWidth={innerWidth}
       />
       <Show when={state.commandMenuOpen() && state.commandMenuContext() === "viewer"}>

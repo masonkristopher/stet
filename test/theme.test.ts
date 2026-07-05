@@ -60,9 +60,7 @@ describe("resolveTheme", () => {
     const resolved = resolveTheme(theme);
     return [
       [resolved.rgba.addedBgActive, theme.diff.addedBg],
-      [resolved.rgba.addedLineNumberBgActive, theme.diff.addedLineNumberBg],
       [resolved.rgba.removedBgActive, theme.diff.removedBg],
-      [resolved.rgba.removedLineNumberBgActive, theme.diff.removedLineNumberBg],
       [resolved.rgba.findMatchBgActive, theme.find.matchBg],
     ] as const;
   };

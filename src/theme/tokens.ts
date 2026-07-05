@@ -40,11 +40,9 @@ export const ThemeSchema = Schema.Struct({
   caret: Schema.Struct({ wordBg: Hex }),
   diff: Schema.Struct({
     addedBg: Hex,
-    addedLineNumberBg: Hex,
     addedSign: Hex,
     lineNumberFg: Hex,
     removedBg: Hex,
-    removedLineNumberBg: Hex,
     removedSign: Hex,
   }),
   find: Schema.Struct({ matchBg: Hex }),

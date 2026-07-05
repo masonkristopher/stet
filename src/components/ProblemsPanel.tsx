@@ -11,6 +11,7 @@ import { truncate } from "@/utils/text";
 
 import { FileIcon } from "./FileIcon";
 import { ListScrollbar } from "./ListScrollbar";
+import { PaneFrame } from "./PaneFrame";
 import { windowWheelHandler } from "./wheel";
 
 const INDENT = 2;
@@ -94,13 +95,7 @@ export function ProblemsPanel() {
   };
 
   return (
-    <box
-      height={PROBLEMS_HEIGHT}
-      width="100%"
-      flexDirection="column"
-      borderStyle="single"
-      borderColor={focused() ? theme.colors.border.focused : theme.colors.border.unfocused}
-    >
+    <PaneFrame focused={focused()} height={PROBLEMS_HEIGHT} width="100%">
       <box width="100%" height={viewport} flexDirection="row" onMouseScroll={onWheel}>
         <box
           ref={(el) => {
@@ -262,6 +257,6 @@ export function ProblemsPanel() {
           scrollTop={state.problemsScrollTop}
         />
       </box>
-    </box>
+    </PaneFrame>
   );
 }

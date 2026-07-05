@@ -7,6 +7,7 @@ import { useTheme } from "@/theme/context";
 import { nearestNavigableIndex, placeholderText, viewerStats } from "@/ui-helpers";
 
 import { DiffView } from "./diff/DiffView";
+import { PaneFrame } from "./PaneFrame";
 import { SearchPane } from "./SearchPane";
 import { Tabs } from "./Tabs";
 
@@ -203,12 +204,10 @@ export function Viewer() {
   }
 
   return (
-    <box
+    <PaneFrame
+      focused={focused()}
       flexGrow={1}
       height="100%"
-      flexDirection="column"
-      borderStyle="single"
-      borderColor={focused() ? theme.colors.border.focused : theme.colors.border.unfocused}
       onMouseDown={() => state.setFocusedPane(state.mainView() === "search" ? "search" : "diff")}
     >
       {/* The main-area view switch: exactly one view owns the pane interior.
@@ -362,6 +361,6 @@ export function Viewer() {
           </Show>
         </Match>
       </Switch>
-    </box>
+    </PaneFrame>
   );
 }

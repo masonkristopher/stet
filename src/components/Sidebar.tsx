@@ -5,6 +5,7 @@ import { useTheme } from "@/theme/context";
 import { createDoubleClickGuard } from "@/utils/double-click";
 
 import { ListScrollbar } from "./ListScrollbar";
+import { PaneFrame } from "./PaneFrame";
 import { TreeRow } from "./TreeRow";
 import { windowWheelHandler } from "./wheel";
 
@@ -32,12 +33,10 @@ export function Sidebar() {
   });
 
   return (
-    <box
+    <PaneFrame
+      focused={focused()}
       width={state.sidebarWidth()}
       height="100%"
-      flexDirection="column"
-      borderStyle="single"
-      borderColor={focused() ? theme.colors.border.focused : theme.colors.border.unfocused}
       backgroundColor={theme.colors.surface.base}
       onMouseDown={() => state.setFocusedPane("tree")}
     >
@@ -90,6 +89,6 @@ export function Sidebar() {
           scrollTop={state.sidebarScrollTop}
         />
       </box>
-    </box>
+    </PaneFrame>
   );
 }

@@ -85,7 +85,15 @@ const biomeExtensions = [...codeExtensions, "json", "jsonc", "css", "graphql"] a
 // Handshake are language-agnostic. typescript-language-server also serves JavaScript; oxlint lints
 // The same files, so a `.ts` file resolves to both servers and their findings merge. A server with a
 // `detect` gate runs only where its predicate accepts the repo (Biome needs a biome config).
-const registry: Record<string, ServerSpec> = {
+//
+// `provision.packages` pin exact versions, never a bare name that resolves `@latest`: the tier-3
+// Download is otherwise nondeterministic (whatever the registry serves that day) and would pull a
+// Broken or compromised upstream release automatically, a weaker bar than sideye's own pinned
+// Distribution. Pinning also lets npm verify the tarball against its immutable published version.
+// Bumping a pin is an explicit reviewable edit; the cache is keyed by the pinned set (`provisionKey`)
+// So a bump re-provisions. The oxlint/typescript pins deliberately track this repo's own devDeps but
+// Are independent (sideye's build toolchain vs. the LSP server it downloads into arbitrary repos).
+export const registry: Record<string, ServerSpec> = {
   biome: {
     args: ["lsp-proxy"],
     binary: "biome",
@@ -95,7 +103,7 @@ const registry: Record<string, ServerSpec> = {
       existsSync(join(repoRoot, "biome.json")) || existsSync(join(repoRoot, "biome.jsonc")),
     extensions: biomeExtensions,
     provides: [],
-    provision: { packages: ["@biomejs/biome"] },
+    provision: { packages: ["@biomejs/biome@2.5.2"] },
   },
   json: {
     // Always-on (no `detect`) so JSON gets schema validation in every repo. It overlaps Biome's
@@ -106,7 +114,7 @@ const registry: Record<string, ServerSpec> = {
     binary: "vscode-json-language-server",
     extensions: ["json", "jsonc"],
     provides: [],
-    provision: { packages: ["vscode-langservers-extracted"] },
+    provision: { packages: ["vscode-langservers-extracted@4.10.0"] },
   },
   oxlint: {
     args: ["--lsp"],
@@ -130,7 +138,7 @@ const registry: Record<string, ServerSpec> = {
       };
     },
     provides: [],
-    provision: { packages: ["oxlint"] },
+    provision: { packages: ["oxlint@1.72.0"] },
   },
   typescript: {
     args: ["--stdio"],
@@ -144,14 +152,14 @@ const registry: Record<string, ServerSpec> = {
       "callHierarchy",
       "implementation",
     ],
-    provision: { packages: ["typescript-language-server", "typescript"] },
+    provision: { packages: ["typescript-language-server@5.3.0", "typescript@6.0.3"] },
   },
   yaml: {
     args: ["--stdio"],
     binary: "yaml-language-server",
     extensions: ["yaml", "yml"],
     provides: [],
-    provision: { packages: ["yaml-language-server"] },
+    provision: { packages: ["yaml-language-server@1.23.0"] },
   },
 };
 
@@ -231,9 +239,11 @@ export function resolveServerCommand(language: string, repoRoot: string): string
   if (repoOrPath !== undefined) {
     return [repoOrPath, ...spec.args];
   }
-  const cached = cachedBinaryPath(language, spec.binary);
-  if (existsSync(cached)) {
-    return [cached, ...spec.args];
+  if (spec.provision !== undefined) {
+    const cached = cachedBinaryPath(language, spec.binary, spec.provision.packages);
+    if (existsSync(cached)) {
+      return [cached, ...spec.args];
+    }
   }
   return undefined;
 }

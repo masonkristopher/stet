@@ -274,25 +274,27 @@ repo's own, then your `PATH`), so diagnostics work out of the box. Pass
 
 ### viewer
 
-| Key         | Action                                               |
-| ----------- | ---------------------------------------------------- |
-| `/`         | find in the viewer; `n`/`N` cycle, `esc` clears      |
-| `ctrl-f`    | project search pane; regex/case/glob/scope toggles   |
-| `v`         | toggle diff <-> full file view for a changed file    |
-| `z`         | fold / unfold the region at the caret, or a git gap  |
-| `x`         | toggle long-line wrap in the viewer                  |
-| `f`         | load full content when truncated                     |
-| `ctrl-d/u`  | half-page cursor movement in the viewer              |
-| `g` / `G`   | jump to first / last line                            |
-| `F12`       | go to definition of the symbol under the caret       |
-| `Shift+F12` | find references to the symbol under the caret        |
-| `Shift+I`   | find implementations of the symbol under the caret   |
-| `Shift+H`   | call hierarchy of the symbol (`Tab` flips direction) |
-| `K`         | hover: type and docs for the symbol under the caret  |
-| `S`         | find symbols: outline of the open file               |
-| `<` / `>`   | back / forward through viewer history                |
-| `y`         | copy `path`, `path:line`, or `path:line:col`         |
-| `Y`         | copy the entire contents of the viewed file          |
+| Key         | Action                                                    |
+| ----------- | --------------------------------------------------------- |
+| `/`         | find in the viewer; `n`/`N` cycle, `esc` clears           |
+| `ctrl-f`    | project search pane; regex/case/glob/scope toggles        |
+| `v`         | toggle diff <-> full file view for a changed file         |
+| `z`         | fold / unfold the region at the caret, or a git gap       |
+| `x`         | toggle long-line wrap in the viewer                       |
+| `f`         | load full content when truncated                          |
+| `ctrl-d/u`  | half-page cursor movement in the viewer                   |
+| `g` / `G`   | jump to first / last line                                 |
+| `F12`       | go to definition of the symbol under the caret            |
+| `Shift+F12` | find references to the symbol under the caret             |
+| `Shift+I`   | find implementations of the symbol under the caret        |
+| `Shift+H`   | call hierarchy of the symbol (`Tab` flips direction)      |
+| `K`         | hover: type and docs for the symbol under the caret       |
+| `S`         | find symbols: outline of the open file                    |
+| `<` / `>`   | back / forward through viewer history                     |
+| `y`         | copy `path`, `path:line`, or `path:line:col`              |
+| `Y`         | copy the entire contents of the viewed file               |
+| `Shift+↑/↓` | extend a line selection (drag or shift-click also select) |
+| `C`         | copy the selected lines (or the caret line)               |
 
 ### tabs
 

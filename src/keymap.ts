@@ -424,6 +424,14 @@ export function createKeyHandler(host: HostEffects) {
         }
       }
 
+      // A line selection is dismiss-on-esc, claimed after the find handlers (so an
+      // Open or committed find dismisses first) but before the global esc, so esc
+      // Clears the band; the caret stays where the selection's focus was.
+      if (state.selectionAnchor() !== undefined && key.name === "escape") {
+        state.setSelectionAnchor(undefined);
+        return;
+      }
+
       if (key.ctrl && key.name === "p") {
         state.openFileCombobox();
         return;
@@ -577,7 +585,9 @@ export function createKeyHandler(host: HostEffects) {
         return;
       }
 
-      if (key.name === "c") {
+      // Bare c toggles changes-only; guard !shift so Shift+C (copy selection, handled
+      // Later with the other viewer actions) is not swallowed here.
+      if (key.name === "c" && !key.shift) {
         const current = state.changesOnly();
         state.setChangesOnly(!current);
         state.notify(current ? "all files" : "changes only");
@@ -640,6 +650,9 @@ export function createKeyHandler(host: HostEffects) {
         if (lineNumber !== undefined) {
           state.setJumpTarget({ escalate: false, line: lineNumber, path: selectedPath });
         }
+        // Diff and file views have different line lists, so a selection anchored in
+        // One is meaningless in the other; drop it as this toggle re-homes the caret.
+        state.setSelectionAnchor(undefined);
         state.setFileView(!state.fileView());
         return;
       }
@@ -718,6 +731,13 @@ export function createKeyHandler(host: HostEffects) {
         return;
       }
 
+      // Copy the selected lines' source text, or the caret line when there is no
+      // Selection. Distinct from `y` (a reference) and `Y` (the whole file).
+      if ((key.name === "C" || (key.name === "c" && key.shift)) && fileViewShowing) {
+        state.copySelection();
+        return;
+      }
+
       if (key.name === "y" && !key.shift) {
         if (state.focusedPane() === "tree") {
           const row = state.treeRows()[state.focusedRowIndex()];
@@ -781,7 +801,13 @@ export function createKeyHandler(host: HostEffects) {
       if (focusedPane === "diff") {
         const last = state.navigableLines().length - 1;
         const halfPage = Math.max(1, Math.floor(state.viewerHeight() / 2));
-        if (key.name === "j" || key.name === "down") {
+        // Shift+arrow extends a whole-line selection from the caret; plain arrows
+        // Fall through to the moves below (which clear any selection).
+        if (key.shift && key.name === "down") {
+          state.extendSelectionTo(Math.max(0, Math.min(state.cursorIndex() + 1, last)));
+        } else if (key.shift && key.name === "up") {
+          state.extendSelectionTo(Math.max(state.cursorIndex() - 1, 0));
+        } else if (key.name === "j" || key.name === "down") {
           state.setCursorRow(Math.max(0, Math.min(state.cursorIndex() + 1, last)));
         } else if (key.name === "k" || key.name === "up") {
           state.setCursorRow(Math.max(state.cursorIndex() - 1, 0));

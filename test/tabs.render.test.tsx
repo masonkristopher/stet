@@ -132,14 +132,15 @@ describe("tabs strip", () => {
       await renderOnce();
       expect(renderer.getSelection()).toBeNull();
 
-      // Control: double-clicking selectable diff content does start a selection,
-      // So the assertion above is meaningful (the harness can select).
+      // The viewer content is non-selectable chrome too: sideye owns line selection
+      // And disables OpenTUI's native text selection on the diff's text leaves, so a
+      // Double-click on a diff line starts no stray highlight either.
       const diffLines = onA.split("\n");
       const diffRow = diffLines.findIndex((line) => line.includes("aChanged"));
       const diffCol = diffLines[diffRow].indexOf("aChanged");
       await mouse.doubleClick(diffCol + 1, diffRow);
       await renderOnce();
-      expect(renderer.getSelection()).not.toBeNull();
+      expect(renderer.getSelection()).toBeNull();
     } finally {
       renderer.destroy();
       rmSync(repoRoot, { force: true, recursive: true });

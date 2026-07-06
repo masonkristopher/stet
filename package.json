@@ -1,6 +1,6 @@
 {
   "name": "stet",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "private": true,
   "description": "Read-only companion TUI for inspecting an agent's changes",
   "license": "MIT",

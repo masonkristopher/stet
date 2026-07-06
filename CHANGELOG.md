@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.1](https://github.com/jimmy-guzman/stet/compare/stet-v0.6.0...stet-v0.6.1) (2026-07-06)
+
+
+### Bug Fixes
+
+* **npm:** 🐛 publish the launcher as [@jimmy](https://github.com/jimmy).codes/stet ([#227](https://github.com/jimmy-guzman/stet/issues/227)) ([438d9fe](https://github.com/jimmy-guzman/stet/commit/438d9fe6ef4f901d0a54b6cf8d5a22a2220d587f))
+
 ## [0.6.0](https://github.com/jimmy-guzman/stet/compare/stet-v0.5.1...stet-v0.6.0) (2026-07-06)
 
 

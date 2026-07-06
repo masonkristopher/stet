@@ -1,5 +1,5 @@
 /**
- * LSP wire types for diagnostics and the mapping onto sideye's domain `Diagnostic` shape. Pure: the
+ * LSP wire types for diagnostics and the mapping onto stet's domain `Diagnostic` shape. Pure: the
  * caller relativizes the absolute path later (via `stateForResolvedChecker`), mirroring how the tsc
  * parser emits absolute paths today.
  */

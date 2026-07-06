@@ -24,7 +24,7 @@ test("last line stays reachable past emoji rows that render two terminal rows", 
     const emoji = "- `⚠️ marker | 🟠 wide` - ";
     return `${emoji}line_${n} ${"detail ".repeat(10)}${n}`;
   });
-  const repoRoot = createFixtureRepo("sideye-tallrow-", { "long.md": `${lines.join("\n")}\n` });
+  const repoRoot = createFixtureRepo("stet-tallrow-", { "long.md": `${lines.join("\n")}\n` });
   const model = await loadModel(repoRoot, { kind: "all", ref: "HEAD" });
   seedState(model, { kind: "all", ref: "HEAD" });
   state.setFocusedPane("diff");

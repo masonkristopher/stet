@@ -18,7 +18,7 @@ const spec: ProvisionSpec = {
 
 // The test preload disables downloads globally; restore that default after each toggle.
 afterEach(() => {
-  process.env.SIDEYE_NO_LSP_DOWNLOAD = "1";
+  process.env.STET_NO_LSP_DOWNLOAD = "1";
 });
 
 // A fake package manager: "installing" just drops the expected binary into the server dir, the way a
@@ -52,7 +52,7 @@ function withProvisioner<A, E>(
 }
 
 function tempRoot() {
-  return mkdtempSync(join(tmpdir(), "sideye-prov-"));
+  return mkdtempSync(join(tmpdir(), "stet-prov-"));
 }
 
 test("ensure returns ready when the binary is already cached", async () => {
@@ -60,7 +60,7 @@ test("ensure returns ready when the binary is already cached", async () => {
   try {
     const binDir = join(
       root,
-      "sideye",
+      "stet",
       "lsp",
       "typescript",
       provisionKey(spec.packages),
@@ -86,7 +86,7 @@ test("ensure returns ready when the binary is already cached", async () => {
 });
 
 test("ensure returns disabled when downloads are turned off", async () => {
-  process.env.SIDEYE_NO_LSP_DOWNLOAD = "1";
+  process.env.STET_NO_LSP_DOWNLOAD = "1";
   const root = tempRoot();
   try {
     const state = await withProvisioner(
@@ -101,7 +101,7 @@ test("ensure returns disabled when downloads are turned off", async () => {
 });
 
 test("ensure starts one background install and reaches ready when it completes", async () => {
-  process.env.SIDEYE_NO_LSP_DOWNLOAD = "";
+  process.env.STET_NO_LSP_DOWNLOAD = "";
   const root = tempRoot();
   try {
     const result = await withProvisioner(
@@ -128,7 +128,7 @@ test("ensure starts one background install and reaches ready when it completes",
 });
 
 test("ensure emits a start when a download begins, for the live installing status", async () => {
-  process.env.SIDEYE_NO_LSP_DOWNLOAD = "";
+  process.env.STET_NO_LSP_DOWNLOAD = "";
   const root = tempRoot();
   try {
     const result = await withProvisioner(
@@ -166,7 +166,7 @@ function capturingInstaller(commands: string[][]) {
 }
 
 test("provisioning installs the registry's exact pinned versions", async () => {
-  process.env.SIDEYE_NO_LSP_DOWNLOAD = "";
+  process.env.STET_NO_LSP_DOWNLOAD = "";
   const root = tempRoot();
   const ts = registry.typescript;
   if (ts?.provision === undefined) {
@@ -213,7 +213,7 @@ function hangingInstaller() {
 }
 
 test("a hung install times out and degrades to failed", async () => {
-  process.env.SIDEYE_NO_LSP_DOWNLOAD = "";
+  process.env.STET_NO_LSP_DOWNLOAD = "";
   const root = tempRoot();
   try {
     const result = await Effect.runPromise(
@@ -247,7 +247,7 @@ test("a hung install times out and degrades to failed", async () => {
 });
 
 test("a filesystem setup failure degrades to failed, not a stuck install", async () => {
-  process.env.SIDEYE_NO_LSP_DOWNLOAD = "";
+  process.env.STET_NO_LSP_DOWNLOAD = "";
   // A regular file as the cache root makes the server dir's mkdir fail (ENOTDIR), the way an
   // Unwritable cache or full disk would. That failure must still clear inFlight and offer a
   // Completion, or the language stays wedged in `installing`.

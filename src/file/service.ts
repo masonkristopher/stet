@@ -14,7 +14,7 @@ export class File extends Context.Service<
       options: LoadFileContentOptions,
     ) => Effect.Effect<FileContent>;
   }
->()("sideye/File") {}
+>()("stet/File") {}
 
 export const FileLive = Layer.effect(
   File,

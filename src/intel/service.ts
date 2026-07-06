@@ -85,7 +85,7 @@ export class Intel extends Context.Service<
       direction: "incoming" | "outgoing",
     ) => Effect.Effect<NormalizedLocation[], IntelRequestError>;
   }
->()("sideye/Intel") {}
+>()("stet/Intel") {}
 
 export const IntelLive = Layer.effect(
   Intel,

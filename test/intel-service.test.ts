@@ -17,7 +17,7 @@ interface Recorded {
   params: unknown;
 }
 
-// A real LspConnection wired to a synchronous responder, not a mock of sideye's own code. Every
+// A real LspConnection wired to a synchronous responder, not a mock of stet's own code. Every
 // Outbound request/notification is appended to `log` so a test can assert the open/request/close order.
 function handle(
   capabilities: Capability[],

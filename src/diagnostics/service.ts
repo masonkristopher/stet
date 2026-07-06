@@ -37,7 +37,7 @@ export class Diagnostics extends Context.Service<
       prior?: ReadonlyMap<string, CheckerFileState>,
     ) => Stream.Stream<CheckerUpdate>;
   }
->()("sideye/Diagnostics") {}
+>()("stet/Diagnostics") {}
 
 function mapItems(items: unknown[], uri: string): Diagnostic[] {
   return items

@@ -14,7 +14,7 @@ import { createFixtureRepo, loadModel, makeSettleUntil, seedState } from "./help
 describe("tabs strip", () => {
   test("appears with a second tab, swaps content, and collapses on close", async () => {
     const body = Array.from({ length: 20 }, (_, index) => `const line${index + 1} = ${index + 1}`);
-    const repoRoot = createFixtureRepo("sideye-tabs-", {
+    const repoRoot = createFixtureRepo("stet-tabs-", {
       "package.json": `${JSON.stringify({ scripts: { lint: "exit 0", typecheck: "exit 0" } })}\n`,
       "src/a.ts": `${body.join("\n")}\n`,
       "src/b.ts": `${body.join("\n")}\n`,
@@ -83,7 +83,7 @@ describe("tabs strip", () => {
 
   test("clicking a tab switches it; double-clicking starts no text selection", async () => {
     const body = Array.from({ length: 20 }, (_, index) => `const line${index + 1} = ${index + 1}`);
-    const repoRoot = createFixtureRepo("sideye-tabcursor-", {
+    const repoRoot = createFixtureRepo("stet-tabcursor-", {
       "package.json": `${JSON.stringify({ scripts: { lint: "exit 0", typecheck: "exit 0" } })}\n`,
       "src/a.ts": `${body.join("\n")}\n`,
       "src/b.ts": `${body.join("\n")}\n`,
@@ -132,7 +132,7 @@ describe("tabs strip", () => {
       await renderOnce();
       expect(renderer.getSelection()).toBeNull();
 
-      // The viewer content is non-selectable chrome too: sideye owns line selection
+      // The viewer content is non-selectable chrome too: stet owns line selection
       // And disables OpenTUI's native text selection on the diff's text leaves, so a
       // Double-click on a diff line starts no stray highlight either.
       const diffLines = onA.split("\n");
@@ -149,7 +149,7 @@ describe("tabs strip", () => {
 
   test("double-clicking a preview tab pins it", async () => {
     const body = Array.from({ length: 20 }, (_, index) => `const line${index + 1} = ${index + 1}`);
-    const repoRoot = createFixtureRepo("sideye-tabpin-", {
+    const repoRoot = createFixtureRepo("stet-tabpin-", {
       "package.json": `${JSON.stringify({ scripts: { lint: "exit 0", typecheck: "exit 0" } })}\n`,
       "src/a.ts": `${body.join("\n")}\n`,
       "src/b.ts": `${body.join("\n")}\n`,
@@ -197,7 +197,7 @@ describe("tabs strip", () => {
   }, 20_000);
 
   test("double-clicking a file in the tree pins it as a tab", async () => {
-    const repoRoot = createFixtureRepo("sideye-treepin-", {
+    const repoRoot = createFixtureRepo("stet-treepin-", {
       "package.json": `${JSON.stringify({ scripts: { lint: "exit 0", typecheck: "exit 0" } })}\n`,
       "src/a.ts": "const a = 1\n",
       "src/b.ts": "const b = 1\n",
@@ -236,7 +236,7 @@ describe("tabs strip", () => {
   }, 20_000);
 
   test("the preview tab renders italic, pinned tabs upright", async () => {
-    const repoRoot = createFixtureRepo("sideye-tabitalic-", {
+    const repoRoot = createFixtureRepo("stet-tabitalic-", {
       "package.json": `${JSON.stringify({ scripts: { lint: "exit 0", typecheck: "exit 0" } })}\n`,
       "src/a.ts": "const a = 1\n",
       "src/b.ts": "const b = 1\n",

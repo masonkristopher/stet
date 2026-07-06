@@ -61,7 +61,7 @@ test("selecting out of range is a no-op", () => {
 // Helper isn't exported and shouldn't be exposed just to test it). A .txt-only
 // Fixture keeps runChecks from spawning an LSP server into the shared runtime.
 test("switching worktrees while viewing a commit resets the scope to all", async () => {
-  const repoRoot = createFixtureRepo("sideye-commit-rebaseline-", { "notes.txt": "one\n" });
+  const repoRoot = createFixtureRepo("stet-commit-rebaseline-", { "notes.txt": "one\n" });
   const linkedRoot = join(repoRoot, ".wt");
   runGit(repoRoot, ["worktree", "add", "-b", "side-branch", linkedRoot]);
 

@@ -15,7 +15,7 @@ import { createFixtureRepo, loadModel, makeSettleUntil, seedState } from "./help
 // Fake peer in intel-service.test.ts, and the K -> showHover wiring in keymap.test.ts.
 describe("caret-anchored decoration card", () => {
   test("renders at the caret, clears on a caret move, and clears on escape", async () => {
-    const repoRoot = createFixtureRepo("sideye-card-", {
+    const repoRoot = createFixtureRepo("stet-card-", {
       "package.json": `${JSON.stringify({ scripts: { lint: "exit 0", typecheck: "exit 0" } })}\n`,
       "src/a.ts": "const alpha = 1\n",
     });

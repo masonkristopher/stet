@@ -53,12 +53,12 @@ export function App() {
   createEffect(() => {
     const dir = basename(state.gitModel().repoRoot);
     if (dir === "") {
-      renderer.setTerminalTitle("sideye");
+      renderer.setTerminalTitle("stet");
       return;
     }
     const repo = basename(state.mainWorktreePath()) || dir;
     const segments = dir === repo ? [repo] : [dir, repo];
-    renderer.setTerminalTitle([...segments, "sideye"].join(" · "));
+    renderer.setTerminalTitle([...segments, "stet"].join(" · "));
   });
 
   // A read-only TUI should not show a stray terminal cursor outside its inputs.
@@ -132,7 +132,7 @@ export function App() {
     }
     // Nothing recoverable: the repository itself is gone. A clean exit (code 0) of a
     // Degraded condition reads as a warning, not a crash.
-    quit({ level: "warning", text: "sideye: worktree deleted, nothing left to inspect" });
+    quit({ level: "warning", text: "stet: worktree deleted, nothing left to inspect" });
   });
 
   useKeyboard(

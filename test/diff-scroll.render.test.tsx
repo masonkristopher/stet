@@ -23,7 +23,7 @@ function visibleLineNumbers(frame: string) {
 
 describe("diff viewer vertical scroll", () => {
   test("wheel-down scrolls deep and keeps the viewport full of real lines", async () => {
-    const repoRoot = longFileRepo("sideye-wheel-");
+    const repoRoot = longFileRepo("stet-wheel-");
     const model = await loadModel(repoRoot, { kind: "all", ref: "HEAD" });
     seedState(model, { kind: "all", ref: "HEAD" });
     const { renderer, renderOnce, captureCharFrame, mockMouse } = await testRender(() => <App />, {
@@ -56,7 +56,7 @@ describe("diff viewer vertical scroll", () => {
   }, 20_000);
 
   test("keyboard cursor-follow still drives the scroll (G to bottom, g to top)", async () => {
-    const repoRoot = longFileRepo("sideye-curfollow-");
+    const repoRoot = longFileRepo("stet-curfollow-");
     const model = await loadModel(repoRoot, { kind: "all", ref: "HEAD" });
     seedState(model, { kind: "all", ref: "HEAD" });
     state.setFocusedPane("diff");
@@ -86,7 +86,7 @@ describe("diff viewer vertical scroll", () => {
   }, 20_000);
 
   test("stepping down one line at a time keeps the cursor line on screen", async () => {
-    const repoRoot = longFileRepo("sideye-step-");
+    const repoRoot = longFileRepo("stet-step-");
     const model = await loadModel(repoRoot, { kind: "all", ref: "HEAD" });
     seedState(model, { kind: "all", ref: "HEAD" });
     state.setFocusedPane("diff");

@@ -30,7 +30,7 @@ function commitFixture(prefix: string) {
 
 describe("commit drill-down", () => {
   test("lists recent commits, each on its own line, and picking one relabels the header", async () => {
-    const repoRoot = commitFixture("sideye-commits-");
+    const repoRoot = commitFixture("stet-commits-");
     const model = await loadModel(repoRoot, { kind: "all", ref: "HEAD" });
     seedState(model, { kind: "all", ref: "HEAD" });
     const { renderer, renderOnce, captureCharFrame, mockInput } = await testRender(() => <App />, {

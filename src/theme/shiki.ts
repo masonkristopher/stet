@@ -2,9 +2,9 @@ import type { ThemeRegistration } from "@pierre/diffs";
 
 import type { Theme } from "./tokens";
 
-export const SIDEYE_SHIKI_THEME_NAME = "sideye";
+export const STET_SHIKI_THEME_NAME = "stet";
 
-// Builds a Shiki theme from any sideye Theme, mapping TextMate scopes onto its
+// Builds a Shiki theme from any stet Theme, mapping TextMate scopes onto its
 // `syntax` tokens so `@pierre/diffs`/Shiki highlights diffs from the same single
 // Source of truth as the rest of the UI (no separate palette). Font styles are
 // Emphasis, not color, so they are theme-independent. Driven by the Theme rather
@@ -28,7 +28,7 @@ export function shikiTheme(theme: Theme, type: "dark" | "light"): ThemeRegistrat
   return {
     bg: theme.surface.base,
     fg: theme.text.primary,
-    name: SIDEYE_SHIKI_THEME_NAME,
+    name: STET_SHIKI_THEME_NAME,
     settings: [
       { scope: ["comment"], settings: { fontStyle: "italic", foreground: comment } },
       {

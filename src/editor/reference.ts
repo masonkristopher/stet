@@ -35,7 +35,7 @@ function normalizeTemplate(value: string, defaultSuffix: string): string {
  * Resolves the editor command template from (in priority order):
  *
  * 1. An explicit `--editor` value or `editor` config key
- * 2. The `SIDEYE_EDITOR` environment variable
+ * 2. The `STET_EDITOR` environment variable
  * 3. `$EDITOR` / `$VISUAL`, with a known-editor heuristic for the line arg format
  * 4. `vim` as the hard fallback
  *
@@ -47,9 +47,9 @@ export function resolveEditorTemplate(explicit: string | undefined): string {
     return normalizeTemplate(explicit, "+{line} {file}");
   }
 
-  const sideye = process.env.SIDEYE_EDITOR;
-  if (sideye !== undefined && sideye !== "") {
-    return normalizeTemplate(sideye, "+{line} {file}");
+  const stet = process.env.STET_EDITOR;
+  if (stet !== undefined && stet !== "") {
+    return normalizeTemplate(stet, "+{line} {file}");
   }
 
   const editor = process.env.EDITOR;
@@ -68,7 +68,7 @@ export function resolveEditorTemplate(explicit: string | undefined): string {
  * Resolves the IDE command template from (in priority order):
  *
  * 1. An explicit `--ide` value or `ide` config key
- * 2. The `SIDEYE_IDE` environment variable
+ * 2. The `STET_IDE` environment variable
  * 3. `$VISUAL` when it differs from `$EDITOR` (Unix convention: $VISUAL is often a GUI editor while
  *    $EDITOR is a terminal one)
  * 4. `undefined` — if nothing is configured the o key does nothing
@@ -80,9 +80,9 @@ export function resolveIdeTemplate(explicit: string | undefined): string | undef
     return normalizeTemplate(explicit, "{file}:{line}");
   }
 
-  const sideye = process.env.SIDEYE_IDE;
-  if (sideye !== undefined && sideye !== "") {
-    return normalizeTemplate(sideye, "{file}:{line}");
+  const stet = process.env.STET_IDE;
+  if (stet !== undefined && stet !== "") {
+    return normalizeTemplate(stet, "{file}:{line}");
   }
 
   const visual = process.env.VISUAL;

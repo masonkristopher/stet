@@ -16,7 +16,7 @@ import { createFixtureRepo, loadModel, makeSettleUntil, seedState } from "./help
 // Renders its empty screen with the shared footer, and closes on escape.
 describe("references overlay", () => {
   test("opens on find-references, renders the empty screen, and closes on escape", async () => {
-    const repoRoot = createFixtureRepo("sideye-references-", {
+    const repoRoot = createFixtureRepo("stet-references-", {
       "notes.txt": "alpha beta\n",
       "package.json": `${JSON.stringify({ scripts: { lint: "exit 0", typecheck: "exit 0" } })}\n`,
     });
@@ -53,12 +53,12 @@ describe("references overlay", () => {
   }, 20_000);
 
   test("closes when the repoRoot changes under it (a worktree switch)", async () => {
-    const repoRoot = createFixtureRepo("sideye-references-", {
+    const repoRoot = createFixtureRepo("stet-references-", {
       "notes.txt": "alpha beta\n",
       "package.json": `${JSON.stringify({ scripts: { lint: "exit 0", typecheck: "exit 0" } })}\n`,
     });
     writeFileSync(join(repoRoot, "notes.txt"), "alpha beta\ngamma delta\n");
-    const otherRoot = createFixtureRepo("sideye-references-other-", { "readme.md": "other\n" });
+    const otherRoot = createFixtureRepo("stet-references-other-", { "readme.md": "other\n" });
 
     const model = await loadModel(repoRoot, { kind: "all", ref: "HEAD" });
     seedState(model, { kind: "all", ref: "HEAD" });
@@ -91,7 +91,7 @@ describe("references overlay", () => {
   }, 20_000);
 
   test("scrolls the viewport to follow the cursor past the visible window", async () => {
-    const repoRoot = createFixtureRepo("sideye-references-", {
+    const repoRoot = createFixtureRepo("stet-references-", {
       "notes.txt": "alpha beta\n",
       "package.json": `${JSON.stringify({ scripts: { lint: "exit 0", typecheck: "exit 0" } })}\n`,
     });

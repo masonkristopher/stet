@@ -7,15 +7,15 @@ import { configPaths } from "@/config/paths";
 describe("configPaths", () => {
   test("prefers config.jsonc, then config.json, under XDG_CONFIG_HOME", () => {
     expect(configPaths({ XDG_CONFIG_HOME: "/custom/cfg" })).toEqual([
-      "/custom/cfg/sideye/config.jsonc",
-      "/custom/cfg/sideye/config.json",
+      "/custom/cfg/stet/config.jsonc",
+      "/custom/cfg/stet/config.json",
     ]);
   });
 
   test("falls back to ~/.config when XDG is unset", () => {
     expect(configPaths({})).toEqual([
-      join(homedir(), ".config", "sideye", "config.jsonc"),
-      join(homedir(), ".config", "sideye", "config.json"),
+      join(homedir(), ".config", "stet", "config.jsonc"),
+      join(homedir(), ".config", "stet", "config.json"),
     ]);
   });
 });

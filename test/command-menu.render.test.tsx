@@ -20,7 +20,7 @@ describe("context command menu", () => {
   });
 
   test("a right-click on a tree row opens the menu with its actions, a caret, and the hint", async () => {
-    const repoRoot = createFixtureRepo("sideye-cmd-tree-", {
+    const repoRoot = createFixtureRepo("stet-cmd-tree-", {
       "a.txt": "alpha\n",
       "b.txt": "beta\n",
     });
@@ -58,7 +58,7 @@ describe("context command menu", () => {
   }, 20_000);
 
   test("the viewer menu omits the intel actions when the caret has no symbol", async () => {
-    const repoRoot = createFixtureRepo("sideye-cmd-viewer-", {
+    const repoRoot = createFixtureRepo("stet-cmd-viewer-", {
       "package.json": `${JSON.stringify({ name: "cmd-fixture" })}\n`,
       "src/a.ts": "const alpha = 1\n",
     });
@@ -98,7 +98,7 @@ describe("context command menu", () => {
   }, 20_000);
 
   test("clicking away closes the menu so the keyboard is no longer trapped", async () => {
-    const repoRoot = createFixtureRepo("sideye-cmd-dismiss-", {
+    const repoRoot = createFixtureRepo("stet-cmd-dismiss-", {
       "a.txt": "alpha\n",
       "b.txt": "beta\n",
     });
@@ -148,7 +148,7 @@ describe("context command menu", () => {
     for (let i = 0; i < 30; i += 1) {
       files[`f${String(i).padStart(2, "0")}.txt`] = `content ${i}\n`;
     }
-    const repoRoot = createFixtureRepo("sideye-cmd-scroll-", files);
+    const repoRoot = createFixtureRepo("stet-cmd-scroll-", files);
     const scope = { kind: "all", ref: "HEAD" } as const;
     const model = await loadModel(repoRoot, scope);
     seedState(model, scope);
@@ -177,7 +177,7 @@ describe("context command menu", () => {
   }, 20_000);
 
   test("the viewer menu closes when the caret moves off the symbol it opened on", async () => {
-    const repoRoot = createFixtureRepo("sideye-cmd-drift-", {
+    const repoRoot = createFixtureRepo("stet-cmd-drift-", {
       "package.json": `${JSON.stringify({ name: "cmd-drift" })}\n`,
       "src/a.ts": "const alpha = 1\n",
     });
@@ -212,7 +212,7 @@ describe("context command menu", () => {
   }, 20_000);
 
   test("tree Pin as tab opens and pins the right-clicked file, not the viewed one", async () => {
-    const repoRoot = createFixtureRepo("sideye-cmd-pin-", {
+    const repoRoot = createFixtureRepo("stet-cmd-pin-", {
       "a.txt": "alpha\n",
       "b.txt": "beta\n",
     });
@@ -251,7 +251,7 @@ describe("context command menu", () => {
 
   test("opening the viewer menu on an off-screen caret does not trap the keyboard", async () => {
     const lines = Array.from({ length: 120 }, (_, i) => `const line_${i + 1} = ${i + 1}`);
-    const repoRoot = createFixtureRepo("sideye-cmd-offscreen-", {
+    const repoRoot = createFixtureRepo("stet-cmd-offscreen-", {
       "long.ts": `${lines.join("\n")}\n`,
     });
     const scope = { kind: "all", ref: "HEAD" } as const;

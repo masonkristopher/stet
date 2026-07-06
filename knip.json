@@ -1,7 +1,7 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "tags": ["-lintignore"],
-  "entry": ["script/sideye-launcher.cjs", "test/**/*.{ts,tsx}"],
+  "entry": ["script/stet-launcher.cjs", "test/**/*.{ts,tsx}"],
   "project": ["src/**/*.{ts,tsx}", "test/**/*.{ts,tsx}", "script/**/*.{ts,cjs}"],
   "ignoreBinaries": ["dist/"]
 }

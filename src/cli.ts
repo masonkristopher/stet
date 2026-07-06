@@ -97,7 +97,7 @@ export function parseArgs(args: string[]): CliOptions {
 }
 
 // A blank command template (`--editor=`) parses to an empty string.
-// Sideye rejects that as a usage error even though parseArgs accepts it.
+// Stet rejects that as a usage error even though parseArgs accepts it.
 function requireNonEmptyValue(flag: string, value: string | undefined) {
   if (value !== undefined && value.trim() === "") {
     throw new Error(`${flag} requires a non-empty value`);
@@ -154,23 +154,23 @@ export function scopeMenuLabel(kind: ScopeKind) {
 }
 
 export function helpText() {
-  return `sideye - read-only companion TUI for inspecting an agent's changes
+  return `stet - read-only companion TUI for inspecting an agent's changes
 
 Usage:
-  sideye
-  sideye <ref>
-  sideye --staged [ref]
-  sideye --unstaged
-  sideye --no-icons        (disable Nerd Font file-type icons in the tree)
-  sideye --no-lsp-download (do not auto-download a missing language server)
-  sideye --wrap            (wrap long lines in the viewer instead of overflowing)
-  sideye --editor <template>
-  sideye --ide <template>
-  sideye upgrade           (self-update to the latest release)
+  stet
+  stet <ref>
+  stet --staged [ref]
+  stet --unstaged
+  stet --no-icons        (disable Nerd Font file-type icons in the tree)
+  stet --no-lsp-download (do not auto-download a missing language server)
+  stet --wrap            (wrap long lines in the viewer instead of overflowing)
+  stet --editor <template>
+  stet --ide <template>
+  stet upgrade           (self-update to the latest release)
 
 Commands:
   upgrade
-      Update sideye to the latest release using the channel it was installed
+      Update stet to the latest release using the channel it was installed
       through: a standalone install re-runs the install script, an npm install
       runs npm, and a Homebrew install runs brew upgrade. If the install
       channel cannot be determined, it prints the upgrade commands instead.
@@ -186,7 +186,7 @@ Options:
         --editor "vim +{line} {file}"
         --editor "nvim +{line} {file}"
         --editor "nano +{line} {file}"
-      Falls back to SIDEYE_EDITOR, then $EDITOR / $VISUAL (with known-editor
+      Falls back to STET_EDITOR, then $EDITOR / $VISUAL (with known-editor
       heuristics for the line arg format), then vim.
 
   --ide <template>
@@ -196,7 +196,7 @@ Options:
         --ide "code --goto {file}:{line}"
         --ide "zed {file}:{line}"
         --ide "subl {file}:{line}"
-      Falls back to SIDEYE_IDE, then $VISUAL when it differs from $EDITOR.
+      Falls back to STET_IDE, then $VISUAL when it differs from $EDITOR.
       If nothing is configured, o does nothing.
 
 Keys:

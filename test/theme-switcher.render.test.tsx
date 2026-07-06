@@ -75,7 +75,7 @@ describe("theme switcher", () => {
     const settleUntil = makeSettleUntil({ captureCharFrame, renderOnce });
 
     try {
-      await settleUntil("app chrome", (frame) => frame.includes("sideye"), 5);
+      await settleUntil("app chrome", (frame) => frame.includes("stet"), 5);
       expect(hasBackground(captureSpans(), KB_BG)).toBe(false);
 
       mockInput.pressKey("t");
@@ -122,7 +122,7 @@ describe("theme switcher", () => {
     const settleUntil = makeSettleUntil({ captureCharFrame, renderOnce });
 
     try {
-      await settleUntil("app chrome", (frame) => frame.includes("sideye"), 5);
+      await settleUntil("app chrome", (frame) => frame.includes("stet"), 5);
 
       mockInput.pressKey("t");
       await settleUntil("theme picker", (frame) => frame.includes("hover preview"));

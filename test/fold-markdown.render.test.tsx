@@ -26,7 +26,7 @@ describe("markdown folding", () => {
       "run the command",
       "",
     ].join("\n");
-    const repoRoot = createFixtureRepo("sideye-fold-md-", {
+    const repoRoot = createFixtureRepo("stet-fold-md-", {
       "docs.md": source,
       "package.json": `${JSON.stringify({ scripts: { lint: "exit 0", typecheck: "exit 0" } })}\n`,
     });

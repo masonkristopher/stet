@@ -1,15 +1,15 @@
 /**
- * Regenerate the README screenshots by driving the real sideye binary through VHS (a headless
+ * Regenerate the README screenshots by driving the real stet binary through VHS (a headless
  * terminal that renders Nerd Font icons correctly), so the icons and theme match a real terminal.
- * Each screen is a generated .tape that launches sideye, drives it to a state with keystrokes, and
+ * Each screen is a generated .tape that launches stet, drives it to a state with keystrokes, and
  * screenshots it. The problems/diagnostics shots need a changed file with diagnostics, so a temp
  * errorful file is created in src/ around those runs only.
  *
  * Capture against a clean checkout so the tree and diff are representative — uncommitted files show
- * up in the captured tree. By default that's this repo; set `SIDEYE_SCREENSHOT_REPO` to point
- * sideye at another checkout (e.g. a clean main worktree) while the images still land in THIS
- * repo's assets. Requires `vhs` on PATH (brew install vhs) and a Nerd Font installed for the
- * file-type icons. Pass screen names to shoot a subset, e.g. `bun run screenshots find problems`.
+ * up in the captured tree. By default that's this repo; set `STET_SCREENSHOT_REPO` to point stet at
+ * another checkout (e.g. a clean main worktree) while the images still land in THIS repo's assets.
+ * Requires `vhs` on PATH (brew install vhs) and a Nerd Font installed for the file-type icons. Pass
+ * screen names to shoot a subset, e.g. `bun run screenshots find problems`.
  */
 import { existsSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -17,13 +17,13 @@ import { resolve } from "node:path";
 
 /** Where the images are written (always this repo, so a PR here picks them up). */
 const ASSETS = resolve(import.meta.dir, "../assets/screenshots");
-/** Which checkout sideye runs against; override to capture a clean tree elsewhere. */
-const REPO = process.env.SIDEYE_SCREENSHOT_REPO
-  ? resolve(process.env.SIDEYE_SCREENSHOT_REPO)
+/** Which checkout stet runs against; override to capture a clean tree elsewhere. */
+const REPO = process.env.STET_SCREENSHOT_REPO
+  ? resolve(process.env.STET_SCREENSHOT_REPO)
   : resolve(import.meta.dir, "..");
 const BUN = process.execPath;
 const VHS = "vhs";
-const TAPES = resolve(tmpdir(), "sideye-screenshots");
+const TAPES = resolve(tmpdir(), "stet-screenshots");
 /** A few commits back so the diff and tree show several changed source files, not just a dep bump. */
 const BASE_REF = "HEAD~3";
 /**
@@ -32,12 +32,12 @@ const BASE_REF = "HEAD~3";
  */
 const FIXTURE = `${REPO}/src/_diagnostics-demo.ts`;
 /**
- * A throwaway config dir for the theme-switcher shot only: sideye reads `XDG_CONFIG_HOME`, so
+ * A throwaway config dir for the theme-switcher shot only: stet reads `XDG_CONFIG_HOME`, so
  * pointing that one tape here populates the theme list with named palettes (rich swatches and a
  * real diff re-theme on preview) without touching the user's real config or the other tapes.
  */
-const THEME_CONFIG_DIR = resolve(tmpdir(), "sideye-screenshots-config");
-const THEME_CONFIG_FILE = resolve(THEME_CONFIG_DIR, "sideye", "config.jsonc");
+const THEME_CONFIG_DIR = resolve(tmpdir(), "stet-screenshots-config");
+const THEME_CONFIG_FILE = resolve(THEME_CONFIG_DIR, "stet", "config.jsonc");
 // Named palettes for the theme-switcher shot: each carries a distinct accent (the row swatch) and a
 // Bundled Shiki `syntax` (so previewing one re-themes the diff). `theme` stays unset so the app
 // Starts on `auto`, keeping the ✓ on `auto` while the highlighted row previews a different theme.
@@ -72,7 +72,7 @@ function header(height = DEFAULT_HEIGHT) {
   ].join("\n");
 }
 
-// VHS runs with cwd = the tmp tape dir, so cd into the capture target before launching sideye.
+// VHS runs with cwd = the tmp tape dir, so cd into the capture target before launching stet.
 // `env` lets one screen prefix the launch (e.g. XDG_CONFIG_HOME for the theme shot); every other
 // Tape passes nothing, so its command is unchanged.
 function launchCmd(env = "") {
@@ -101,7 +101,7 @@ const openDiffView = ["Ctrl+P", 'Type "DiffView"', "Sleep 400ms", "Enter", "Slee
 const screens = [
   // Let the diff settle and the checks finish (tsserver project load is the slow part) so the hero
   // Shot shows the resolved "checks finished" state, not a mid-run spinner.
-  { name: "sideye", steps: [openDiffView, "Sleep 16s"].join("\n") },
+  { name: "stet", steps: [openDiffView, "Sleep 16s"].join("\n") },
   {
     /**
      * Pin two files into tabs (`ctrl-t`), then land on a third as the active preview, so the strip

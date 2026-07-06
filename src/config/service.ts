@@ -13,7 +13,7 @@ export class Config extends Context.Service<
   {
     readonly load: () => Effect.Effect<LoadedConfig>;
   }
->()("sideye/Config") {}
+>()("stet/Config") {}
 
 const firstExistingConfig = Effect.gen(function* findConfig() {
   for (const candidate of configPaths()) {

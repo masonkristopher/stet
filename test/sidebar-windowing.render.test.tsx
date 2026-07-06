@@ -19,7 +19,7 @@ describe("sidebar windowing", () => {
     for (let i = 0; i < 300; i += 1) {
       files[`big/f${String(i).padStart(3, "0")}.txt`] = `content ${i}\n`;
     }
-    const repoRoot = createFixtureRepo("sideye-window-", files);
+    const repoRoot = createFixtureRepo("stet-window-", files);
     const scope = { kind: "all", ref: "HEAD" } as const;
     const model = await loadModel(repoRoot, scope);
     seedState(model, scope);

@@ -10,7 +10,7 @@ import { createFixtureRepo, loadModel, makeSettleUntil, seedState } from "./help
 
 describe("in-buffer find", () => {
   test("opens with /, highlights matches, cycles with n, clears on esc", async () => {
-    const repoRoot = createFixtureRepo("sideye-find-", {
+    const repoRoot = createFixtureRepo("stet-find-", {
       "README.md": "# Fixture\n",
       "src/sample.ts": "const base = 0\n",
     });

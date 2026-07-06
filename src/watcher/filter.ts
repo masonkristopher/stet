@@ -1,7 +1,7 @@
 import { sep } from "node:path";
 
 // High-churn git internals that never change the working-tree, staged, or branch
-// State sideye renders. An agent writing to the repo churns these continuously
+// State stet renders. An agent writing to the repo churns these continuously
 // (a loose object per blob/tree/commit, a reflog append per ref update, a lock
 // File per write), and watching them re-runs a full `git status` and repaint per
 // Event. A denylist, not a whitelist: a forgotten entry costs one redundant

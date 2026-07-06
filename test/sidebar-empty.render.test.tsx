@@ -23,7 +23,7 @@ const sidebarOf = (frame: string) =>
 // Author that empty state rather than render a blank pane, and tell the user how
 // To leave it.
 test("shows the changes-only empty state when nothing changed", async () => {
-  const repoRoot = createFixtureRepo("sideye-empty-changes-", { "a.txt": "a\n" });
+  const repoRoot = createFixtureRepo("stet-empty-changes-", { "a.txt": "a\n" });
   const model = await loadModel(repoRoot, allScope);
   seedState(model, allScope);
   state.setChangesOnly(true);

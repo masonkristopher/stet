@@ -7,16 +7,16 @@ describe("upgradeInvocation", () => {
     expect(upgradeInvocation("standalone")?.argv).toEqual([
       "bash",
       "-c",
-      "curl -fsSL https://raw.githubusercontent.com/jimmy-guzman/sideye/main/install.sh | bash",
+      "curl -fsSL https://raw.githubusercontent.com/jimmy-guzman/stet/main/install.sh | bash",
     ]);
   });
 
   test("npm installs the latest published version", () => {
-    expect(upgradeInvocation("npm")?.argv).toEqual(["npm", "install", "-g", "sideye@latest"]);
+    expect(upgradeInvocation("npm")?.argv).toEqual(["npm", "install", "-g", "stet@latest"]);
   });
 
   test("brew upgrades the tap formula", () => {
-    expect(upgradeInvocation("brew")?.argv).toEqual(["brew", "upgrade", "jimmy-guzman/tap/sideye"]);
+    expect(upgradeInvocation("brew")?.argv).toEqual(["brew", "upgrade", "jimmy-guzman/tap/stet"]);
   });
 
   test("unknown has no command", () => {

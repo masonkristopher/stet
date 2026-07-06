@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 
-// Builds standalone sideye binaries and the npm package layout.
+// Builds standalone stet binaries and the npm package layout.
 // Modeled on opencode's build script (anomalyco/opencode packages/opencode/script/build.ts),
 // Which established the pattern for compiling OpenTUI apps with `bun build --compile`.
 
@@ -105,12 +105,12 @@ for (const target of targets) {
     JSON.stringify(
       {
         cpu: [target.arch],
-        description: `sideye binary for ${target.os}-${target.arch}`,
+        description: `stet binary for ${target.os}-${target.arch}`,
         license: "MIT",
         name,
         os: [target.os],
         preferUnplugged: true,
-        repository: "github:jimmy-guzman/sideye",
+        repository: "github:jimmy-guzman/stet",
         version: pkg.version,
       },
       null,
@@ -123,22 +123,22 @@ for (const target of targets) {
 
 if (!single) {
   await $`mkdir -p dist/${pkg.name}/bin`;
-  await $`cp script/sideye-launcher.cjs dist/${pkg.name}/bin/sideye.js`;
+  await $`cp script/stet-launcher.cjs dist/${pkg.name}/bin/stet.js`;
   await $`cp README.md LICENSE dist/${pkg.name}/`;
   await Bun.file(`dist/${pkg.name}/package.json`).write(
     JSON.stringify(
       {
-        bin: { [pkg.name]: "./bin/sideye.js" },
-        bugs: "https://github.com/jimmy-guzman/sideye/issues",
+        bin: { [pkg.name]: "./bin/stet.js" },
+        bugs: "https://github.com/jimmy-guzman/stet/issues",
         description: pkg.description,
-        homepage: "https://github.com/jimmy-guzman/sideye",
+        homepage: "https://github.com/jimmy-guzman/stet",
         keywords: ["tui", "diff", "git", "code-review", "coding-agent", "terminal"],
         license: "MIT",
         name: pkg.name,
         optionalDependencies: Object.fromEntries(
           allTargets.map((target) => [`${pkg.name}-${target.os}-${target.arch}`, pkg.version]),
         ),
-        repository: "github:jimmy-guzman/sideye",
+        repository: "github:jimmy-guzman/stet",
         version: pkg.version,
       },
       null,

@@ -15,7 +15,7 @@ import { createFixtureRepo, loadModel, makeSettleUntil, seedState } from "./help
 describe("truncation footer", () => {
   test("shows the hidden-line count and clears it when f loads the full file", async () => {
     const big = `${Array.from({ length: 6000 }, (_, index) => `line ${index}`).join("\n")}\n`;
-    const repoRoot = createFixtureRepo("sideye-trunc-", {
+    const repoRoot = createFixtureRepo("stet-trunc-", {
       "big.txt": big,
       "package.json": `${JSON.stringify({ name: "trunc-fixture" })}\n`,
     });

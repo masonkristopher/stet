@@ -1,6 +1,6 @@
 import type { InstallMethod } from "./install-method";
 
-const installScriptUrl = "https://raw.githubusercontent.com/jimmy-guzman/sideye/main/install.sh";
+const installScriptUrl = "https://raw.githubusercontent.com/jimmy-guzman/stet/main/install.sh";
 
 export interface UpgradeInvocation {
   /** Shown before the child runs, so the user knows which channel is being used. */
@@ -22,12 +22,12 @@ export function upgradeInvocation(method: InstallMethod): UpgradeInvocation | un
   }
 
   if (method === "npm") {
-    return { argv: ["npm", "install", "-g", "sideye@latest"], label: "upgrading via npm..." };
+    return { argv: ["npm", "install", "-g", "stet@latest"], label: "upgrading via npm..." };
   }
 
   if (method === "brew") {
     return {
-      argv: ["brew", "upgrade", "jimmy-guzman/tap/sideye"],
+      argv: ["brew", "upgrade", "jimmy-guzman/tap/stet"],
       label: "upgrading via Homebrew...",
     };
   }

@@ -41,7 +41,7 @@ interface HandshakeConfig {
   readonly onRequest?: (method: string, params: unknown) => Effect.Effect<unknown>;
 }
 
-/** The read-only LSP intents sideye uses, keyed off each server's advertised `*Provider`. */
+/** The read-only LSP intents stet uses, keyed off each server's advertised `*Provider`. */
 export type Capability =
   | "definition"
   | "references"
@@ -62,7 +62,7 @@ interface ServerSpec {
    * the authoritative gate, so this must not under-declare what the server actually provides.
    */
   readonly provides: readonly Capability[];
-  /** Npm packages sideye installs into its cache when the server is found neither in repo nor PATH. */
+  /** Npm packages stet installs into its cache when the server is found neither in repo nor PATH. */
   readonly provision?: { readonly packages: readonly string[] };
   /** Per-server handshake extras (caps, initializationOptions, server-request answers). */
   readonly handshake?: (repoRoot: string) => HandshakeConfig;
@@ -88,11 +88,11 @@ const biomeExtensions = [...codeExtensions, "json", "jsonc", "css", "graphql"] a
 //
 // `provision.packages` pin exact versions, never a bare name that resolves `@latest`: the tier-3
 // Download is otherwise nondeterministic (whatever the registry serves that day) and would pull a
-// Broken or compromised upstream release automatically, a weaker bar than sideye's own pinned
+// Broken or compromised upstream release automatically, a weaker bar than stet's own pinned
 // Distribution. Pinning also lets npm verify the tarball against its immutable published version.
 // Bumping a pin is an explicit reviewable edit; the cache is keyed by the pinned set (`provisionKey`)
 // So a bump re-provisions. The oxlint/typescript pins deliberately track this repo's own devDeps but
-// Are independent (sideye's build toolchain vs. the LSP server it downloads into arbitrary repos).
+// Are independent (stet's build toolchain vs. the LSP server it downloads into arbitrary repos).
 export const registry: Record<string, ServerSpec> = {
   biome: {
     args: ["lsp-proxy"],
@@ -228,7 +228,7 @@ export function lspLanguageId(path: string): string {
   return dot === -1 ? "plaintext" : (lspLanguageIdByExtension[path.slice(dot + 1)] ?? "plaintext");
 }
 
-// Discovery tiers: a repo-local binary or one on PATH wins; otherwise a server sideye has already
+// Discovery tiers: a repo-local binary or one on PATH wins; otherwise a server stet has already
 // Provisioned into its cache. A not-yet-provisioned server returns undefined (acquire then installs).
 export function resolveServerCommand(language: string, repoRoot: string): string[] | undefined {
   const spec = registry[language];
@@ -404,7 +404,7 @@ export class LanguageServers extends Context.Service<
       Scope.Scope
     >;
   }
->()("sideye/LanguageServers") {}
+>()("stet/LanguageServers") {}
 
 type AcquireError = ServerUnavailable | ServerInstalling | LspSpawnError | LspRequestError;
 

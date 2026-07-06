@@ -1,12 +1,12 @@
 {
-  "name": "sideye",
+  "name": "stet",
   "version": "0.5.1",
   "private": true,
   "description": "Read-only companion TUI for inspecting an agent's changes",
   "license": "MIT",
-  "repository": "github:jimmy-guzman/sideye",
+  "repository": "github:jimmy-guzman/stet",
   "bin": {
-    "sideye": "./src/main.tsx"
+    "stet": "./src/main.tsx"
   },
   "type": "module",
   "scripts": {
@@ -19,7 +19,7 @@
     "lint:fix": "oxlint --fix",
     "prepare": "effect-language-service patch",
     "screenshots": "bun run script/screenshots.ts",
-    "sideye": "bun run src/main.tsx",
+    "stet": "bun run src/main.tsx",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "knip": "knip"

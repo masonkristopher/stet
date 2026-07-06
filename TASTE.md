@@ -1,8 +1,8 @@
 # TASTE.md
 
-The README is the source of truth for what sideye does, AGENTS.md holds the code and UI conventions, and SPEC.md the behavioral invariants. This file holds the craft bar every interface surface clears: how it should feel, not what it does. Read it before adding or reworking any UI surface.
+The README is the source of truth for what stet does, AGENTS.md holds the code and UI conventions, and SPEC.md the behavioral invariants. This file holds the craft bar every interface surface clears: how it should feel, not what it does. Read it before adding or reworking any UI surface.
 
-The rules are stack-agnostic. Where one is specific to a graphical or web platform, it is restated for sideye's medium: a terminal of fixed monospace cells, theme tokens, no shadows or blur, keyboard-first with the mouse as enhancement. Optimize for one outcome: the result should feel inevitable, as if it was always meant to look this way.
+The rules are stack-agnostic. Where one is specific to a graphical or web platform, it is restated for stet's medium: a terminal of fixed monospace cells, theme tokens, no shadows or blur, keyboard-first with the mouse as enhancement. Optimize for one outcome: the result should feel inevitable, as if it was always meant to look this way.
 
 ## 0. Operating principles
 
@@ -58,7 +58,7 @@ The rules are stack-agnostic. Where one is specific to a graphical or web platfo
 
 - Every interactive element has all states designed: default, hover, focus, active, disabled, loading, error.
 - Empty states are real screens. Design them. Never leave a blank pane.
-- Show structure immediately rather than a spinner. sideye paints its shell from the empty model and fills it in as git resolves; follow that pattern for any async surface.
+- Show structure immediately rather than a spinner. stet paints its shell from the empty model and fills it in as git resolves; follow that pattern for any async surface.
 - Focus is non-negotiable and keyboard-first. The focused pane, row, or input is always visibly marked (a caret, a selection highlight, focused input colors), never left to guess.
 - Make hit targets generous. The whole row or cell is clickable, not just the glyph; pad the interactive area beyond the visible mark.
 - Acknowledge every action right away, even when the result takes longer.
@@ -98,7 +98,7 @@ The rules are stack-agnostic. Where one is specific to a graphical or web platfo
 
 - Keyboard-operable end to end. Focus order follows visual order.
 - There is no DOM or ARIA in a terminal. The accessibility surface is `NO_COLOR`, `FORCE_COLOR`, and the absence of a Nerd Font; carry meaning in text and glyphs so it survives all three.
-- Meaningful glyphs and icons carry a text fallback (sideye's icons are monochrome and `--no-icons` drops them); decorative ones add nothing a reader must announce.
+- Meaningful glyphs and icons carry a text fallback (stet's icons are monochrome and `--no-icons` drops them); decorative ones add nothing a reader must announce.
 - Trap focus only in overlays, and return it to where it came from on close.
 - Test each surface with color and icons off (`NO_COLOR=1`, `--no-icons`) at least once. If it still reads, it is accessible.
 

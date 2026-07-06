@@ -18,7 +18,7 @@ describe("long-line wrap toggle", () => {
     // Far past any plausible content width so it only renders once wrapped.
     const words = Array.from({ length: 16 }, (_, index) => `tok${index}`).join(" ");
     const long = `const x = "${words} ENDMARKER"`;
-    const repoRoot = createFixtureRepo("sideye-wrap-toggle-", {
+    const repoRoot = createFixtureRepo("stet-wrap-toggle-", {
       "package.json": `${JSON.stringify({ scripts: { lint: "exit 0", typecheck: "exit 0" } })}\n`,
       "src/a.ts": `first line\n${long}\n`,
     });

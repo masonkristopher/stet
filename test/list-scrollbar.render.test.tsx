@@ -31,7 +31,7 @@ describe("list scrollbar", () => {
     for (let i = 0; i < 300; i += 1) {
       files[`big/f${String(i).padStart(3, "0")}.txt`] = `content ${i}\n`;
     }
-    const repoRoot = createFixtureRepo("sideye-scrollbar-", files);
+    const repoRoot = createFixtureRepo("stet-scrollbar-", files);
     const scope = { kind: "all", ref: "HEAD" } as const;
     const model = await loadModel(repoRoot, scope);
     seedState(model, scope);
@@ -73,7 +73,7 @@ describe("list scrollbar", () => {
   });
 
   test("shows a thumb in the problems panel and tracks scroll", async () => {
-    const repoRoot = createFixtureRepo("sideye-scrollbar-problems-", {
+    const repoRoot = createFixtureRepo("stet-scrollbar-problems-", {
       "src/a.ts": "export const a = 1;\n",
     });
     const scope = { kind: "all", ref: "HEAD" } as const;
@@ -131,7 +131,7 @@ describe("list scrollbar", () => {
   });
 
   test("shows a thumb in the search results and tracks scroll", async () => {
-    const repoRoot = createFixtureRepo("sideye-scrollbar-search-", { "src/many.ts": "seed\n" });
+    const repoRoot = createFixtureRepo("stet-scrollbar-search-", { "src/many.ts": "seed\n" });
     const lines = Array.from({ length: 60 }, (_, index) => `const needle${index} = ${index}`);
     writeFileSync(join(repoRoot, "src", "many.ts"), `${lines.join("\n")}\n`);
     const scope = { kind: "all", ref: "HEAD" } as const;
@@ -145,7 +145,7 @@ describe("list scrollbar", () => {
     const settleUntil = makeSettleUntil({ captureCharFrame, renderOnce });
 
     try {
-      await settleUntil("app chrome", (frame) => frame.includes("sideye"), 5);
+      await settleUntil("app chrome", (frame) => frame.includes("stet"), 5);
       mockInput.pressKey("f", { ctrl: true });
       await settleUntil("search pane", (frame) => frame.includes("search…"));
       await mockInput.typeText("needle");

@@ -71,7 +71,7 @@ function StyledLine(props: {
         ref = el;
         // Opt this text leaf out of OpenTUI's native text selection (which a drag
         // Would otherwise start on the deepest hit, painting its own colorful
-        // Highlight over our band); sideye owns the line selection.
+        // Highlight over our band); stet owns the line selection.
         el.selectable = false;
       }}
       wrapMode={props.wrap ? "word" : "none"}
@@ -79,7 +79,7 @@ function StyledLine(props: {
   );
 }
 
-// Sideye-owned diff renderer: only the visible row slice is mounted (windowed),
+// Stet-owned diff renderer: only the visible row slice is mounted (windowed),
 // And the line-number gutter is padded to a file-wide fixed width so it never
 // Oscillates. That stable width is the property that keeps OpenTUI's layout from
 // Thrashing into the scheduler wedge the built-in `<diff>` triggered.

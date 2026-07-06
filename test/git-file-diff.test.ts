@@ -71,7 +71,7 @@ const head = (repoRoot: string) =>
 
 describe("in-process fileDiff matches git", () => {
   test("modified file, all scope", async () => {
-    const repoRoot = createFixtureRepo("sideye-fd-mod-", {
+    const repoRoot = createFixtureRepo("stet-fd-mod-", {
       "src/a.ts": "one\ntwo\nthree\nfour\nfive\n",
     });
     writeFileSync(join(repoRoot, "src/a.ts"), "one\ntwo\nCHANGED\nfour\nfive\n");
@@ -79,7 +79,7 @@ describe("in-process fileDiff matches git", () => {
   });
 
   test("modified file, unstaged scope diffs against the index", async () => {
-    const repoRoot = createFixtureRepo("sideye-fd-unstaged-", {
+    const repoRoot = createFixtureRepo("stet-fd-unstaged-", {
       "src/a.ts": "one\ntwo\nthree\n",
     });
     writeFileSync(join(repoRoot, "src/a.ts"), "one\nstaged\nthree\n");
@@ -89,7 +89,7 @@ describe("in-process fileDiff matches git", () => {
   });
 
   test("staged edit does not leak the worktree edit stacked on top", async () => {
-    const repoRoot = createFixtureRepo("sideye-fd-staged-", {
+    const repoRoot = createFixtureRepo("stet-fd-staged-", {
       "src/a.ts": "one\ntwo\nthree\n",
     });
     writeFileSync(join(repoRoot, "src/a.ts"), "one\nSTAGED\nthree\n");
@@ -104,7 +104,7 @@ describe("in-process fileDiff matches git", () => {
   });
 
   test("added file, staged scope", async () => {
-    const repoRoot = createFixtureRepo("sideye-fd-add-staged-", {
+    const repoRoot = createFixtureRepo("stet-fd-add-staged-", {
       "src/keep.ts": "keep\n",
     });
     writeFileSync(join(repoRoot, "src/new.ts"), "hello\nworld\n");
@@ -113,7 +113,7 @@ describe("in-process fileDiff matches git", () => {
   });
 
   test("added file tracked in the all scope", async () => {
-    const repoRoot = createFixtureRepo("sideye-fd-add-all-", {
+    const repoRoot = createFixtureRepo("stet-fd-add-all-", {
       "src/keep.ts": "keep\n",
     });
     writeFileSync(join(repoRoot, "src/new.ts"), "hello\nworld\n");
@@ -122,7 +122,7 @@ describe("in-process fileDiff matches git", () => {
   });
 
   test("deleted file, unstaged scope", async () => {
-    const repoRoot = createFixtureRepo("sideye-fd-del-", {
+    const repoRoot = createFixtureRepo("stet-fd-del-", {
       "src/a.ts": "one\ntwo\nthree\n",
     });
     rmSync(join(repoRoot, "src/a.ts"));
@@ -130,7 +130,7 @@ describe("in-process fileDiff matches git", () => {
   });
 
   test("deleted file, staged scope (git rm)", async () => {
-    const repoRoot = createFixtureRepo("sideye-fd-del-staged-", {
+    const repoRoot = createFixtureRepo("stet-fd-del-staged-", {
       "src/a.ts": "one\ntwo\nthree\n",
     });
     runGit(repoRoot, ["rm", "src/a.ts"]);
@@ -138,7 +138,7 @@ describe("in-process fileDiff matches git", () => {
   });
 
   test("renamed file with an edit, staged scope", async () => {
-    const repoRoot = createFixtureRepo("sideye-fd-rename-", {
+    const repoRoot = createFixtureRepo("stet-fd-rename-", {
       "src/old.ts": "keep\nbefore\nkeep2\n",
     });
     runGit(repoRoot, ["mv", "src/old.ts", "src/new.ts"]);
@@ -148,7 +148,7 @@ describe("in-process fileDiff matches git", () => {
   });
 
   test("no trailing newline change", async () => {
-    const repoRoot = createFixtureRepo("sideye-fd-nonl-", {
+    const repoRoot = createFixtureRepo("stet-fd-nonl-", {
       "a.txt": "line\n",
     });
     writeFileSync(join(repoRoot, "a.txt"), "line\nmore");
@@ -156,7 +156,7 @@ describe("in-process fileDiff matches git", () => {
   });
 
   test("CRLF on both sides diffs in-process without falling back", async () => {
-    const repoRoot = createFixtureRepo("sideye-fd-crlf-", {
+    const repoRoot = createFixtureRepo("stet-fd-crlf-", {
       "a.txt": "one\r\ntwo\r\nthree\r\n",
     });
     writeFileSync(join(repoRoot, "a.txt"), "one\r\nCHANGED\r\nthree\r\n");
@@ -164,7 +164,7 @@ describe("in-process fileDiff matches git", () => {
   });
 
   test("path with spaces and non-ASCII characters", async () => {
-    const repoRoot = createFixtureRepo("sideye-fd-space-", {
+    const repoRoot = createFixtureRepo("stet-fd-space-", {
       "src/a file café.ts": "one\ntwo\n",
     });
     writeFileSync(join(repoRoot, "src/a file café.ts"), "one\nCHANGED\n");
@@ -172,7 +172,7 @@ describe("in-process fileDiff matches git", () => {
   });
 
   test("untracked file still routes through the /dev/null diff", async () => {
-    const repoRoot = createFixtureRepo("sideye-fd-untracked-", {
+    const repoRoot = createFixtureRepo("stet-fd-untracked-", {
       "src/keep.ts": "keep\n",
     });
     writeFileSync(join(repoRoot, "src/new.ts"), "brand\nnew\n");
@@ -188,7 +188,7 @@ describe("in-process fileDiff matches git", () => {
   });
 
   test("binary file renders empty, like git's Binary files differ", async () => {
-    const repoRoot = createFixtureRepo("sideye-fd-bin-", {
+    const repoRoot = createFixtureRepo("stet-fd-bin-", {
       "keep.ts": "keep\n",
     });
     writeFileSync(join(repoRoot, "img.bin"), new Uint8Array([1, 2, 0, 3, 255, 0, 7]));
@@ -200,7 +200,7 @@ describe("in-process fileDiff matches git", () => {
   });
 
   test("last-commit scope diffs the two committed trees", async () => {
-    const repoRoot = createFixtureRepo("sideye-fd-lastcommit-", {
+    const repoRoot = createFixtureRepo("stet-fd-lastcommit-", {
       "src/a.ts": "one\ntwo\nthree\n",
     });
     writeFileSync(join(repoRoot, "src/a.ts"), "one\nCOMMITTED\nthree\n");
@@ -219,7 +219,7 @@ describe("in-process fileDiff matches git", () => {
   });
 
   test("session scope diffs the worktree against the pinned base SHA across a commit", async () => {
-    const repoRoot = createFixtureRepo("sideye-fd-session-", {
+    const repoRoot = createFixtureRepo("stet-fd-session-", {
       "src/a.ts": "one\ntwo\nthree\n",
     });
     const base = head(repoRoot);

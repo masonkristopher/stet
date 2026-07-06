@@ -10,7 +10,7 @@ import { createFixtureRepo, loadModel, makeSettleUntil, runGit, seedState } from
 
 describe("worktree picker", () => {
   test("opens with w, escape keeps the current worktree, enter switches the whole app", async () => {
-    const repoRoot = createFixtureRepo("sideye-worktree-", {
+    const repoRoot = createFixtureRepo("stet-worktree-", {
       "README.md": "# Fixture\n",
       "src/main-only.ts": "export const main = true\n",
     });
@@ -30,7 +30,7 @@ describe("worktree picker", () => {
     try {
       const initial = await settleUntil(
         "app chrome",
-        (frame) => frame.includes("sideye") && frame.includes("main-only.ts"),
+        (frame) => frame.includes("stet") && frame.includes("main-only.ts"),
         5,
       );
       expect(initial).toContain("main-only.ts");
@@ -67,7 +67,7 @@ describe("worktree picker", () => {
   }, 20_000);
 
   test("typing filters the worktree list", async () => {
-    const repoRoot = createFixtureRepo("sideye-worktree-filter-", {
+    const repoRoot = createFixtureRepo("stet-worktree-filter-", {
       "README.md": "# Fixture\n",
     });
     const linkedRoot = join(repoRoot, ".wt");
@@ -82,7 +82,7 @@ describe("worktree picker", () => {
     const settleUntil = makeSettleUntil({ captureCharFrame, renderOnce });
 
     try {
-      await settleUntil("app chrome", (frame) => frame.includes("sideye"), 5);
+      await settleUntil("app chrome", (frame) => frame.includes("stet"), 5);
 
       mockInput.pressKey("w");
       await settleUntil("worktree picker", (frame) => frame.includes("side-branch"));

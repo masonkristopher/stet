@@ -54,7 +54,7 @@ function longFileToggleFixture(prefix: string) {
 
 describe("view toggle scroll", () => {
   test("toggling to file view shows a low change immediately, no navigation", async () => {
-    const repoRoot = longFileToggleFixture("sideye-toggle-scroll-");
+    const repoRoot = longFileToggleFixture("stet-toggle-scroll-");
     const model = await loadModel(repoRoot, { kind: "all", ref: "HEAD" });
     seedState(model, { kind: "all", ref: "HEAD" });
     const { renderer, renderOnce, captureCharFrame, mockInput } = await testRender(() => <App />, {

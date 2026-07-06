@@ -54,7 +54,7 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          for dir in dist/sideye-*/ dist/sideye/; do
+          for dir in dist/stet-*/ dist/stet/; do
             (
               cd "$dir"
               name=$(jq -r .name package.json)
@@ -85,15 +85,15 @@ jobs:
         run: |
           mkdir -p assets
           for target in darwin-arm64 darwin-x64 linux-x64 linux-arm64; do
-            gh release download "$TAG" --pattern "sideye-$target.tar.gz" --dir assets
+            gh release download "$TAG" --pattern "stet-$target.tar.gz" --dir assets
           done
-          render() { shasum -a 256 "assets/sideye-$1.tar.gz" | cut -d' ' -f1; }
+          render() { shasum -a 256 "assets/stet-$1.tar.gz" | cut -d' ' -f1; }
           sed -e "s/{{VERSION}}/$VERSION/g" \
               -e "s/{{SHA_DARWIN_ARM64}}/$(render darwin-arm64)/" \
               -e "s/{{SHA_DARWIN_X64}}/$(render darwin-x64)/" \
               -e "s/{{SHA_LINUX_X64}}/$(render linux-x64)/" \
               -e "s/{{SHA_LINUX_ARM64}}/$(render linux-arm64)/" \
-              script/sideye.rb.tmpl > sideye.rb
+              script/stet.rb.tmpl > stet.rb
       - name: push to tap
         env:
           GH_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
@@ -101,15 +101,15 @@ jobs:
         run: |
           git clone "https://x-access-token:${GH_TOKEN}@github.com/jimmy-guzman/homebrew-tap.git" tap
           mkdir -p tap/Formula
-          cp sideye.rb tap/Formula/sideye.rb
+          cp stet.rb tap/Formula/stet.rb
           cd tap
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add Formula/sideye.rb
+          git add Formula/stet.rb
           if git diff --staged --quiet; then
             echo "formula unchanged; skipping commit"
           else
-            git commit -m "sideye ${VERSION}"
+            git commit -m "stet ${VERSION}"
             git pull --rebase origin HEAD
             git push
           fi

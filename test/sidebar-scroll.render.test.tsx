@@ -10,7 +10,7 @@ import { createFixtureRepo, loadModel, makeSettleUntil, seedState } from "./help
 // The sidebar's scrollbox must not capture keyboard focus: OpenTUI's scrollbox
 // Scrolls itself by a fraction of a viewport on arrow/j/k once focused (e.g. via
 // A mouse click), which fights the tree's own cursor-follow and strands the
-// Highlight offscreen. Sideye owns navigation through its keymap, so a click in
+// Highlight offscreen. Stet owns navigation through its keymap, so a click in
 // The sidebar followed by arrow keys must still keep the focused file on screen.
 describe("sidebar scroll follow", () => {
   test("keeps the focused file visible after a mouse click then keyboard nav", async () => {
@@ -18,7 +18,7 @@ describe("sidebar scroll follow", () => {
     for (let i = 0; i < 40; i += 1) {
       files[`f${String(i).padStart(2, "0")}.txt`] = `content ${i}\n`;
     }
-    const repoRoot = createFixtureRepo("sideye-scroll-", files);
+    const repoRoot = createFixtureRepo("stet-scroll-", files);
     const scope = { kind: "all", ref: "HEAD" } as const;
     const model = await loadModel(repoRoot, scope);
     seedState(model, scope);

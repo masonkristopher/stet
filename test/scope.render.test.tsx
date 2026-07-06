@@ -11,7 +11,7 @@ import { createFixtureRepo, loadModel, makeSettleUntil, runGit, seedState } from
 
 describe("scope switching", () => {
   test("re-runs checks for the new scope's changed set", async () => {
-    const repoRoot = createFixtureRepo("sideye-scope-", {
+    const repoRoot = createFixtureRepo("stet-scope-", {
       "package.json": `${JSON.stringify({ name: "scope-fixture" })}\n`,
       "src/a.ts": "const a = 1\n",
     });
@@ -65,7 +65,7 @@ describe("scope switching", () => {
   }, 20_000);
 
   test("the picker lists every scope and marks the active one, and escape closes it", async () => {
-    const repoRoot = createFixtureRepo("sideye-scope-picker-", {
+    const repoRoot = createFixtureRepo("stet-scope-picker-", {
       "package.json": `${JSON.stringify({ name: "scope-picker-fixture" })}\n`,
     });
 
@@ -108,7 +108,7 @@ describe("scope switching", () => {
   }, 20_000);
 
   test("selecting session relabels the header without restarting", async () => {
-    const repoRoot = createFixtureRepo("sideye-scope-session-", {
+    const repoRoot = createFixtureRepo("stet-scope-session-", {
       "package.json": `${JSON.stringify({ name: "scope-session-fixture" })}\n`,
       "src/a.ts": "const a = 1\n",
     });
@@ -148,7 +148,7 @@ describe("scope switching", () => {
   }, 20_000);
 
   test("last-commit shows the newest commit's own diff", async () => {
-    const repoRoot = createFixtureRepo("sideye-scope-lastcommit-", {
+    const repoRoot = createFixtureRepo("stet-scope-lastcommit-", {
       "package.json": `${JSON.stringify({ name: "scope-lastcommit-fixture" })}\n`,
       "src/a.ts": "const a = 1\n",
     });

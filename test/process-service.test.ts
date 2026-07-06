@@ -39,7 +39,7 @@ test("Process.run fails with CommandError when the executable is missing", async
   // Surfaces as a typed failure rather than an escaping defect.
   const error = await Effect.runPromise(
     Process.pipe(
-      Effect.flatMap((process) => process.run(["sideye-no-such-binary"], import.meta.dir)),
+      Effect.flatMap((process) => process.run(["stet-no-such-binary"], import.meta.dir)),
       Effect.flip,
       Effect.provide(ProcessLive),
     ),
@@ -52,7 +52,7 @@ test("Process.run fails with a clear message when the cwd no longer exists", asy
   // A deleted worktree leaves repoRoot pointing at a missing dir. The guard fails
   // With a readable cause instead of the raw "ENOENT ... posix_spawn" syscall text.
   // Create then remove a temp dir so the path is guaranteed missing in any env.
-  const missingDir = mkdtempSync(join(tmpdir(), "sideye-missing-"));
+  const missingDir = mkdtempSync(join(tmpdir(), "stet-missing-"));
   rmSync(missingDir, { force: true, recursive: true });
 
   const error = await Effect.runPromise(

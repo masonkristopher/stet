@@ -13,7 +13,7 @@ import { Context, Effect, Layer } from "effect";
 
 import { activeThemeName, appearance } from "@/theme/active";
 import { syntaxThemeForName, themeForName } from "@/theme/registry";
-import { shikiTheme, SIDEYE_SHIKI_THEME_NAME } from "@/theme/shiki";
+import { shikiTheme, STET_SHIKI_THEME_NAME } from "@/theme/shiki";
 
 import { flattenLineSpans } from "./hast";
 import type { RenderSpan } from "./hast";
@@ -33,15 +33,15 @@ export interface RenderInput {
   maxLines: number;
 }
 
-// The render theme for the active sideye theme: a bundled Shiki id when the theme
+// The render theme for the active stet theme: a bundled Shiki id when the theme
 // Opted into one (`syntaxTheme`), else a per-name custom theme built from the
-// Theme's own `syntax` tokens. Per-name (not one shared "sideye") so switching
+// Theme's own `syntax` tokens. Per-name (not one shared "stet") so switching
 // Themes attaches another theme rather than mutating the attached one, which is
 // What lets the highlight cache key on it and re-theme cleanly. Diff/cursor/find
-// Backgrounds are still layered from sideye tokens at render time.
+// Backgrounds are still layered from stet tokens at render time.
 function diffThemeName() {
   const name = activeThemeName();
-  return syntaxThemeForName(name) ?? `${SIDEYE_SHIKI_THEME_NAME}:${name}`;
+  return syntaxThemeForName(name) ?? `${STET_SHIKI_THEME_NAME}:${name}`;
 }
 
 const registered = new Set<string>();
@@ -363,7 +363,7 @@ export class DiffEngine extends Context.Service<
   {
     readonly render: (input: RenderInput) => Effect.Effect<DiffRender>;
   }
->()("sideye/DiffEngine") {}
+>()("stet/DiffEngine") {}
 
 export const DiffEngineLive = Layer.sync(DiffEngine, () => {
   // Warm the highlighter when the runtime builds so the first diff is fast.

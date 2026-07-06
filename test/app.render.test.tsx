@@ -19,9 +19,9 @@ describe("App rendering", () => {
     });
     const settleUntil = makeSettleUntil({ captureCharFrame, renderOnce });
 
-    const frame = await settleUntil("app chrome", (current) => current.includes("sideye"));
+    const frame = await settleUntil("app chrome", (current) => current.includes("stet"));
 
-    expect(frame).toContain("sideye");
+    expect(frame).toContain("stet");
     expect(frame).toContain("uncommitted vs HEAD");
     expect(frame).toContain("src");
     expect(frame).toContain("q quit");

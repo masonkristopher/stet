@@ -90,8 +90,8 @@ describe("fileIcon", () => {
 
   test("matches Ruby files, and peels a .rb.tmpl template to the Ruby glyph", () => {
     expect(fileIcon("Formula.rb")).toBe("\u{e739}");
-    expect(fileIcon("sideye.rb.tmpl")).toBe("\u{e739}");
-    expect(fileIcon("sideye.rb.tmpl")).toBe(fileIcon("Formula.rb"));
+    expect(fileIcon("stet.rb.tmpl")).toBe("\u{e739}");
+    expect(fileIcon("stet.rb.tmpl")).toBe(fileIcon("Formula.rb"));
     // Only .rb.tmpl is peeled: other .tmpl files and a bare .tmpl stay generic.
     expect(fileIcon("config.yaml.tmpl")).toBe("\u{ea7b}");
     expect(fileIcon("release.tmpl")).toBe("\u{ea7b}");

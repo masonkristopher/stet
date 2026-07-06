@@ -14,7 +14,7 @@ describe("word caret", () => {
   test("h/l hop the caret word to word and wrap across lines, shown as ln L:C", async () => {
     // Two changed lines so the line number distinguishes a wrap; "const a = 1"
     // Has words at columns 1 (const), 7 (a), 11 (1).
-    const repoRoot = createFixtureRepo("sideye-caret-", {
+    const repoRoot = createFixtureRepo("stet-caret-", {
       "package.json": `${JSON.stringify({ scripts: { lint: "exit 0", typecheck: "exit 0" } })}\n`,
       "src/a.ts": "const a = 1\nconst b = 1\n",
     });
@@ -54,7 +54,7 @@ describe("word caret", () => {
   }, 20_000);
 
   test("clicking the line number selects the line (no symbol), so y copies path:line", async () => {
-    const repoRoot = createFixtureRepo("sideye-caret-gutter-", {
+    const repoRoot = createFixtureRepo("stet-caret-gutter-", {
       "package.json": `${JSON.stringify({ scripts: { lint: "exit 0", typecheck: "exit 0" } })}\n`,
       "src/a.ts": "const a = 1\n",
     });
@@ -110,7 +110,7 @@ describe("word caret", () => {
   }, 20_000);
 
   test("back restores the caret column captured on leave", async () => {
-    const repoRoot = createFixtureRepo("sideye-caret-nav-", {
+    const repoRoot = createFixtureRepo("stet-caret-nav-", {
       "package.json": `${JSON.stringify({ scripts: { lint: "exit 0", typecheck: "exit 0" } })}\n`,
       "src/a.ts": "const a = 1\n",
       "src/b.ts": "const b = 1\n",

@@ -1,5 +1,5 @@
 /**
- * LSP wire types for code-intelligence replies and the mapping onto sideye's `NormalizedLocation`.
+ * LSP wire types for code-intelligence replies and the mapping onto stet's `NormalizedLocation`.
  * Pure (no Effect/Solid), so it unit-tests like `git/tree`. The 1-based line/column mirror
  * `diagnostics/protocol.ts` so a result flows straight into a `JumpTarget`.
  */

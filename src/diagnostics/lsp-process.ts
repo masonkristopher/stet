@@ -117,7 +117,7 @@ export class LspProcess extends Context.Service<
       onRequest?: (method: string, params: unknown) => Effect.Effect<unknown>,
     ) => Effect.Effect<LspConnection, LspSpawnError, Scope.Scope>;
   }
->()("sideye/LspProcess") {}
+>()("stet/LspProcess") {}
 
 export const LspProcessLive = Layer.succeed(LspProcess)({
   start: (command, cwd, onRequest) =>

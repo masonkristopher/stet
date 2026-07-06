@@ -9,7 +9,7 @@ import { createFixtureRepo, loadModel, makeSettleUntil, seedState } from "./help
 
 describe("help overlay", () => {
   test("opens with ?, lists every keybinding, swallows keys, and closes with escape", async () => {
-    const repoRoot = createFixtureRepo("sideye-help-", { "src/a.ts": "export const a = 1\n" });
+    const repoRoot = createFixtureRepo("stet-help-", { "src/a.ts": "export const a = 1\n" });
     const model = await loadModel(repoRoot, { kind: "all", ref: "HEAD" });
     seedState(model, { kind: "all", ref: "HEAD" });
     const { renderer, renderOnce, captureCharFrame, mockInput } = await testRender(() => <App />, {
@@ -22,7 +22,7 @@ describe("help overlay", () => {
     const settleUntil = makeSettleUntil({ captureCharFrame, renderOnce });
 
     try {
-      const initial = await settleUntil("app chrome", (frame) => frame.includes("sideye"), 5);
+      const initial = await settleUntil("app chrome", (frame) => frame.includes("stet"), 5);
       expect(initial).toContain("? keys · q quit");
 
       mockInput.pressKey("?");
@@ -77,7 +77,7 @@ describe("help overlay", () => {
         "help closed by q",
         (frame) => !frame.includes("switch to another git worktree"),
       );
-      expect(closed).toContain("sideye");
+      expect(closed).toContain("stet");
       expect(closed).toContain("? keys · q quit");
     } finally {
       renderer.destroy();

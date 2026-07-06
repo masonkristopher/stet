@@ -45,7 +45,7 @@ try {
 
   // The provisioner reads this env var; set it before any check runs the runtime.
   if (!options.lspDownload) {
-    process.env.SIDEYE_NO_LSP_DOWNLOAD = "1";
+    process.env.STET_NO_LSP_DOWNLOAD = "1";
   }
 
   // The startup model carries only the changed set (repoFiles fill in on the
@@ -72,7 +72,7 @@ try {
       : repoRoot;
     const changed = yield* git.changedFiles(repoRoot, options.scope);
     // The SHA HEAD points at now, pinned as the base for the `session` scope so
-    // It keeps meaning "since sideye launched" as the agent commits.
+    // It keeps meaning "since stet launched" as the agent commits.
     const sessionBase = yield* git.headRef(repoRoot);
     return { changed, mainWorktreePath, repoRoot, sessionBase };
   });
@@ -101,7 +101,7 @@ try {
   // Reused for the first paint below, so detection costs no extra frame.
   // Disable OpenTUI's focus-the-element-under-the-pointer on mouse-down
   // (`autoFocus`), which would otherwise draw the terminal cursor in a clicked
-  // Renderable (e.g. a tab). sideye drives focus through its own keymap, and
+  // Renderable (e.g. a tab). stet drives focus through its own keymap, and
   // Overlay inputs focus via their explicit `focused` prop, so nothing relies on it.
   const renderer = await createCliRenderer({ autoFocus: false, exitOnCtrlC: false });
   const appearance = (await renderer.waitForThemeMode(100)) ?? "dark";

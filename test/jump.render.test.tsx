@@ -12,7 +12,7 @@ describe("view toggle jumps", () => {
   test("v returns to the diff even from a line outside every hunk", async () => {
     const lines = Array.from({ length: 30 }, (_, index) => `const line${index + 1} = ${index + 1}`);
     // Pin the checkers so binaries on the runner's PATH cannot lint the fixture
-    const repoRoot = createFixtureRepo("sideye-jump-", {
+    const repoRoot = createFixtureRepo("stet-jump-", {
       "package.json": `${JSON.stringify({ scripts: { lint: "exit 0", typecheck: "exit 0" } })}\n`,
       "src/a.ts": `${lines.join("\n")}\n`,
     });

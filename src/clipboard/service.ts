@@ -13,7 +13,7 @@ export class Clipboard extends Context.Service<
   {
     readonly copy: (text: string) => Effect.Effect<void, ClipboardError>;
   }
->()("sideye/Clipboard") {}
+>()("stet/Clipboard") {}
 
 export const ClipboardLive = Layer.effect(
   Clipboard,

@@ -8,5 +8,5 @@ import { join } from "node:path";
  */
 export function configPaths(env: NodeJS.ProcessEnv = process.env) {
   const base = env.XDG_CONFIG_HOME ?? join(homedir(), ".config");
-  return [join(base, "sideye", "config.jsonc"), join(base, "sideye", "config.json")];
+  return [join(base, "stet", "config.jsonc"), join(base, "stet", "config.json")];
 }

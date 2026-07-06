@@ -20,7 +20,7 @@ export class Editor extends Context.Service<
     /** Spawns a terminal editor with inherited stdio and blocks until it exits. */
     readonly openTerminal: (argv: string[], cwd: string) => Effect.Effect<void, EditorError>;
   }
->()("sideye/Editor") {}
+>()("stet/Editor") {}
 
 export const EditorLive = Layer.succeed(Editor)({
   openIde: (argv, cwd) =>

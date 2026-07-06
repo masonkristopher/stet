@@ -9,7 +9,7 @@ import { createFixtureRepo, loadModel, makeSettleUntil, seedState } from "./help
 
 describe("re-running checks", () => {
   test("r reports checks passed once diagnostics complete", async () => {
-    const repoRoot = createFixtureRepo("sideye-recheck-", { "README.md": "# Fixture\n" });
+    const repoRoot = createFixtureRepo("stet-recheck-", { "README.md": "# Fixture\n" });
     const model = await loadModel(repoRoot, { kind: "all", ref: "HEAD" });
     seedState(model, { kind: "all", ref: "HEAD" });
     const { renderer, renderOnce, captureCharFrame, mockInput } = await testRender(() => <App />, {
@@ -19,8 +19,8 @@ describe("re-running checks", () => {
     const settleUntil = makeSettleUntil({ captureCharFrame, renderOnce });
 
     try {
-      const initial = await settleUntil("app chrome", (frame) => frame.includes("sideye"), 5);
-      expect(initial).toContain("sideye");
+      const initial = await settleUntil("app chrome", (frame) => frame.includes("stet"), 5);
+      expect(initial).toContain("stet");
 
       mockInput.pressKey("r");
       const after = await settleUntil("re-run completion", (frame) =>

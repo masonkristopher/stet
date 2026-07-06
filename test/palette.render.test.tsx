@@ -9,7 +9,7 @@ import { createFixtureRepo, loadModel, makeSettleUntil, seedState } from "./help
 
 describe("go-to-file palette", () => {
   test("opens with ctrl-p, swallows global keys, fuzzy-jumps on enter", async () => {
-    const repoRoot = createFixtureRepo("sideye-palette-", {
+    const repoRoot = createFixtureRepo("stet-palette-", {
       "README.md": "# Fixture\n",
       "src/App.tsx": "export function App() { return null }\n",
       "src/tree.ts": "export const tree = true\n",
@@ -24,8 +24,8 @@ describe("go-to-file palette", () => {
     const settleUntil = makeSettleUntil({ captureCharFrame, renderOnce });
 
     try {
-      const initial = await settleUntil("app chrome", (frame) => frame.includes("sideye"), 5);
-      expect(initial).toContain("sideye");
+      const initial = await settleUntil("app chrome", (frame) => frame.includes("stet"), 5);
+      expect(initial).toContain("stet");
 
       mockInput.pressKey("p", { ctrl: true });
       const palette = await settleUntil("go-to-file palette", (frame) =>
@@ -37,9 +37,9 @@ describe("go-to-file palette", () => {
       await mockInput.typeText("qqqq");
       const afterTyping = await settleUntil(
         "empty palette results",
-        (frame) => frame.includes("sideye") && frame.includes("no matches"),
+        (frame) => frame.includes("stet") && frame.includes("no matches"),
       );
-      expect(afterTyping).toContain("sideye");
+      expect(afterTyping).toContain("stet");
       expect(afterTyping).toContain("no matches");
 
       for (let index = 0; index < 4; index += 1) {
@@ -67,7 +67,7 @@ describe("go-to-file palette", () => {
   test("keeps a match visible when it falls in a long path's middle directory", async () => {
     // Every result matches "references" only in a mid-path directory; a plain
     // Keep-the-tail truncation would hide exactly what was typed.
-    const repoRoot = createFixtureRepo("sideye-palette-mid-", {
+    const repoRoot = createFixtureRepo("stet-palette-mid-", {
       ".agents/skills/effect-best-practices/references/error-patterns.md": "a\n",
       ".agents/skills/effect-best-practices/references/language-server.md": "b\n",
       "README.md": "# Fixture\n",
@@ -81,7 +81,7 @@ describe("go-to-file palette", () => {
     const settleUntil = makeSettleUntil({ captureCharFrame, renderOnce });
 
     try {
-      await settleUntil("app chrome", (frame) => frame.includes("sideye"), 5);
+      await settleUntil("app chrome", (frame) => frame.includes("stet"), 5);
       mockInput.pressKey("p", { ctrl: true });
       await settleUntil("go-to-file palette", (frame) => frame.includes("go to file"));
 

@@ -4,7 +4,7 @@ import { formatUpdateNotice, isNewer, tagToVersion } from "@/upgrade/release";
 
 describe("tagToVersion", () => {
   test("strips the release-please component prefix and the v", () => {
-    expect(tagToVersion("sideye-v0.4.0")).toBe("0.4.0");
+    expect(tagToVersion("stet-v0.4.0")).toBe("0.4.0");
   });
 
   test("strips a plain v prefix", () => {
@@ -41,9 +41,9 @@ describe("isNewer", () => {
 describe("formatUpdateNotice", () => {
   test("stacks the versions, upgrade hint, and releases link on their own lines", () => {
     expect(formatUpdateNotice({ current: "0.3.3", latest: "0.4.0" }).split("\n")).toEqual([
-      "A new release of sideye is available: 0.3.3 -> 0.4.0",
-      '  run "sideye upgrade" to update',
-      "  https://github.com/jimmy-guzman/sideye/releases/latest",
+      "A new release of stet is available: 0.3.3 -> 0.4.0",
+      '  run "stet upgrade" to update',
+      "  https://github.com/jimmy-guzman/stet/releases/latest",
     ]);
   });
 });

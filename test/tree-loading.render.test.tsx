@@ -69,7 +69,7 @@ test("reserves blank space without flashing the empty state at first paint", asy
 // When the poll commits the tree, rows render top-aligned and no empty-state text
 // Ever appeared along the way.
 test("fills the tree from the top once repoFiles loads", async () => {
-  const repoRoot = createFixtureRepo("sideye-loading-fill-", {
+  const repoRoot = createFixtureRepo("stet-loading-fill-", {
     "src/app.ts": "export const x = 1\n",
   });
   const model = await loadModel(repoRoot, allScope);
@@ -96,7 +96,7 @@ test("fills the tree from the top once repoFiles loads", async () => {
 // Path as a deletion while repoFiles is empty, rendering the changed files and then
 // Re-rendering the full tree around them — the "changed vs unchanged" jump.
 test("shows no changed-only preview during a deferred load in the default view", async () => {
-  const repoRoot = createFixtureRepo("sideye-loading-default-", {
+  const repoRoot = createFixtureRepo("stet-loading-default-", {
     "src/app.ts": "export const x = 1\n",
   });
   writeFileSync(join(repoRoot, "src/changed.ts"), "export const y = 2\n");
@@ -132,7 +132,7 @@ test("shows no changed-only preview during a deferred load in the default view",
 // The tree is built from the changed set, so it has rows even while repoFiles is
 // Still loading; those rows must render instead of a blank surface.
 test("keeps changed-file rows visible during a deferred load in changes-only mode", async () => {
-  const repoRoot = createFixtureRepo("sideye-loading-changes-", {
+  const repoRoot = createFixtureRepo("stet-loading-changes-", {
     "src/app.ts": "export const x = 1\n",
   });
   writeFileSync(join(repoRoot, "src/new.ts"), "export const y = 2\n");

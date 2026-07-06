@@ -276,7 +276,7 @@ describe("parseWorktreeList", () => {
 
 describe("worktrees in a fixture repo", () => {
   test("lists the main and a linked worktree with their branches", async () => {
-    const repoRoot = createFixtureRepo("sideye-git-worktree-", { "a.ts": "const a = 1\n" });
+    const repoRoot = createFixtureRepo("stet-git-worktree-", { "a.ts": "const a = 1\n" });
     try {
       runGit(repoRoot, ["worktree", "add", "-b", "side", join(repoRoot, ".wt")]);
       const worktrees = await loadWorktrees(repoRoot);
@@ -292,7 +292,7 @@ describe("worktrees in a fixture repo", () => {
 
 describe("loadModel in a fixture repo", () => {
   test("reads a dangling untracked symlink as its one-line target path", async () => {
-    const repoRoot = createFixtureRepo("sideye-git-symlink-", { "a.ts": "const a = 1\n" });
+    const repoRoot = createFixtureRepo("stet-git-symlink-", { "a.ts": "const a = 1\n" });
     try {
       symlinkSync("/nonexistent-target", join(repoRoot, "broken-link"));
       const loaded = await loadModel(repoRoot, { kind: "all", ref: "HEAD" });
@@ -312,7 +312,7 @@ describe("loadModel in a fixture repo", () => {
   });
 
   test("flags a tracked symlink from its git mode", async () => {
-    const repoRoot = createFixtureRepo("sideye-git-tracked-symlink-", {
+    const repoRoot = createFixtureRepo("stet-git-tracked-symlink-", {
       "target.ts": "const a = 1\n",
     });
     try {
@@ -335,7 +335,7 @@ describe("loadModel in a fixture repo", () => {
   });
 
   test("re-resolves an untracked file's symlink flag when its type flips", async () => {
-    const repoRoot = createFixtureRepo("sideye-git-symlink-flip-", { "a.ts": "const a = 1\n" });
+    const repoRoot = createFixtureRepo("stet-git-symlink-flip-", { "a.ts": "const a = 1\n" });
     try {
       // Same path and identical git output both times, so only the on-disk type
       // Changes: the repo-file cache must not mask the flip behind a stale flag.
@@ -357,7 +357,7 @@ describe("loadModel in a fixture repo", () => {
   });
 
   test("keeps non-ascii filenames literal end to end", async () => {
-    const repoRoot = createFixtureRepo("sideye-git-unicode-", { "src/café.ts": "const a = 1\n" });
+    const repoRoot = createFixtureRepo("stet-git-unicode-", { "src/café.ts": "const a = 1\n" });
     try {
       writeFileSync(join(repoRoot, "src", "café.ts"), "const a = 2\n");
       const loaded = await loadModel(repoRoot, { kind: "all", ref: "HEAD" });
@@ -376,7 +376,7 @@ describe("loadModel in a fixture repo", () => {
   });
 
   test("forces canonical a//b/ prefixes despite hostile diff config", async () => {
-    const repoRoot = createFixtureRepo("sideye-git-prefix-", { "src/a.ts": "const a = 1\n" });
+    const repoRoot = createFixtureRepo("stet-git-prefix-", { "src/a.ts": "const a = 1\n" });
     try {
       runGit(repoRoot, ["config", "diff.noprefix", "true"]);
       runGit(repoRoot, ["config", "diff.mnemonicPrefix", "true"]);
@@ -401,7 +401,7 @@ describe("loadModel in a fixture repo", () => {
     const content = Array.from({ length: 12 }, (_, index) => `const line${index} = ${index}`).join(
       "\n",
     );
-    const repoRoot = createFixtureRepo("sideye-git-rename-", { "src/old.ts": `${content}\n` });
+    const repoRoot = createFixtureRepo("stet-git-rename-", { "src/old.ts": `${content}\n` });
     try {
       renameSync(join(repoRoot, "src", "old.ts"), join(repoRoot, "src", "new.ts"));
       writeFileSync(join(repoRoot, "src", "new.ts"), `${content}\nconst added = true\n`);
@@ -427,7 +427,7 @@ describe("loadModel in a fixture repo", () => {
   });
 
   test("a commit scope loads exactly the files that commit introduced", async () => {
-    const repoRoot = createFixtureRepo("sideye-git-commit-scope-", { "a.txt": "one\n" });
+    const repoRoot = createFixtureRepo("stet-git-commit-scope-", { "a.txt": "one\n" });
     try {
       writeFileSync(join(repoRoot, "b.txt"), "two\n");
       runGit(repoRoot, ["add", "."]);

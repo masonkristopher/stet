@@ -9,7 +9,7 @@ import { createFixtureRepo, loadModel, makeSettleUntil, seedState } from "./help
 
 describe("word wrap toggle", () => {
   test("x toggles long-line handling between scroll and wrap", async () => {
-    const repoRoot = createFixtureRepo("sideye-wrap-", { "src/a.ts": "export const a = 1\n" });
+    const repoRoot = createFixtureRepo("stet-wrap-", { "src/a.ts": "export const a = 1\n" });
     const model = await loadModel(repoRoot, { kind: "all", ref: "HEAD" });
     seedState(model, { kind: "all", ref: "HEAD" });
     const { renderer, renderOnce, captureCharFrame, mockInput } = await testRender(() => <App />, {
@@ -19,7 +19,7 @@ describe("word wrap toggle", () => {
     const settleUntil = makeSettleUntil({ captureCharFrame, renderOnce });
 
     try {
-      await settleUntil("app chrome", (frame) => frame.includes("sideye"), 5);
+      await settleUntil("app chrome", (frame) => frame.includes("stet"), 5);
 
       mockInput.pressKey("x");
       const wrapped = await settleUntil("wrap on", (frame) => frame.includes("wrap on"));

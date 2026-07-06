@@ -78,30 +78,30 @@ describe("resolveEditorTemplate", () => {
     expect(resolveEditorTemplate("nvim +{line} {file}")).toBe("nvim +{line} {file}");
   });
 
-  test("explicit value (CLI flag or config) beats SIDEYE_EDITOR", () => {
-    const saved = process.env.SIDEYE_EDITOR;
-    process.env.SIDEYE_EDITOR = "nano +{line} {file}";
+  test("explicit value (CLI flag or config) beats STET_EDITOR", () => {
+    const saved = process.env.STET_EDITOR;
+    process.env.STET_EDITOR = "nano +{line} {file}";
     try {
       expect(resolveEditorTemplate("nvim +{line} {file}")).toBe("nvim +{line} {file}");
     } finally {
       if (saved !== undefined) {
-        process.env.SIDEYE_EDITOR = saved;
+        process.env.STET_EDITOR = saved;
       } else {
-        delete process.env.SIDEYE_EDITOR;
+        delete process.env.STET_EDITOR;
       }
     }
   });
 
-  test("SIDEYE_EDITOR is returned verbatim when it already contains {file}", () => {
-    const saved = process.env.SIDEYE_EDITOR;
-    process.env.SIDEYE_EDITOR = "emacsclient -nw +{line} {file}";
+  test("STET_EDITOR is returned verbatim when it already contains {file}", () => {
+    const saved = process.env.STET_EDITOR;
+    process.env.STET_EDITOR = "emacsclient -nw +{line} {file}";
     try {
       expect(resolveEditorTemplate(undefined)).toBe("emacsclient -nw +{line} {file}");
     } finally {
       if (saved !== undefined) {
-        process.env.SIDEYE_EDITOR = saved;
+        process.env.STET_EDITOR = saved;
       } else {
-        delete process.env.SIDEYE_EDITOR;
+        delete process.env.STET_EDITOR;
       }
     }
   });
@@ -127,18 +127,18 @@ describe("resolveEditorTemplate", () => {
     }
   });
 
-  test("SIDEYE_EDITOR beats $EDITOR", () => {
-    const savedSideye = process.env.SIDEYE_EDITOR;
+  test("STET_EDITOR beats $EDITOR", () => {
+    const savedStet = process.env.STET_EDITOR;
     const savedEditor = process.env.EDITOR;
-    process.env.SIDEYE_EDITOR = "hx {file}:{line}";
+    process.env.STET_EDITOR = "hx {file}:{line}";
     process.env.EDITOR = "vim";
     try {
       expect(resolveEditorTemplate(undefined)).toBe("hx {file}:{line}");
     } finally {
-      if (savedSideye !== undefined) {
-        process.env.SIDEYE_EDITOR = savedSideye;
+      if (savedStet !== undefined) {
+        process.env.STET_EDITOR = savedStet;
       } else {
-        delete process.env.SIDEYE_EDITOR;
+        delete process.env.STET_EDITOR;
       }
       if (savedEditor !== undefined) {
         process.env.EDITOR = savedEditor;
@@ -167,17 +167,17 @@ describe("resolveIdeTemplate", () => {
   test("returns undefined when nothing is configured", () => {
     const saved = {
       EDITOR: process.env.EDITOR,
-      SIDEYE_IDE: process.env.SIDEYE_IDE,
+      STET_IDE: process.env.STET_IDE,
       VISUAL: process.env.VISUAL,
     };
-    delete process.env.SIDEYE_IDE;
+    delete process.env.STET_IDE;
     delete process.env.VISUAL;
     delete process.env.EDITOR;
     try {
       expect(resolveIdeTemplate(undefined)).toBeUndefined();
     } finally {
-      if (saved.SIDEYE_IDE !== undefined) {
-        process.env.SIDEYE_IDE = saved.SIDEYE_IDE;
+      if (saved.STET_IDE !== undefined) {
+        process.env.STET_IDE = saved.STET_IDE;
       }
       if (saved.VISUAL !== undefined) {
         process.env.VISUAL = saved.VISUAL;
@@ -188,30 +188,30 @@ describe("resolveIdeTemplate", () => {
     }
   });
 
-  test("uses SIDEYE_IDE env var over $VISUAL", () => {
-    const saved = process.env.SIDEYE_IDE;
-    process.env.SIDEYE_IDE = "zed {file}:{line}";
+  test("uses STET_IDE env var over $VISUAL", () => {
+    const saved = process.env.STET_IDE;
+    process.env.STET_IDE = "zed {file}:{line}";
     try {
       expect(resolveIdeTemplate(undefined)).toBe("zed {file}:{line}");
     } finally {
       if (saved !== undefined) {
-        process.env.SIDEYE_IDE = saved;
+        process.env.STET_IDE = saved;
       } else {
-        delete process.env.SIDEYE_IDE;
+        delete process.env.STET_IDE;
       }
     }
   });
 
-  test("explicit value wins over SIDEYE_IDE", () => {
-    const saved = process.env.SIDEYE_IDE;
-    process.env.SIDEYE_IDE = "zed {file}:{line}";
+  test("explicit value wins over STET_IDE", () => {
+    const saved = process.env.STET_IDE;
+    process.env.STET_IDE = "zed {file}:{line}";
     try {
       expect(resolveIdeTemplate("subl {file}:{line}")).toBe("subl {file}:{line}");
     } finally {
       if (saved !== undefined) {
-        process.env.SIDEYE_IDE = saved;
+        process.env.STET_IDE = saved;
       } else {
-        delete process.env.SIDEYE_IDE;
+        delete process.env.STET_IDE;
       }
     }
   });

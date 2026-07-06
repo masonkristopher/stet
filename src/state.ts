@@ -341,7 +341,7 @@ function createState() {
   const [scope, setScope] = createSignal<DiffScope>({ kind: "all", ref: "HEAD" });
   // The CLI ref (default HEAD), the base for the all/staged scopes.
   const [cliBaseRef, setCliBaseRef] = createSignal("HEAD");
-  // The SHA HEAD pointed at when sideye launched, pinned for the session scope.
+  // The SHA HEAD pointed at when stet launched, pinned for the session scope.
   const [sessionBase, setSessionBase] = createSignal("HEAD");
   const [scopeMenuOpen, setScopeMenuOpen] = createSignal(false);
   const [scopeMenuIndex, setScopeMenuIndex] = createSignal(0);

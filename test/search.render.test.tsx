@@ -11,7 +11,7 @@ import { createFixtureRepo, loadModel, makeSettleUntil, seedState } from "./help
 
 describe("project content search", () => {
   test("ctrl-f searches changed files, ctrl-a widens, enter jumps, reopening restores", async () => {
-    const repoRoot = createFixtureRepo("sideye-search-", {
+    const repoRoot = createFixtureRepo("stet-search-", {
       "src/a.ts": "const x = 1\n",
       // Lib.ts stays unchanged (only under whole-repo scope); needle is on line 3.
       "src/lib.ts": "// one\n// two\nexport const needle = 0\n",
@@ -28,7 +28,7 @@ describe("project content search", () => {
 
     try {
       // The seeded file is a.ts, so selecting lib.ts below is a cross-file jump.
-      await settleUntil("app chrome", (frame) => frame.includes("sideye"), 5);
+      await settleUntil("app chrome", (frame) => frame.includes("stet"), 5);
 
       mockInput.pressKey("f", { ctrl: true });
       await settleUntil("search pane", (frame) => frame.includes("search…"));
@@ -110,7 +110,7 @@ describe("project content search", () => {
     const lines = Array.from({ length: 60 }, (_, index) =>
       index === 49 ? "const needle = 1" : `const x${index} = ${index}`,
     );
-    const repoRoot = createFixtureRepo("sideye-search-escalate-", {
+    const repoRoot = createFixtureRepo("stet-search-escalate-", {
       "src/aaa.ts": "const a = 1\n",
       "src/zzz.ts": `${lines.join("\n")}\n`,
     });
@@ -130,7 +130,7 @@ describe("project content search", () => {
 
     try {
       // Seeded on aaa.ts; the only needle match is line 50 of the changed zzz.ts.
-      await settleUntil("app chrome", (frame) => frame.includes("sideye"), 5);
+      await settleUntil("app chrome", (frame) => frame.includes("stet"), 5);
       mockInput.pressKey("f", { ctrl: true });
       await settleUntil("search pane", (frame) => frame.includes("search…"));
       await mockInput.typeText("needle");
@@ -149,7 +149,7 @@ describe("project content search", () => {
   }, 20_000);
 
   test("collapses a file group, reports no matches, and keeps results on a bad regex", async () => {
-    const repoRoot = createFixtureRepo("sideye-search-states-", {
+    const repoRoot = createFixtureRepo("stet-search-states-", {
       "src/a.ts": "const x = 1\n",
     });
     writeFileSync(join(repoRoot, "src", "a.ts"), "const x = 1\nconst needle = 2\n");
@@ -166,7 +166,7 @@ describe("project content search", () => {
     const settleUntil = makeSettleUntil({ captureCharFrame, renderOnce });
 
     try {
-      await settleUntil("app chrome", (frame) => frame.includes("sideye"), 5);
+      await settleUntil("app chrome", (frame) => frame.includes("stet"), 5);
       mockInput.pressKey("f", { ctrl: true });
       await settleUntil("search pane", (frame) => frame.includes("search…"));
       await mockInput.typeText("needle");
@@ -245,7 +245,7 @@ describe("project content search", () => {
 
   test("a wheel scroll moves the results window without moving the selection", async () => {
     const lines = Array.from({ length: 60 }, (_, index) => `const needle${index} = ${index}`);
-    const repoRoot = createFixtureRepo("sideye-search-wheel-", {
+    const repoRoot = createFixtureRepo("stet-search-wheel-", {
       "src/many.ts": "const x = 1\n",
     });
     writeFileSync(join(repoRoot, "src", "many.ts"), `${lines.join("\n")}\n`);
@@ -259,7 +259,7 @@ describe("project content search", () => {
     const settleUntil = makeSettleUntil({ captureCharFrame, renderOnce });
 
     try {
-      await settleUntil("app chrome", (frame) => frame.includes("sideye"), 5);
+      await settleUntil("app chrome", (frame) => frame.includes("stet"), 5);
       mockInput.pressKey("f", { ctrl: true });
       await settleUntil("search pane", (frame) => frame.includes("search…"));
       await mockInput.typeText("needle");

@@ -15,7 +15,7 @@ import { createFixtureRepo, loadModel, makeSettleUntil, seedState } from "./help
 // Open re-renders in place instead of rebuilding a renderable per finding.
 describe("problems panel windowing", () => {
   test("frames the cursor deep in a large findings list and survives an update while open", async () => {
-    const repoRoot = createFixtureRepo("sideye-problems-", { "src/a.ts": "export const a = 1;\n" });
+    const repoRoot = createFixtureRepo("stet-problems-", { "src/a.ts": "export const a = 1;\n" });
     const scope = { kind: "all", ref: "HEAD" } as const;
     const model = await loadModel(repoRoot, scope);
     seedState(model, scope);

@@ -17,7 +17,7 @@ import { createFixtureRepo, loadModel, makeSettleUntil, seedState } from "./help
 // Intel-service.test.ts.
 describe("go-to-definition in-flight indicator", () => {
   test("acknowledges F12 instantly, then the status bar settles to the result", async () => {
-    const repoRoot = createFixtureRepo("sideye-def-", {
+    const repoRoot = createFixtureRepo("stet-def-", {
       "notes.txt": "alpha\n",
       "package.json": `${JSON.stringify({ name: "def-fixture" })}\n`,
     });

@@ -39,7 +39,7 @@ function diffScrollBox(node: Renderable) {
 // Scroll to the scrollTop signal every rendered frame, which always recovers.
 test("recovers when a layout pass strands the physical scroll", async () => {
   const lines = Array.from({ length: 120 }, (_, index) => `const line_${index + 1} = ${index + 1}`);
-  const repoRoot = createFixtureRepo("sideye-toggle-strand-", {
+  const repoRoot = createFixtureRepo("stet-toggle-strand-", {
     "long.ts": `${lines.join("\n")}\n`,
     "package.json": `${JSON.stringify({ scripts: { lint: "exit 0", typecheck: "exit 0" } })}\n`,
   });

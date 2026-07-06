@@ -1,6 +1,6 @@
-# sideye
+# stet
 
-`sideye` is a read-only companion TUI for inspecting an agent's changes.
+`stet` is a read-only companion TUI for inspecting an agent's changes.
 
 The agent runs in one terminal pane, but you still open an editor just to answer
 basic questions:
@@ -10,12 +10,12 @@ basic questions:
 - What did the agent touch most recently?
 - Are there errors or warnings in what changed?
 
-`sideye` is meant to sit in the next pane and answer those questions without
+`stet` is meant to sit in the next pane and answer those questions without
 becoming part of the agent loop. It does not review code, approve changes, talk
 to the agent, or manage a workflow. It shows you the repo, the diff, and the
 problems. You decide what to say next.
 
-![sideye showing the repo tree beside a diff of a changed file](assets/screenshots/sideye.png)
+![stet showing the repo tree beside a diff of a changed file](assets/screenshots/stet.png)
 
 ## What it does
 
@@ -29,7 +29,7 @@ problems. You decide what to say next.
 - Searches file contents across the repo, scoped to the changes or the whole
   tree.
 - Switches scope from a picker: all changes, staged, unstaged, everything since
-  sideye launched, or just the last commit.
+  stet launched, or just the last commit.
 - Switches between git worktrees in place, re-pointing the tree, diffs,
   refresh, and checks at the chosen worktree.
 - Watches the filesystem and refreshes the moment the agent changes something,
@@ -50,44 +50,44 @@ That keeps the basic view useful even when checks are still running.
 
 ```sh
 # standalone binary (macOS / Linux, no runtime needed)
-curl -fsSL https://raw.githubusercontent.com/jimmy-guzman/sideye/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/jimmy-guzman/stet/main/install.sh | bash
 
 # npm (works with npm, bun, pnpm, yarn; pulls a prebuilt binary)
-npm i -g sideye
+npm i -g stet
 
 # homebrew
-brew install jimmy-guzman/tap/sideye
+brew install jimmy-guzman/tap/stet
 ```
 
 ## Upgrade
 
 ```sh
-sideye upgrade
+stet upgrade
 ```
 
-Updates sideye to the latest release using whichever channel it was installed
+Updates stet to the latest release using whichever channel it was installed
 through: a standalone install re-runs the install script, an npm install runs
 npm, and a Homebrew install runs `brew upgrade`. If the install channel cannot
 be determined, it prints the upgrade commands instead. It checks the latest
-GitHub release first and reports `sideye X.Y.Z is already up to date` without
+GitHub release first and reports `stet X.Y.Z is already up to date` without
 running anything when you are current, falling back to the channel update if it
 cannot reach GitHub.
 
-sideye also checks for a newer release in the background while it runs, and
+stet also checks for a newer release in the background while it runs, and
 prints a one-line notice on clean exit when one is available, the way `gh` does.
 The check is non-blocking and never interrupts the session.
 
 ## Usage
 
 ```sh
-sideye            # whole repo, uncommitted vs HEAD
-sideye main       # compare against another ref
-sideye --staged   # start in the staged scope
-sideye --unstaged # start in the unstaged scope
-sideye --no-icons # plain tree without Nerd Font file-type icons
-sideye --wrap     # wrap long lines in the viewer instead of scrolling them horizontally
-sideye --editor "nvim +{line} {file}"   # terminal editor for the e key
-sideye --ide    "code --goto {file}:{line}" # GUI/IDE for the o key
+stet            # whole repo, uncommitted vs HEAD
+stet main       # compare against another ref
+stet --staged   # start in the staged scope
+stet --unstaged # start in the unstaged scope
+stet --no-icons # plain tree without Nerd Font file-type icons
+stet --wrap     # wrap long lines in the viewer instead of scrolling them horizontally
+stet --editor "nvim +{line} {file}"   # terminal editor for the e key
+stet --ide    "code --goto {file}:{line}" # GUI/IDE for the o key
 ```
 
 The tree shows a file-type icon next to each file and a folder glyph for each
@@ -133,7 +133,7 @@ remembered position, and a tab's label is tinted by its diff status.
 ### Switch scope
 
 Press `s` to pick what the diff compares. The scopes are grouped into changes
-(uncommitted, staged, or unstaged) and history (everything since sideye launched,
+(uncommitted, staged, or unstaged) and history (everything since stet launched,
 or just the last commit). The picker also drills into recent commits (`commits →`),
 so you can view any of them as its own diff.
 
@@ -252,7 +252,7 @@ configured).
 Each is tagged with its source and pinpointed to its `line:col`. Press `p` to
 open it and `enter` to jump to a finding.
 
-No language server installed? sideye fetches one on first use (preferring the
+No language server installed? stet fetches one on first use (preferring the
 repo's own, then your `PATH`), so diagnostics work out of the box. Pass
 `--no-lsp-download` to turn that off.
 
@@ -352,14 +352,14 @@ implementations, call hierarchy, hover, copy, open in editor), the same menu
 
 ## Configuration
 
-Optional, at `~/.config/sideye/config.jsonc` (`$XDG_CONFIG_HOME` is honored;
-`config.json` also works). Without it, sideye follows your terminal's light/dark.
+Optional, at `~/.config/stet/config.jsonc` (`$XDG_CONFIG_HOME` is honored;
+`config.json` also works). Without it, stet follows your terminal's light/dark.
 A malformed or invalid config never blocks startup: it falls back to defaults and
 shows a notice.
 
 Define themes under `themes` and pick one with `theme`: a single name, or a
 `{ "dark": ..., "light": ... }` pair that follows the terminal live (flip your
-terminal's appearance and sideye re-themes). A theme is a full set of `#rrggbb` tokens, or
+terminal's appearance and stet re-themes). A theme is a full set of `#rrggbb` tokens, or
 `{ "base": <name>, ... }` that inherits another theme and overrides only the
 tokens you name. Its `"syntax"` is a bundled Shiki theme name, or an object
 overriding individual tokens (`keyword`, `string`, ...).
@@ -367,7 +367,7 @@ overriding individual tokens (`keyword`, `string`, ...).
 Use `editor` and `ide` to set persistent command templates for `e` and `o`. Both
 use `{file}` and `{line}` as placeholders; `{line}` is omitted automatically
 when no cursor line is available. Without a config value, each key falls back to
-`SIDEYE_EDITOR` / `SIDEYE_IDE`, then `$EDITOR` / `$VISUAL`, then `vim` (editor
+`STET_EDITOR` / `STET_IDE`, then `$EDITOR` / `$VISUAL`, then `vim` (editor
 only); `o` does nothing if nothing is configured. A bare editor name (no
 `{file}`) is expanded to a known template (`nvim` becomes `nvim +{line} {file}`,
 `code` becomes `code --goto {file}:{line}`, and so on). Templates are split on
@@ -388,7 +388,7 @@ supported.
   "themes": {
     "my-dark": { "base": "dark", "accent": { "primary": "#ffa7d9" } },
     "my-light": { "base": "light", "accent": { "primary": "#b4267a" } },
-    "mocha": { "base": "dark", "syntax": "catppuccin-mocha" }, // sideye chrome, Catppuccin code
+    "mocha": { "base": "dark", "syntax": "catppuccin-mocha" }, // stet chrome, Catppuccin code
     "tweaked": { "base": "dark", "syntax": { "keyword": "#ff8800" } }, // one token changed
   },
 }
@@ -420,6 +420,6 @@ bun run build:dist       # build standalone binaries for all targets
 
 ## Non-goals
 
-`sideye` is deliberately not an agent integration. It has no approvals, no
+`stet` is deliberately not an agent integration. It has no approvals, no
 accept/reject protocol, no generated review explanations, no PR workflow, and no
-database. The agent never hears from `sideye`, only from you.
+database. The agent never hears from `stet`, only from you.

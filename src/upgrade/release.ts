@@ -1,5 +1,5 @@
-const latestReleaseUrl = "https://api.github.com/repos/jimmy-guzman/sideye/releases/latest";
-const releasesPageUrl = "https://github.com/jimmy-guzman/sideye/releases/latest";
+const latestReleaseUrl = "https://api.github.com/repos/jimmy-guzman/stet/releases/latest";
+const releasesPageUrl = "https://github.com/jimmy-guzman/stet/releases/latest";
 
 // Bun.semver.order throws on a non-semver string, so validate at the boundary: callers only ever
 // See a parseable version (or undefined), never a string that detonates a later comparison.
@@ -14,11 +14,11 @@ function isValidVersion(version: string) {
 
 /**
  * The semver version inside a release tag, or `undefined` when the tag carries none. release-please
- * tags the component, so the latest tag is `sideye-v0.3.3`; a plain `v0.3.3` or bare `0.3.3` parses
+ * tags the component, so the latest tag is `stet-v0.3.3`; a plain `v0.3.3` or bare `0.3.3` parses
  * too. Returning `undefined` for anything unparseable keeps every consumer total.
  */
 export function tagToVersion(tag: string) {
-  const withoutComponent = tag.startsWith("sideye-") ? tag.slice("sideye-".length) : tag;
+  const withoutComponent = tag.startsWith("stet-") ? tag.slice("stet-".length) : tag;
   const version = withoutComponent.startsWith("v") ? withoutComponent.slice(1) : withoutComponent;
   return isValidVersion(version) ? version : undefined;
 }
@@ -30,8 +30,8 @@ export function isNewer(candidate: string, base: string) {
 
 export function formatUpdateNotice(update: { current: string; latest: string }) {
   const segments = [
-    `A new release of sideye is available: ${update.current} -> ${update.latest}`,
-    `run "sideye upgrade" to update`,
+    `A new release of stet is available: ${update.current} -> ${update.latest}`,
+    `run "stet upgrade" to update`,
     releasesPageUrl,
   ];
   // Stack the segments so a narrow terminal never hard-wraps mid-segment; the "\n  "
@@ -50,7 +50,7 @@ export function formatUpdateNotice(update: { current: string; latest: string }) 
 export async function fetchLatestVersion() {
   try {
     const response = await fetch(latestReleaseUrl, {
-      headers: { "Accept": "application/vnd.github+json", "User-Agent": "sideye" },
+      headers: { "Accept": "application/vnd.github+json", "User-Agent": "stet" },
       signal: AbortSignal.timeout(3000),
     });
     if (!response.ok) {

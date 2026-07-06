@@ -141,7 +141,7 @@ export function focusedRow(): FileTreeRow | undefined {
 export function runGit(repoRoot: string, args: string[]) {
   execFileSync(
     "git",
-    ["-c", "user.name=Sideye Test", "-c", "user.email=sideye-test@example.com", ...args],
+    ["-c", "user.name=Stet Test", "-c", "user.email=stet-test@example.com", ...args],
     {
       cwd: repoRoot,
       env: stripGitEnv(process.env),

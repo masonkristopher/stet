@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// Npm launcher: resolves the platform-specific sideye binary package and execs it.
+// Npm launcher: resolves the platform-specific stet binary package and execs it.
 // Pattern from opencode's bin launcher (anomalyco/opencode packages/opencode/bin/opencode).
 
 const childProcess = require("node:child_process");
@@ -37,12 +37,12 @@ function run(target) {
   });
 }
 
-const packageName = `sideye-${os.platform()}-${os.arch()}`;
+const packageName = `stet-${os.platform()}-${os.arch()}`;
 
 function findBinary(startDir) {
   let current = startDir;
   for (;;) {
-    const candidate = path.join(current, "node_modules", packageName, "bin", "sideye");
+    const candidate = path.join(current, "node_modules", packageName, "bin", "stet");
     if (fs.existsSync(candidate)) {
       return candidate;
     }
@@ -55,11 +55,11 @@ function findBinary(startDir) {
   }
 }
 
-const resolved = process.env.SIDEYE_BIN_PATH || findBinary(__dirname);
+const resolved = process.env.STET_BIN_PATH || findBinary(__dirname);
 
 if (!resolved) {
   console.error(
-    `Could not find the sideye binary for your platform. Your package manager may have skipped optional dependencies; try reinstalling, or install "${packageName}" directly. Supported platforms: darwin/linux on arm64/x64.`,
+    `Could not find the stet binary for your platform. Your package manager may have skipped optional dependencies; try reinstalling, or install "${packageName}" directly. Supported platforms: darwin/linux on arm64/x64.`,
   );
   process.exit(1);
 }

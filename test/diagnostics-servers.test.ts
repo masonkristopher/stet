@@ -30,9 +30,9 @@ test("resolves a source file to every server that handles its extension", () => 
 });
 
 test("activeServersForPath gates biome on a repo's biome config", () => {
-  const withConfig = mkdtempSync(join(tmpdir(), "sideye-biome-"));
-  const withJsonc = mkdtempSync(join(tmpdir(), "sideye-biome-"));
-  const without = mkdtempSync(join(tmpdir(), "sideye-biome-"));
+  const withConfig = mkdtempSync(join(tmpdir(), "stet-biome-"));
+  const withJsonc = mkdtempSync(join(tmpdir(), "stet-biome-"));
+  const without = mkdtempSync(join(tmpdir(), "stet-biome-"));
   writeFileSync(join(withConfig, "biome.json"), "{}");
   writeFileSync(join(withJsonc, "biome.jsonc"), "{}");
 

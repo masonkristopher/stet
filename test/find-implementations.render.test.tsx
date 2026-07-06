@@ -16,7 +16,7 @@ import { createFixtureRepo, loadModel, makeSettleUntil, seedState } from "./help
 // It shares with go-to-definition, and the `implementations` overlay it opens.
 describe("find-implementations", () => {
   test("acknowledges Shift+I instantly, then the status bar settles to the result", async () => {
-    const repoRoot = createFixtureRepo("sideye-impl-", {
+    const repoRoot = createFixtureRepo("stet-impl-", {
       "notes.txt": "alpha\n",
       "package.json": `${JSON.stringify({ name: "impl-fixture" })}\n`,
     });
@@ -54,7 +54,7 @@ describe("find-implementations", () => {
   }, 20_000);
 
   test("opens the implementations overlay without the call-hierarchy direction hint", async () => {
-    const repoRoot = createFixtureRepo("sideye-impl-", {
+    const repoRoot = createFixtureRepo("stet-impl-", {
       "notes.txt": "alpha\n",
       "package.json": `${JSON.stringify({ name: "impl-fixture" })}\n`,
     });

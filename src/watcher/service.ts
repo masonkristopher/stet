@@ -21,7 +21,7 @@ export class Watcher extends Context.Service<
   {
     readonly changes: (repoRoot: string) => Stream.Stream<void>;
   }
->()("sideye/Watcher") {}
+>()("stet/Watcher") {}
 
 function watchStream(roots: ReturnType<typeof watchRoots>) {
   return Stream.callback<void>(

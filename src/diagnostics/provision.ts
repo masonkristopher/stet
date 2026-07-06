@@ -1,11 +1,10 @@
 /**
- * Provisions language servers sideye finds neither in the repo nor on PATH: the third discovery
- * tier. On first request for an unprovisioned language it downloads the server into a
- * sideye-managed cache (one background install per language, deduped), so diagnostics work
- * out-of-the-box without a manual install, the way Zed and opencode auto-provision. Opt out with
- * `SIDEYE_NO_LSP_DOWNLOAD`.
+ * Provisions language servers stet finds neither in the repo nor on PATH: the third discovery tier.
+ * On first request for an unprovisioned language it downloads the server into a stet-managed cache
+ * (one background install per language, deduped), so diagnostics work out-of-the-box without a
+ * manual install, the way Zed and opencode auto-provision. Opt out with `STET_NO_LSP_DOWNLOAD`.
  *
- * The packages sideye installs are pinned to exact versions in the registry (`servers.ts`), so the
+ * The packages stet installs are pinned to exact versions in the registry (`servers.ts`), so the
  * provisioned executable is deterministic and integrity-verified against npm's immutable published
  * version rather than resolving whatever `@latest` is that day. The cache directory is keyed by a
  * digest of that exact pinned set (`provisionKey`), so bumping a pin lands in a fresh directory and
@@ -52,7 +51,7 @@ export function provisionKey(packages: readonly string[]): string {
 }
 
 function serverDir(root: string, language: string, key: string): string {
-  return join(root, "sideye", "lsp", language, key);
+  return join(root, "stet", "lsp", language, key);
 }
 
 function binaryPath(root: string, language: string, key: string, binary: string): string {
@@ -69,7 +68,7 @@ export function cachedBinaryPath(
 }
 
 function downloadsDisabled(): boolean {
-  const value = process.env.SIDEYE_NO_LSP_DOWNLOAD;
+  const value = process.env.STET_NO_LSP_DOWNLOAD;
   return value !== undefined && value !== "" && value !== "0" && value !== "false";
 }
 
@@ -82,7 +81,7 @@ export class Provisioner extends Context.Service<
     /** Languages whose install just finished (succeeded or failed); drains to trigger a re-check. */
     readonly completions: Queue.Dequeue<string>;
   }
->()("sideye/Provisioner") {}
+>()("stet/Provisioner") {}
 
 /**
  * A generous backstop for a fetch that hangs (an air-gapped/proxied network that accepts the

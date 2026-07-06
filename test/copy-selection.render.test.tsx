@@ -24,7 +24,7 @@ function snippetRepo(prefix: string) {
 
 describe("line selection copy", () => {
   test("Shift+arrow builds a selection, C copies its lines, a plain move clears it", async () => {
-    const repoRoot = snippetRepo("sideye-copy-sel-");
+    const repoRoot = snippetRepo("stet-copy-sel-");
     const model = await loadModel(repoRoot, { kind: "all", ref: "HEAD" });
     seedState(model, { kind: "all", ref: "HEAD" });
     const { renderer, renderOnce, captureCharFrame, mockInput } = await testRender(() => <App />, {
@@ -77,7 +77,7 @@ describe("line selection copy", () => {
   }, 20_000);
 
   test("shift-click extends a whole-line selection; a plain click clears it", async () => {
-    const repoRoot = snippetRepo("sideye-copy-sel-mouse-");
+    const repoRoot = snippetRepo("stet-copy-sel-mouse-");
     const model = await loadModel(repoRoot, { kind: "all", ref: "HEAD" });
     seedState(model, { kind: "all", ref: "HEAD" });
     const { renderer, renderOnce, captureCharFrame } = await testRender(() => <App />, {
@@ -136,7 +136,7 @@ describe("line selection copy", () => {
       "}",
       "export const after = 5",
     ].join("\n");
-    const repoRoot = createFixtureRepo("sideye-sel-fold-", {
+    const repoRoot = createFixtureRepo("stet-sel-fold-", {
       "package.json": `${JSON.stringify({ scripts: { lint: "exit 0", typecheck: "exit 0" } })}\n`,
       "src/mod.ts": `${source}\n`,
     });
@@ -203,7 +203,7 @@ describe("line selection copy", () => {
   }, 20_000);
 
   test("a scope change clears the selection (content identity drifts)", async () => {
-    const repoRoot = snippetRepo("sideye-sel-scope-");
+    const repoRoot = snippetRepo("stet-sel-scope-");
     const model = await loadModel(repoRoot, { kind: "all", ref: "HEAD" });
     seedState(model, { kind: "all", ref: "HEAD" });
     const { renderer, renderOnce, captureCharFrame, mockInput } = await testRender(() => <App />, {
@@ -236,7 +236,7 @@ describe("line selection copy", () => {
   }, 20_000);
 
   test("esc closes the find bar before it clears the selection", async () => {
-    const repoRoot = snippetRepo("sideye-sel-find-esc-");
+    const repoRoot = snippetRepo("stet-sel-find-esc-");
     const model = await loadModel(repoRoot, { kind: "all", ref: "HEAD" });
     seedState(model, { kind: "all", ref: "HEAD" });
     const { renderer, renderOnce, captureCharFrame, mockInput } = await testRender(() => <App />, {

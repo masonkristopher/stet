@@ -79,7 +79,7 @@ export class Git extends Context.Service<
     ) => Effect.Effect<SearchMatch[], GitError>;
     readonly worktrees: (repoRoot: string) => Effect.Effect<Worktree[], GitError>;
   }
->()("sideye/Git") {}
+>()("stet/Git") {}
 
 export const GitLive = Layer.effect(
   Git,

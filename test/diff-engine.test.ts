@@ -168,7 +168,7 @@ describe("languageForPath", () => {
   });
 
   test("peels a .rb.tmpl template to Ruby, leaving other .tmpl files as text", () => {
-    expect(languageForPath("script/sideye.rb.tmpl")).toBe("ruby");
+    expect(languageForPath("script/stet.rb.tmpl")).toBe("ruby");
     expect(languageForPath("a/b/Formula.rb")).toBe("ruby");
     expect(languageForPath("config.yaml.tmpl")).toBe("text");
   });

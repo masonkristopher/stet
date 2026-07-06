@@ -27,7 +27,7 @@ function changed(path: string): ChangedFile {
 }
 
 // A push server: it publishes the given items for a document as soon as the client opens it, exactly
-// As typescript-language-server does. A real LspConnection, not a mock of sideye's own code.
+// As typescript-language-server does. A real LspConnection, not a mock of stet's own code.
 function pushingHandle(items: unknown[]): ServerHandle {
   const published = new Map<string, unknown[]>();
   const connection: LspConnection = {

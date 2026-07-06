@@ -14,7 +14,7 @@ describe("gap expansion", () => {
     // And last leaves a wide unchanged middle that git elides into one gap.
     const lines = Array.from({ length: 20 }, (_, index) => `const l${index + 1} = ${index + 1}`);
     const source = `${lines.join("\n")}\n`;
-    const repoRoot = createFixtureRepo("sideye-gap-", {
+    const repoRoot = createFixtureRepo("stet-gap-", {
       "package.json": `${JSON.stringify({ scripts: { lint: "exit 0", typecheck: "exit 0" } })}\n`,
       "src/mod.ts": source,
     });

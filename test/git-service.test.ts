@@ -146,7 +146,7 @@ test("an inherited GIT_DIR silently redirects an unsanitized git invocation", ()
   const other = mkdtempSync(join(tmpdir(), "git-env-hostile-"));
   const before = revParse(decoy, "HEAD");
   const hostileEnv = { ...process.env, GIT_DIR: join(decoy, ".git") };
-  const gitConfig = ["-c", "user.name=Sideye Test", "-c", "user.email=sideye-test@example.com"];
+  const gitConfig = ["-c", "user.name=Stet Test", "-c", "user.email=stet-test@example.com"];
 
   try {
     writeFileSync(join(other, "b.txt"), "two\n");
@@ -172,7 +172,7 @@ test("stripGitEnv neutralizes that same inherited GIT_DIR", () => {
   const other = mkdtempSync(join(tmpdir(), "git-env-sanitized-"));
   const before = revParse(decoy, "HEAD");
   const hostileEnv = { ...process.env, GIT_DIR: join(decoy, ".git") };
-  const gitConfig = ["-c", "user.name=Sideye Test", "-c", "user.email=sideye-test@example.com"];
+  const gitConfig = ["-c", "user.name=Stet Test", "-c", "user.email=stet-test@example.com"];
   // The exact pattern runGit uses: an explicit, freshly-computed env replaces whatever the
   // Process inherited, rather than relying on execFileSync's default env passthrough.
   const opts = { cwd: other, env: stripGitEnv(hostileEnv), stdio: "ignore" as const };

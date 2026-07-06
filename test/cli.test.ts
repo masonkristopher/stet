@@ -187,7 +187,7 @@ describe("helpText", () => {
   });
 
   test("documents the upgrade command", () => {
-    expect(helpText()).toContain("sideye upgrade");
-    expect(helpText()).toContain("Update sideye to the latest release");
+    expect(helpText()).toContain("stet upgrade");
+    expect(helpText()).toContain("Update stet to the latest release");
   });
 });

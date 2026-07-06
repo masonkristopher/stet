@@ -17,7 +17,7 @@ import { createFixtureRepo, loadModel, makeSettleUntil, seedState } from "./help
 // Or repo/file/content drift.
 describe("symbols overlay", () => {
   test("opens on find-symbols, renders the unsupported screen, and closes on escape", async () => {
-    const repoRoot = createFixtureRepo("sideye-symbols-", {
+    const repoRoot = createFixtureRepo("stet-symbols-", {
       "notes.txt": "alpha beta\n",
       "package.json": `${JSON.stringify({ scripts: { lint: "exit 0", typecheck: "exit 0" } })}\n`,
     });
@@ -53,12 +53,12 @@ describe("symbols overlay", () => {
   }, 20_000);
 
   test("closes when the repoRoot changes under it (a worktree switch)", async () => {
-    const repoRoot = createFixtureRepo("sideye-symbols-", {
+    const repoRoot = createFixtureRepo("stet-symbols-", {
       "notes.txt": "alpha beta\n",
       "package.json": `${JSON.stringify({ scripts: { lint: "exit 0", typecheck: "exit 0" } })}\n`,
     });
     writeFileSync(join(repoRoot, "notes.txt"), "alpha beta\ngamma delta\n");
-    const otherRoot = createFixtureRepo("sideye-symbols-other-", { "readme.md": "other\n" });
+    const otherRoot = createFixtureRepo("stet-symbols-other-", { "readme.md": "other\n" });
 
     const model = await loadModel(repoRoot, { kind: "all", ref: "HEAD" });
     seedState(model, { kind: "all", ref: "HEAD" });
@@ -88,7 +88,7 @@ describe("symbols overlay", () => {
   }, 20_000);
 
   test("closes when the open file's content reloads under it", async () => {
-    const repoRoot = createFixtureRepo("sideye-symbols-", {
+    const repoRoot = createFixtureRepo("stet-symbols-", {
       "notes.txt": "alpha beta\n",
       "package.json": `${JSON.stringify({ scripts: { lint: "exit 0", typecheck: "exit 0" } })}\n`,
     });
@@ -126,7 +126,7 @@ describe("symbols overlay", () => {
   }, 20_000);
 
   test("scrolls the viewport to follow the cursor past the visible window", async () => {
-    const repoRoot = createFixtureRepo("sideye-symbols-", {
+    const repoRoot = createFixtureRepo("stet-symbols-", {
       "notes.txt": "alpha beta\n",
       "package.json": `${JSON.stringify({ scripts: { lint: "exit 0", typecheck: "exit 0" } })}\n`,
     });
@@ -175,7 +175,7 @@ describe("symbols overlay", () => {
   }, 20_000);
 
   test("indents a nested child under its parent", async () => {
-    const repoRoot = createFixtureRepo("sideye-symbols-", {
+    const repoRoot = createFixtureRepo("stet-symbols-", {
       "notes.txt": "alpha beta\n",
       "package.json": `${JSON.stringify({ scripts: { lint: "exit 0", typecheck: "exit 0" } })}\n`,
     });

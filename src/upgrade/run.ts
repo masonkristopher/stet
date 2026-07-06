@@ -4,14 +4,14 @@ import { upgradeInvocation } from "./commands";
 import { classifyInstall } from "./install-method";
 import { fetchLatestVersion, isNewer } from "./release";
 
-const unknownGuidance = `could not determine how sideye was installed. upgrade with one of:
-  curl -fsSL https://raw.githubusercontent.com/jimmy-guzman/sideye/main/install.sh | bash
-  npm i -g sideye@latest
-  brew upgrade jimmy-guzman/tap/sideye`;
+const unknownGuidance = `could not determine how stet was installed. upgrade with one of:
+  curl -fsSL https://raw.githubusercontent.com/jimmy-guzman/stet/main/install.sh | bash
+  npm i -g stet@latest
+  brew upgrade jimmy-guzman/tap/stet`;
 
 /**
- * Self-updates sideye to the latest release via the channel it was installed through. Runs before
- * the TUI (like --help/--version) and spawns with inherited stdio so the user sees the underlying
+ * Self-updates stet to the latest release via the channel it was installed through. Runs before the
+ * TUI (like --help/--version) and spawns with inherited stdio so the user sees the underlying
  * curl/npm/brew progress live; that is why it uses Bun.spawn directly rather than the Process
  * service, the same documented exception EditorLive relies on. Returns the exit code.
  *
@@ -27,7 +27,7 @@ export async function runUpgrade(input: {
 }) {
   const latest = await (input.fetchLatest ?? fetchLatestVersion)();
   if (latest !== undefined && !isNewer(latest, input.currentVersion)) {
-    logSuccess(`sideye ${input.currentVersion} is already up to date`);
+    logSuccess(`stet ${input.currentVersion} is already up to date`);
     return 0;
   }
 

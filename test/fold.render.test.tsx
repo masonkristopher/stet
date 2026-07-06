@@ -18,7 +18,7 @@ describe("code folding", () => {
       "export const top = 1",
       "",
     ].join("\n");
-    const repoRoot = createFixtureRepo("sideye-fold-", {
+    const repoRoot = createFixtureRepo("stet-fold-", {
       "package.json": `${JSON.stringify({ scripts: { lint: "exit 0", typecheck: "exit 0" } })}\n`,
       "src/mod.ts": source,
     });

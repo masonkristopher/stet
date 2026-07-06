@@ -17,7 +17,7 @@ const lnOf = (frame: string) => {
 describe("back / forward navigation", () => {
   test("restores the file and the cursor line you left", async () => {
     const body = Array.from({ length: 30 }, (_, index) => `const line${index + 1} = ${index + 1}`);
-    const repoRoot = createFixtureRepo("sideye-backfwd-", {
+    const repoRoot = createFixtureRepo("stet-backfwd-", {
       "package.json": `${JSON.stringify({ scripts: { lint: "exit 0", typecheck: "exit 0" } })}\n`,
       "src/a.ts": `${body.join("\n")}\n`,
       "src/b.ts": `${body.join("\n")}\n`,
@@ -91,7 +91,7 @@ describe("back / forward navigation", () => {
 
   test("back restores each jump's own target line within one file", async () => {
     const body = Array.from({ length: 30 }, (_, index) => `const line${index + 1} = ${index + 1}`);
-    const repoRoot = createFixtureRepo("sideye-samefile-jump-", {
+    const repoRoot = createFixtureRepo("stet-samefile-jump-", {
       "package.json": `${JSON.stringify({ scripts: { lint: "exit 0", typecheck: "exit 0" } })}\n`,
       "src/c.ts": `${body.join("\n")}\n`,
     });

@@ -37,7 +37,7 @@ export class Process extends Context.Service<
       options?: RunOptions,
     ) => Effect.Effect<CommandResult, CommandError>;
   }
->()("sideye/Process") {}
+>()("stet/Process") {}
 
 export const ProcessLive = Layer.succeed(Process)({
   // The release runs on interruption and failure, so the child is killed when a

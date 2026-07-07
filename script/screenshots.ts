@@ -23,9 +23,17 @@ const REPO = process.env.STET_SCREENSHOT_REPO
   : resolve(import.meta.dir, "..");
 const BUN = process.execPath;
 const VHS = "vhs";
+/** Optional lossless PNG optimizer; when absent the raw (larger) VHS output ships unchanged. */
+const OXIPNG = Bun.which("oxipng");
 const TAPES = resolve(tmpdir(), "stet-screenshots");
-/** A few commits back so the diff and tree show several changed source files, not just a dep bump. */
-const BASE_REF = "HEAD~3";
+/**
+ * Pinned to the `sideye`→`stet` rename commit: everything after it is clean feature work, so the
+ * diff shows real code changes rather than the rename's ~400 churn lines, and the header renders
+ * current `stet` branding. A relative `HEAD~N` drifts across whatever commits happen to be there
+ * (it had slid onto release commits, leaving the diff empty). Bump this when a newer, richer
+ * post-rename window exists.
+ */
+const BASE_REF = "8f94f10";
 /**
  * Inside src/ so it falls under tsconfig's include and typescript-language-server reports the type
  * error alongside oxlint's unused-symbol findings.
@@ -87,12 +95,18 @@ function launchCmd(env = "") {
 }
 
 /**
- * Open a real source-file diff (the palette focuses the viewer on select), so the main and find
- * shots feature code rather than the default docs file.
+ * Open a substantial real source-file diff (the palette focuses the viewer on select), so the hero
+ * and theme shots feature a changed file with hunks rather than the default docs file.
+ * `intel/service` carries the largest diff in the `BASE_REF..HEAD` window (+270), so it reads as
+ * real review work.
  */
-const openDiffView = ["Ctrl+P", 'Type "DiffView"', "Sleep 400ms", "Enter", "Sleep 800ms"].join(
-  "\n",
-);
+const openServiceDiff = [
+  "Ctrl+P",
+  'Type "intel/service"',
+  "Sleep 400ms",
+  "Enter",
+  "Sleep 800ms",
+].join("\n");
 
 /**
  * One entry per README screenshot. `steps` run after the app is up; the end state is captured.
@@ -101,32 +115,32 @@ const openDiffView = ["Ctrl+P", 'Type "DiffView"', "Sleep 400ms", "Enter", "Slee
 const screens = [
   // Let the diff settle and the checks finish (tsserver project load is the slow part) so the hero
   // Shot shows the resolved "checks finished" state, not a mid-run spinner.
-  { name: "stet", steps: [openDiffView, "Sleep 16s"].join("\n") },
+  { name: "stet", steps: [openServiceDiff, "Sleep 16s"].join("\n") },
   {
     /**
      * Pin two files into tabs (`ctrl-t`), then land on a third as the active preview, so the strip
-     * shows the two pinned tabs (muted) beside the active preview tab (full-strength, italic). Any
-     * files work; DiffView.tsx and CommandMenu.tsx both sit in the captured `BASE_REF..HEAD`
-     * window.
+     * shows the two pinned tabs (muted) beside the active preview tab (full-strength, italic). All
+     * three carry a diff so the tabs show their status tint; `intel/service`, `intel/cache`, and
+     * `git/model` all sit in the captured `BASE_REF..HEAD` window.
      */
     name: "tabs",
     steps: [
       "Ctrl+P",
-      'Type "DiffView"',
+      'Type "intel/service"',
       "Sleep 400ms",
       "Enter",
       "Sleep 700ms",
       "Ctrl+T",
       "Sleep 300ms",
       "Ctrl+P",
-      'Type "components/CommandMenu"',
+      'Type "intel/cache"',
       "Sleep 400ms",
       "Enter",
       "Sleep 700ms",
       "Ctrl+T",
       "Sleep 300ms",
       "Ctrl+P",
-      'Type "src/state"',
+      'Type "git/model"',
       "Sleep 400ms",
       "Enter",
       "Sleep 900ms",
@@ -145,26 +159,27 @@ const screens = [
     config: true,
     launchEnv: `XDG_CONFIG_HOME=${THEME_CONFIG_DIR} `,
     name: "theme-switcher",
-    steps: [openDiffView, 'Type "t"', "Sleep 700ms", "Down@200ms 6", "Sleep 1200ms"].join("\n"),
+    steps: [openServiceDiff, 'Type "t"', "Sleep 700ms", "Down@200ms 6", "Sleep 1200ms"].join("\n"),
   },
   { name: "go-to-file", steps: ["Ctrl+P", 'Type "diff"', "Sleep 600ms"].join("\n") },
   {
     /**
      * Open the diff and let it focus/settle, then open the find bar and type a term present in the
-     * visible hunks ("cursorTop", in DiffView's added lines). Capture the open bar showing the live
+     * viewport where the file opens ("repoRoot" recurs in intel/service's opening signatures, so
+     * its matches highlight in view rather than off-screen). Capture the open bar showing the live
      * N/M counter and highlights. No commit: a too-early `/` or a no-match Enter both collapse back
      * to a plain diff with no find UI, so generous settles and a real match matter.
      */
     name: "find",
     steps: [
       "Ctrl+P",
-      'Type "DiffView"',
+      'Type "intel/service"',
       "Sleep 500ms",
       "Enter",
       "Sleep 1500ms",
       'Type "/"',
       "Sleep 600ms",
-      'Type "cursorTop"',
+      'Type "repoRoot"',
       "Sleep 1s",
     ].join("\n"),
   },
@@ -365,7 +380,11 @@ async function shoot(screen: (typeof screens)[number]) {
   await Bun.write(`${TAPES}/${screen.name}.tape`, tapeFor(screen));
   console.log(`▶ ${screen.name}`);
   await run(VHS, [`${TAPES}/${screen.name}.tape`]);
-  await Bun.write(`${ASSETS}/${screen.name}.png`, Bun.file(`${TAPES}/${screen.name}.png`));
+  const png = `${ASSETS}/${screen.name}.png`;
+  await Bun.write(png, Bun.file(`${TAPES}/${screen.name}.png`));
+  if (OXIPNG) {
+    await run(OXIPNG, ["-o", "max", "--strip", "safe", png]);
+  }
 }
 
 /**
@@ -421,6 +440,10 @@ if (unknown.length > 0) {
   console.warn(
     `ignoring unknown screen name(s): ${unknown.join(", ")} — known: ${screens.map((screen) => screen.name).join(", ")}`,
   );
+}
+
+if (!OXIPNG) {
+  console.warn("oxipng not found — skipping lossless compression (brew install oxipng)");
 }
 
 const wanted = screens.filter((screen) => only.size === 0 || only.has(screen.name));

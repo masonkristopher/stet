@@ -345,18 +345,17 @@ export function changedPathsDiffer(previous: ChangedFile[], next: ChangedFile[])
   return previous.some((file, index) => file.path !== next[index]?.path);
 }
 
-// Whether the working tree gained a real content edit between two models, detected as the newest
-// `mtimeMs` across the changed set advancing. A write moves a file's mtime forward (wall clock only
-// Increases), while a commit, scope re-resolve, or staging shifts changed-set *membership* without
-// Touching any mtime (a baseline move can even add entries, but with mtimes older than the current
-// Newest). Drives intel-cache invalidation: the cache keys off working-tree content, so a baseline
-// Move that re-emits the model must not wipe still-valid entries.
+// Whether the working tree gained a content edit whose mtime advanced, detected as the newest
+// `mtimeMs` across the changed set advancing. This is a lossy signal (it misses a revert to
+// Baseline, a deletion, and a write that preserves an older mtime), so it is only the poll
+// Fallback for intel invalidation, never the primary: the filesystem watcher catches every write
+// Precisely. A commit, scope re-resolve, or staging shifts changed-set membership without moving
+// Any mtime, so this stays false on a baseline move and so never over-invalidates the cache.
 export function changedContentAdvanced(previous: GitModel, next: GitModel) {
   const newest = (model: GitModel) =>
     model.changed.reduce((max, file) => Math.max(max, file.mtimeMs), 0);
   return newest(next) > newest(previous);
 }
-
 let repoFilesCache: { key: string; repoFiles: RepoFile[] } | undefined;
 
 const SYMLINK_MODE = "120000";

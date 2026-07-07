@@ -2,7 +2,7 @@ import { sep } from "node:path";
 
 /**
  * The filesystem roots to watch for a worktree, each paired with the path prefix under which every
- * event is git-internal (so the watcher can drop high-churn internals; see `shouldRefresh`). The
+ * event is git-internal (so the watcher can drop high-churn internals; see `classify`). The
  * worktree tree catches file edits; the resolved git dir catches staging/commit/checkout. In a
  * normal repo the git dir lives at `<root>/.git`, already inside the recursively-watched tree, so
  * it is dropped as redundant and only its `.git/` subtree is internal. In a linked worktree the git

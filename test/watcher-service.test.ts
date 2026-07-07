@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { Effect, Fiber, Layer, Stream } from "effect";
+import { Effect, Fiber, Layer, Option, Stream } from "effect";
 
 import { GitLive } from "@/git/service";
 import { ProcessLive } from "@/process";
@@ -12,16 +12,14 @@ import { createFixtureRepo } from "./helpers";
 
 const WatcherTest = WatcherLive.pipe(Layer.provide(GitLive), Layer.provide(ProcessLive));
 
-test("Watcher.changes emits a debounced tick when a file changes", async () => {
+test("Watcher.changes emits the changed worktree path when a file changes", async () => {
   const repo = createFixtureRepo("watcher-service-", { "a.txt": "one\n" });
   try {
     let writes = 0;
-    const ticks = await Effect.runPromise(
+    const first = await Effect.runPromise(
       Effect.gen(function* program() {
         const watcher = yield* Watcher;
-        const collecting = yield* Effect.forkChild(
-          watcher.changes(repo).pipe(Stream.take(1), Stream.runCount),
-        );
+        const collecting = yield* Effect.forkChild(watcher.changes(repo).pipe(Stream.runHead));
         // The watcher attaches fs.watch only after a git-dir subprocess resolves.
         // A fixed arm delay can't cover that on a loaded runner.
         // So nudge repeatedly (interval > debounce, varied content) until a tick lands.
@@ -38,7 +36,8 @@ test("Watcher.changes emits a debounced tick when a file changes", async () => {
       }).pipe(Effect.provide(WatcherTest)),
     );
 
-    expect(ticks).toBe(1);
+    // A tracked working-tree edit, so its path rides the batch (which drives intel invalidation).
+    expect(Option.getOrElse(first, () => [] as readonly string[])).toContain("a.txt");
   } finally {
     rmSync(repo, { force: true, recursive: true });
   }

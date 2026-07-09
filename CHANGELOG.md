@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.7.1](https://github.com/jimmy-guzman/stet/compare/stet-v0.7.0...stet-v0.7.1) (2026-07-08)
+
+
+### Bug Fixes
+
+* **icons:** 🐛 add gradle-wrapper.properties  ([#247](https://github.com/jimmy-guzman/stet/issues/247)) ([9a9a285](https://github.com/jimmy-guzman/stet/commit/9a9a2857e7c1392d4a9ffd4ce5dd394690da6dc0))
+* **install:** 🐛 point pinned downloads at the stet-v tag format ([#245](https://github.com/jimmy-guzman/stet/issues/245)) ([7c6b973](https://github.com/jimmy-guzman/stet/commit/7c6b97370acddf79f6a1ec4fe6bd454d53067d71))
+
 ## [0.7.0](https://github.com/jimmy-guzman/stet/compare/stet-v0.6.2...stet-v0.7.0) (2026-07-07)
 
 

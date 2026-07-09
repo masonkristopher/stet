@@ -32,6 +32,7 @@ function changed(path: string): ChangedFile {
 function pushingHandle(items: unknown[]): ServerHandle {
   const published = new Map<string, unknown[]>();
   const connection: LspConnection = {
+    changeDocument: () => Effect.void,
     clearPublished: (uris) =>
       Effect.sync(() => {
         for (const uri of uris) {
@@ -57,6 +58,7 @@ function pushingHandle(items: unknown[]): ServerHandle {
 // Loop short-circuits instead of waiting out the cap.
 function deadHandle(): ServerHandle {
   const connection: LspConnection = {
+    changeDocument: () => Effect.void,
     clearPublished: () => Effect.void,
     closeDocument: () => Effect.void,
     closed: Effect.sync(() => true),
@@ -135,19 +137,31 @@ const aLintWarning = {
   source: "oxc",
 };
 
-test("closes every opened document even when the run is interrupted mid-settle", async () => {
+test("an interrupted run leaves the document open and the next run reconciles it", async () => {
   await withRepo({ "src/a.ts": "const a = 1\n" }, async (dir) => {
     const opens: string[] = [];
+    const changes: string[] = [];
     const closes: string[] = [];
-    // A server that never publishes, so `settle` keeps looping and the run is still in-flight when we
-    // Interrupt it; records every open and close so the test can assert the refcount stays balanced.
+    // Publishes only on didChange, never on didOpen: run 1's settle keeps looping until we
+    // Interrupt it, while run 2 (after an edit) completes from the change-triggered publish.
+    const published = new Map<string, unknown[]>();
     const connection: LspConnection = {
-      clearPublished: () => Effect.void,
+      changeDocument: (uri) =>
+        Effect.sync(() => {
+          changes.push(uri);
+          published.set(uri, [anError]);
+        }),
+      clearPublished: (uris) =>
+        Effect.sync(() => {
+          for (const uri of uris) {
+            published.delete(uri);
+          }
+        }),
       closeDocument: (uri) => Effect.sync(() => void closes.push(uri)),
       closed: Effect.sync(() => false),
       notify: () => Effect.void,
       openDocument: (textDocument) => Effect.sync(() => void opens.push(textDocument.uri)),
-      published: Effect.sync(() => new Map<string, unknown[]>()),
+      published: Effect.sync(() => published),
       pullDiagnostics: () =>
         Effect.fail(
           new LspRequestError({ message: "unsupported", method: "textDocument/diagnostic" }),
@@ -157,20 +171,37 @@ test("closes every opened document even when the run is interrupted mid-settle",
     };
     const handle: ServerHandle = { capabilities: new Set(), connection };
 
-    await Effect.runPromise(
+    const state = await Effect.runPromise(
       Diagnostics.pipe(
         Effect.flatMap((diagnostics) =>
-          Stream.runDrain(diagnostics.run(dir, [changed("src/a.ts")])),
+          Stream.runDrain(diagnostics.run(dir, [changed("src/a.ts")])).pipe(
+            // Run 1's settle loop runs ~10s; interrupt long before, with the document open.
+            Effect.timeout("100 millis"),
+            Effect.catchTag("TimeoutError", () => Effect.void),
+            Effect.andThen(
+              Effect.sync(() => writeFileSync(join(dir, "src/a.ts"), "const a = 2\n")),
+            ),
+            Effect.andThen(
+              Stream.runCollect(diagnostics.run(dir, [changed("src/a.ts")])).pipe(
+                Effect.map((updates) => ({
+                  closesBeforeTeardown: [...closes],
+                  state: [...updates].at(-1)?.state,
+                })),
+              ),
+            ),
+          ),
         ),
-        // The settle loop runs ~10s; interrupt it long before, while the document is still open.
-        Effect.timeout("100 millis"),
-        Effect.catchTag("TimeoutError", () => Effect.void),
         Effect.provide(DiagnosticsLive.pipe(Layer.provide(fakeServers({ typescript: handle })))),
       ),
     );
 
-    expect(opens).toEqual([pathToFileURL(join(dir, "src/a.ts")).href]);
-    expect(closes).toEqual(opens);
+    const uri = pathToFileURL(join(dir, "src/a.ts")).href;
+    // The document survives the interrupt (that is the keeper's point), the keeper's bookkeeping
+    // Stays accurate (run 2 sends didChange, never a second didOpen), and run 2 resolves.
+    expect(opens).toEqual([uri]);
+    expect(state.closesBeforeTeardown).toEqual([]);
+    expect(changes).toEqual([uri]);
+    expect(state.state?.get("src/a.ts")).toMatchObject({ count: 1, status: "findings" });
   });
 });
 
@@ -367,6 +398,7 @@ function pullingHandle(options: {
 }): ServerHandle {
   const published = new Map<string, unknown[]>();
   const connection: LspConnection = {
+    changeDocument: () => Effect.void,
     clearPublished: (uris) =>
       Effect.sync(() => {
         for (const uri of uris) {
@@ -459,6 +491,7 @@ test("a related report's findings survive the named file's own pull failing", as
     // Config.yaml's pull succeeds and carries a related report naming other.yaml; other.yaml's own
     // Pull is rejected. The real cross-file finding must not be wiped by the failure placeholder.
     const connection: LspConnection = {
+      changeDocument: () => Effect.void,
       clearPublished: () => Effect.void,
       closeDocument: () => Effect.void,
       closed: Effect.sync(() => false),
@@ -487,5 +520,263 @@ test("a related report's findings survive the named file's own pull failing", as
 
     expect(state.get("config.yaml")).toMatchObject({ count: 0, status: "clean" });
     expect(state.get("other.yaml")).toMatchObject({ count: 1, status: "findings" });
+  });
+});
+
+// A recording pull server for keeper tests: pull answers keep runs fast and deterministic (no
+// Settle waits), and the event log shows exactly what the keeper sent.
+function keeperProbe() {
+  const opens: string[] = [];
+  const changes: string[] = [];
+  const closes: string[] = [];
+  const published = new Map<string, unknown[]>();
+  const connection: LspConnection = {
+    changeDocument: (uri) => Effect.sync(() => void changes.push(uri)),
+    clearPublished: (uris) =>
+      Effect.sync(() => {
+        for (const uri of uris) {
+          published.delete(uri);
+        }
+      }),
+    closeDocument: (uri) => Effect.sync(() => void closes.push(uri)),
+    closed: Effect.sync(() => false),
+    notify: () => Effect.void,
+    openDocument: (textDocument) => Effect.sync(() => void opens.push(textDocument.uri)),
+    published: Effect.sync(() => published),
+    pullDiagnostics: () => Effect.succeed({ items: [], related: new Map<string, unknown[]>() }),
+    request: () => Effect.succeed(null),
+    whenProjectLoaded: Effect.void,
+  };
+  const handle: ServerHandle = {
+    capabilities: new Set<Capability>(["pullDiagnostics"]),
+    connection,
+  };
+  return { changes, closes, handle, opens };
+}
+
+// Captures the probe's event log inside the provided effect, before the layer tears down: teardown
+// Itself closes every kept document (the keeper's scope finalizer), which is asserted separately.
+function runSequence<T>(
+  runs: { repoRoot: string; files: ChangedFile[] }[],
+  servers: Layer.Layer<LanguageServers>,
+  capture: () => T,
+) {
+  return Effect.runPromise(
+    Diagnostics.pipe(
+      Effect.flatMap((diagnostics) =>
+        Effect.forEach(
+          runs,
+          ({ files, repoRoot }) =>
+            Stream.runCollect(diagnostics.run(repoRoot, files)).pipe(
+              Effect.map(
+                (updates) => [...updates].at(-1)?.state ?? new Map<string, CheckerFileState>(),
+              ),
+            ),
+          { concurrency: 1 },
+        ).pipe(Effect.map((states) => ({ captured: capture(), states }))),
+      ),
+      Effect.provide(DiagnosticsLive.pipe(Layer.provide(servers))),
+    ),
+  );
+}
+
+test("keeps documents open across runs and sends nothing for unchanged content", async () => {
+  await withRepo({ "config.yaml": "a: 1\n" }, async (dir) => {
+    const probe = keeperProbe();
+    const files = [changed("config.yaml")];
+    const { captured, states } = await runSequence(
+      [
+        { files, repoRoot: dir },
+        { files, repoRoot: dir },
+      ],
+      fakeServers({ yaml: probe.handle }),
+      () => ({ changes: [...probe.changes], closes: [...probe.closes], opens: [...probe.opens] }),
+    );
+
+    // One didOpen for both runs, no didClose in between, no didChange for untouched content.
+    const uri = pathToFileURL(join(dir, "config.yaml")).href;
+    expect(captured.opens).toEqual([uri]);
+    expect(captured.changes).toEqual([]);
+    expect(captured.closes).toEqual([]);
+    expect(states[1]?.get("config.yaml")).toMatchObject({ status: "clean" });
+    // Teardown (app exit) releases the kept document via the keeper's scope finalizer.
+    expect(probe.closes).toEqual([uri]);
+  });
+});
+
+test("sends a didChange instead of reopening when the content moved", async () => {
+  await withRepo({ "config.yaml": "a: 1\n" }, async (dir) => {
+    const probe = keeperProbe();
+    const files = [changed("config.yaml")];
+    const uri = pathToFileURL(join(dir, "config.yaml")).href;
+    const captured = await Effect.runPromise(
+      Diagnostics.pipe(
+        Effect.flatMap((diagnostics) =>
+          Stream.runDrain(diagnostics.run(dir, files)).pipe(
+            Effect.andThen(Effect.sync(() => writeFileSync(join(dir, "config.yaml"), "a: 2\n"))),
+            Effect.andThen(Stream.runDrain(diagnostics.run(dir, files))),
+            Effect.andThen(
+              Effect.sync(() => ({
+                changes: [...probe.changes],
+                closes: [...probe.closes],
+                opens: [...probe.opens],
+              })),
+            ),
+          ),
+        ),
+        Effect.provide(DiagnosticsLive.pipe(Layer.provide(fakeServers({ yaml: probe.handle })))),
+      ),
+    );
+
+    expect(captured.opens).toEqual([uri]);
+    expect(captured.changes).toEqual([uri]);
+    expect(captured.closes).toEqual([]);
+  });
+});
+
+test("closes a document that leaves the changed set", async () => {
+  await withRepo({ "config.yaml": "a: 1\n", "other.yaml": "b: 2\n" }, async (dir) => {
+    const probe = keeperProbe();
+    const { captured } = await runSequence(
+      [
+        { files: [changed("config.yaml"), changed("other.yaml")], repoRoot: dir },
+        { files: [changed("config.yaml")], repoRoot: dir },
+      ],
+      fakeServers({ yaml: probe.handle }),
+      () => ({ closes: [...probe.closes] }),
+    );
+
+    expect(captured.closes).toEqual([pathToFileURL(join(dir, "other.yaml")).href]);
+  });
+});
+
+test("a run against a different repo releases the previous repo's documents", async () => {
+  await withRepo({ "config.yaml": "a: 1\n" }, (dirA) =>
+    withRepo({ "config.yaml": "b: 2\n" }, async (dirB) => {
+      const probe = keeperProbe();
+      const { captured } = await runSequence(
+        [
+          { files: [changed("config.yaml")], repoRoot: dirA },
+          { files: [changed("config.yaml")], repoRoot: dirB },
+        ],
+        fakeServers({ yaml: probe.handle }),
+        () => ({ closes: [...probe.closes], opens: [...probe.opens] }),
+      );
+
+      // The switch releases dirA's document (so a later switch back reopens it cleanly), and dirB
+      // Opens its own.
+      expect(captured.closes).toEqual([pathToFileURL(join(dirA, "config.yaml")).href]);
+      expect(captured.opens).toEqual([
+        pathToFileURL(join(dirA, "config.yaml")).href,
+        pathToFileURL(join(dirB, "config.yaml")).href,
+      ]);
+    }),
+  );
+});
+
+test("reopens the set on a fresh server after the pooled one dies between runs", async () => {
+  await withRepo({ "config.yaml": "a: 1\n" }, async (dir) => {
+    const uri = pathToFileURL(join(dir, "config.yaml")).href;
+    const first = keeperProbe();
+    let firstDead = false;
+    // A probe whose `closed` the test can flip, simulating the pooled server dying between runs.
+    const dyingConnection: LspConnection = {
+      ...first.handle.connection,
+      closed: Effect.sync(() => firstDead),
+    };
+    const second = keeperProbe();
+    const handles = [
+      { capabilities: first.handle.capabilities, connection: dyingConnection },
+      second.handle,
+    ];
+    let acquires = 0;
+    const rotating = Layer.succeed(LanguageServers)({
+      acquire: () =>
+        Effect.suspend(() => {
+          const handle = handles.at(Math.min(acquires, handles.length - 1));
+          acquires += 1;
+          return handle === undefined
+            ? Effect.fail(new ServerUnavailable({ language: "yaml", message: "gone" }))
+            : Effect.succeed(handle);
+        }),
+    });
+
+    const files = [changed("config.yaml")];
+    await Effect.runPromise(
+      Diagnostics.pipe(
+        Effect.flatMap((diagnostics) =>
+          Stream.runDrain(diagnostics.run(dir, files)).pipe(
+            Effect.andThen(
+              Effect.sync(() => {
+                firstDead = true;
+              }),
+            ),
+            Effect.andThen(Stream.runDrain(diagnostics.run(dir, files))),
+          ),
+        ),
+        Effect.provide(DiagnosticsLive.pipe(Layer.provide(rotating))),
+      ),
+    );
+
+    // Run 1 opened on the first server; run 2 found it dead and reopened on the replacement,
+    // Without a goodbye didClose to the corpse.
+    expect(first.opens).toEqual([uri]);
+    expect(first.closes).toEqual([]);
+    expect(second.opens).toEqual([uri]);
+    expect(acquires).toBe(2);
+  });
+});
+
+test("releases a language's keeper when its changed set drops to zero", async () => {
+  await withRepo({ "config.yaml": "a: 1\n", "data.json": "{}\n" }, async (dir) => {
+    const yaml = keeperProbe();
+    const json = keeperProbe();
+    const { captured, states } = await runSequence(
+      [
+        { files: [changed("config.yaml"), changed("data.json")], repoRoot: dir },
+        { files: [changed("data.json")], repoRoot: dir },
+      ],
+      fakeServers({ json: json.handle, yaml: yaml.handle }),
+      () => ({ jsonCloses: [...json.closes], yamlCloses: [...yaml.closes] }),
+    );
+
+    // The yaml keeper released its document (nothing tracks it anymore); json's stayed held.
+    expect(captured.yamlCloses).toEqual([pathToFileURL(join(dir, "config.yaml")).href]);
+    expect(captured.jsonCloses).toEqual([]);
+    expect(states[1]?.get("data.json")).toMatchObject({ status: "clean" });
+  });
+});
+
+test("concurrent runs share one keeper instead of racing two into existence", async () => {
+  await withRepo({ "config.yaml": "a: 1\n" }, async (dir) => {
+    const probe = keeperProbe();
+    let acquires = 0;
+    // An acquire slow enough that both concurrent runs pass the keeper-cache miss before either
+    // Finishes creating; the per-key lock must serialize them onto one keeper.
+    const slowServers = Layer.succeed(LanguageServers)({
+      acquire: () =>
+        Effect.sync(() => {
+          acquires += 1;
+        }).pipe(Effect.andThen(Effect.sleep("50 millis")), Effect.as(probe.handle)),
+    });
+
+    const files = [changed("config.yaml")];
+    const captured = await Effect.runPromise(
+      Diagnostics.pipe(
+        Effect.flatMap((diagnostics) =>
+          Effect.all(
+            [
+              Stream.runDrain(diagnostics.run(dir, files)),
+              Stream.runDrain(diagnostics.run(dir, files)),
+            ],
+            { concurrency: "unbounded" },
+          ).pipe(Effect.map(() => ({ acquires, opens: [...probe.opens] }))),
+        ),
+        Effect.provide(DiagnosticsLive.pipe(Layer.provide(slowServers))),
+      ),
+    );
+
+    expect(captured.acquires).toBe(1);
+    expect(captured.opens).toEqual([pathToFileURL(join(dir, "config.yaml")).href]);
   });
 });

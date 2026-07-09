@@ -51,6 +51,13 @@ export interface LspConnection {
    * needs.
    */
   readonly openDocument: (textDocument: TextDocument) => Effect.Effect<void>;
+  /**
+   * Full-text `textDocument/didChange` for an already-open document, versioned by a per-uri counter
+   * the transport owns (seeded from the open's version, bumped per change), so callers never
+   * coordinate versions. Full sync is deliberate: stet always holds the whole on-disk file, and a
+   * full-replacement event is valid under both full and incremental server sync modes.
+   */
+  readonly changeDocument: (uri: string, text: string) => Effect.Effect<void>;
   /** Refcounted `textDocument/didClose`: sent only when the last holder of the uri releases (1→0). */
   readonly closeDocument: (uri: string) => Effect.Effect<void>;
   /** Latest server-pushed `publishDiagnostics` items, keyed by document URI. */
@@ -268,13 +275,33 @@ export function makeTransport(
         );
       });
 
+    // Per-uri document versions, seeded by the open's version and bumped per change. Never reset on
+    // Close: LSP only requires versions to increase within an open session, and staying monotonic
+    // For the connection's lifetime satisfies that for every reopen with no bookkeeping.
+    const versions = new Map<string, number>();
+
     // The count is read-modified-written synchronously inside `suspend`, before the async send, so a
     // Second fiber acquiring the same uri can't interleave between the read and the increment.
     const openDocument = (textDocument: TextDocument) =>
       Effect.suspend(() => {
         const count = openCounts.get(textDocument.uri) ?? 0;
         openCounts.set(textDocument.uri, count + 1);
-        return count === 0 ? notify("textDocument/didOpen", { textDocument }) : Effect.void;
+        if (count > 0) {
+          return Effect.void;
+        }
+        const version = Math.max(textDocument.version, (versions.get(textDocument.uri) ?? 0) + 1);
+        versions.set(textDocument.uri, version);
+        return notify("textDocument/didOpen", { textDocument: { ...textDocument, version } });
+      });
+
+    const changeDocument = (uri: string, text: string) =>
+      Effect.suspend(() => {
+        const version = (versions.get(uri) ?? 0) + 1;
+        versions.set(uri, version);
+        return notify("textDocument/didChange", {
+          contentChanges: [{ text }],
+          textDocument: { uri, version },
+        });
       });
 
     const closeDocument = (uri: string) =>
@@ -291,6 +318,7 @@ export function makeTransport(
       });
 
     return {
+      changeDocument,
       clearPublished: (uris: readonly string[]) =>
         Effect.sync(() => {
           for (const uri of uris) {

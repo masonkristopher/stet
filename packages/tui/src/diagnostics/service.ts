@@ -1,17 +1,20 @@
 /**
  * Collects language-server diagnostics and projects them onto the keyed `CheckerState` the UI
- * already renders. Per run: changed files are grouped by language, each group's server is acquired
- * from the warm pool, and every file is opened with its on-disk text. Retrieval is hybrid: a server
- * advertising `diagnosticProvider` is pulled (one `textDocument/diagnostic` per file, push bucket
- * unioned in), every other server keeps the push path (wait for `publishDiagnostics`, then
- * snapshot); both close the docs after. Every failure degrades a file to `failed`/`unavailable`
- * rather than erroring the stream, so a server hiccup never blanks the panel. A file the server has
- * not answered for stays `pending`, never falsely `clean` (the SPEC invariant).
+ * already renders. Changed files are grouped by language; each language's server is held by a
+ * **document keeper** that persists across runs: the changed set stays open on the warm connection,
+ * a run sends `didChange` only for files whose on-disk text moved (full-text sync), releases files
+ * that left the set, and reopens everything on a fresh server if the pooled one died. Retrieval is
+ * hybrid: a server advertising `diagnosticProvider` is pulled (one `textDocument/diagnostic` per
+ * tracked file, push bucket unioned in), every other server keeps the push path, waiting only on
+ * freshly-sent or still-unpublished documents. Every failure degrades a file to
+ * `failed`/`unavailable` rather than erroring the stream, so a server hiccup never blanks the
+ * panel. A file the server has not answered for stays `pending`, never falsely `clean` (the SPEC
+ * invariant).
  */
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { Context, Effect, Layer, Stream } from "effect";
+import { Context, Effect, Exit, Layer, Scope, Semaphore, Stream } from "effect";
 
 import type { ChangedFile } from "@/git/model";
 
@@ -129,16 +132,37 @@ function pullDiagnostics(handle: ServerHandle, opened: { file: ChangedFile; uri:
   });
 }
 
-function collectDiagnostics(handle: ServerHandle, repoRoot: string, files: ChangedFile[]) {
-  // Hoisted so the `ensuring` finalizer below closes every doc opened so far, keeping the per-uri
-  // Refcount balanced even when a refresh interrupts the run or it fails mid-loop; a leaked open
-  // Count would suppress every later didOpen for that uri (no republish, file stuck pending).
-  const opened: { file: ChangedFile; uri: string }[] = [];
-  return Effect.gen(function* collect() {
+/**
+ * One language server's persistent view of a repo's changed set. The scope holds the pooled server
+ * reference across runs (so it stays warm while the repo is active), and `sent` records the hash of
+ * each document's last-sent text, which is what decides open vs change vs nothing per run.
+ */
+interface Keeper {
+  readonly handle: ServerHandle;
+  readonly language: string;
+  readonly repoRoot: string;
+  readonly scope: Scope.Closeable;
+  readonly sent: Map<string, ReturnType<typeof Bun.hash>>;
+}
+
+/**
+ * Reconcile the keeper's open-document set with this run's files: a new file opens, a file whose
+ * on-disk text moved gets a full-text `didChange`, an untouched file is merely held, and a file
+ * that left the set (or vanished from disk) closes. Each send and its `sent` record commit as one
+ * uninterruptible step, so an aborted run can never strand a document the bookkeeping disagrees
+ * about; docs deliberately stay open after the run, that is the keeper's point.
+ */
+function syncDocuments(keeper: Keeper, repoRoot: string, files: ChangedFile[]) {
+  return Effect.gen(function* sync() {
+    const { connection } = keeper.handle;
+    const dirty: { file: ChangedFile; uri: string }[] = [];
+    const held: { file: ChangedFile; uri: string }[] = [];
     const pending: ChangedFile[] = [];
+    const current = new Set<string>();
     for (const file of files) {
       const absolute = join(repoRoot, file.path);
-      // A file deleted between model load and this run can't be read; leave it pending for next run.
+      // A file deleted between model load and this run can't be read; the leave-sweep below closes
+      // It if it was open, and it renders pending until the next run resolves what happened.
       const text = yield* Effect.promise(() =>
         Bun.file(absolute)
           .text()
@@ -149,35 +173,68 @@ function collectDiagnostics(handle: ServerHandle, repoRoot: string, files: Chang
         continue;
       }
       const uri = pathToFileURL(absolute).href;
-      yield* handle.connection.clearPublished([uri]);
-      yield* handle.connection.openDocument({
-        languageId: lspLanguageId(file.path),
-        text,
-        uri,
-        version: 1,
-      });
-      opened.push({ file, uri });
+      current.add(uri);
+      const hash = Bun.hash(text);
+      if (keeper.sent.get(uri) === hash) {
+        held.push({ file, uri });
+        continue;
+      }
+      const send = keeper.sent.has(uri)
+        ? connection.changeDocument(uri, text)
+        : connection.openDocument({ languageId: lspLanguageId(file.path), text, uri, version: 1 });
+      yield* Effect.uninterruptible(
+        connection
+          .clearPublished([uri])
+          .pipe(
+            Effect.andThen(send),
+            Effect.andThen(Effect.sync(() => keeper.sent.set(uri, hash))),
+          ),
+      );
+      dirty.push({ file, uri });
     }
+    for (const uri of keeper.sent.keys()) {
+      if (!current.has(uri)) {
+        yield* Effect.uninterruptible(
+          connection
+            .closeDocument(uri)
+            .pipe(Effect.andThen(Effect.sync(() => keeper.sent.delete(uri)))),
+        );
+      }
+    }
+    return { dirty, held, pending };
+  });
+}
 
-    // A server that advertises pull answers request/response, no settle heuristics; every other
-    // Server keeps the push path: wait for its publishes, then snapshot.
+function collectDiagnostics(keeper: Keeper, repoRoot: string, files: ChangedFile[]) {
+  return Effect.gen(function* collect() {
+    const { dirty, held, pending } = yield* syncDocuments(keeper, repoRoot, files);
+    const { handle } = keeper;
+    const tracked = [...dirty, ...held];
+
+    // A server that advertises pull answers request/response, no settle heuristics. Every tracked
+    // File is pulled, not just dirty ones: an untouched file answers `unchanged` cheaply, and an
+    // Edit elsewhere in the open set can change its result even when its own text didn't move.
     if (handle.capabilities.has("pullDiagnostics")) {
-      const collected = yield* pullDiagnostics(handle, opened);
+      const collected = yield* pullDiagnostics(handle, tracked);
       return { ...collected, pending: [...pending, ...collected.pending] } satisfies Collected;
     }
 
-    yield* settle(
-      handle.connection,
-      opened.map((entry) => entry.uri),
-    );
-    if (opened.length > 0) {
+    // Push path: wait on freshly-sent documents, plus any held one still unpublished (a server may
+    // Publish late, after an earlier run's cap; the open doc lets that publish land and count).
+    const alreadyPublished = yield* handle.connection.published;
+    const waitUris = [
+      ...dirty.map((entry) => entry.uri),
+      ...held.filter((entry) => !alreadyPublished.has(entry.uri)).map((entry) => entry.uri),
+    ];
+    yield* settle(handle.connection, waitUris);
+    if (waitUris.length > 0) {
       yield* Effect.sleep(SETTLE_GRACE);
     }
     const map = yield* handle.connection.published;
 
     const diagnostics: Diagnostic[] = [];
     const resolved: ChangedFile[] = [];
-    for (const { file, uri } of opened) {
+    for (const { file, uri } of tracked) {
       const items = map.get(uri);
       if (items === undefined) {
         pending.push(file);
@@ -188,13 +245,7 @@ function collectDiagnostics(handle: ServerHandle, repoRoot: string, files: Chang
     }
 
     return { diagnostics, failed: [], pending, resolved } satisfies Collected;
-  }).pipe(
-    Effect.ensuring(
-      Effect.forEach(opened, (entry) => handle.connection.closeDocument(entry.uri), {
-        discard: true,
-      }),
-    ),
-  );
+  });
 }
 
 type LanguageOutcome =
@@ -242,12 +293,96 @@ export const DiagnosticsLive = Layer.effect(
   Diagnostics,
   Effect.gen(function* diagnosticsLive() {
     const servers = yield* LanguageServers;
+    // Keeper scopes fork from the layer scope, so app teardown closes every held server and its
+    // Open documents even if no run ever released them.
+    const layerScope = yield* Effect.scope;
+    const keepers = new Map<string, Keeper>();
+
+    const closeKeeper = (key: string, keeper: Keeper) =>
+      Scope.close(keeper.scope, Exit.void).pipe(
+        Effect.andThen(Effect.sync(() => keepers.delete(key))),
+      );
+
+    // Per-key locks serializing keeper acquisition: a run superseding a still-interrupting one
+    // Could otherwise pass the `keepers.get` check concurrently and create two keepers for one
+    // Key, the overwritten one leaking its pool reference and document refcounts forever.
+    const keeperLocks = new Map<string, Semaphore.Semaphore>();
+    const keeperLock = (key: string) => {
+      const existing = keeperLocks.get(key);
+      if (existing !== undefined) {
+        return existing;
+      }
+      const created = Semaphore.makeUnsafe(1);
+      keeperLocks.set(key, created);
+      return created;
+    };
+
+    // One keeper per (server, repo): reused warm across runs, rebuilt (documents reopened fresh by
+    // The next sync, since `sent` starts empty) when the pooled server died in between.
+    const acquireKeeper = (language: string, repoRoot: string) => {
+      const key = `${language} ${repoRoot}`;
+      return Effect.gen(function* acquire() {
+        const existing = keepers.get(key);
+        if (existing !== undefined) {
+          const isClosed = yield* existing.handle.connection.closed;
+          if (!isClosed) {
+            return existing;
+          }
+          yield* closeKeeper(key, existing);
+        }
+        const scope = yield* Scope.fork(layerScope);
+        const handle = yield* servers.acquire(language, repoRoot).pipe(
+          Scope.provide(scope),
+          Effect.onError(() => Scope.close(scope, Exit.void)),
+        );
+        const sent: Keeper["sent"] = new Map();
+        // Release the documents when the keeper goes (worktree switch, app exit): the pooled
+        // Server can outlive the keeper and be re-held later, and a stranded refcount would
+        // Suppress that next didOpen, leaving cleared push state permanently unfilled. A dead
+        // Server needs no goodbyes; its documents died with it.
+        yield* Scope.addFinalizer(
+          scope,
+          Effect.suspend(() =>
+            handle.connection.closed.pipe(
+              Effect.flatMap((isClosed) =>
+                isClosed
+                  ? Effect.void
+                  : Effect.forEach(
+                      [...sent.keys()],
+                      (uri) => handle.connection.closeDocument(uri),
+                      {
+                        discard: true,
+                      },
+                    ),
+              ),
+            ),
+          ),
+        );
+        const created: Keeper = { handle, language, repoRoot, scope, sent };
+        keepers.set(key, created);
+        return created;
+      }).pipe(Semaphore.withPermit(keeperLock(key)));
+    };
+
+    // Every run reconciles the resident keepers: one for a different repo (a worktree switch) or
+    // For a language whose changed set dropped to zero is released, so its documents close and its
+    // Server idles out of the pool instead of holding files no run tracks anymore.
+    const releaseStaleKeepers = (repoRoot: string, active: ReadonlySet<string>) =>
+      Effect.suspend(() =>
+        Effect.forEach(
+          [...keepers.entries()].filter(
+            ([, keeper]) => keeper.repoRoot !== repoRoot || !active.has(keeper.language),
+          ),
+          ([key, keeper]) => closeKeeper(key, keeper),
+          { discard: true },
+        ),
+      );
 
     function runLanguage(repoRoot: string, language: string, files: ChangedFile[]) {
-      return servers.acquire(language, repoRoot).pipe(
+      return acquireKeeper(language, repoRoot).pipe(
         Effect.flatMap(
-          (handle): Effect.Effect<LanguageOutcome> =>
-            collectDiagnostics(handle, repoRoot, files).pipe(
+          (keeper): Effect.Effect<LanguageOutcome> =>
+            collectDiagnostics(keeper, repoRoot, files).pipe(
               Effect.map((collected) => ({ collected, kind: "diagnostics" })),
             ),
         ),
@@ -381,23 +516,25 @@ export const DiagnosticsLive = Layer.effect(
       const noServer = noServerState(serversFor, changed);
       const languages = [...new Set(changed.flatMap((file) => serversFor(file.path)))];
       if (languages.length === 0) {
-        return Stream.make({ checker: "diagnostics", state: noServer } satisfies CheckerUpdate);
+        return Stream.fromEffect(
+          releaseStaleKeepers(repoRoot, new Set()).pipe(
+            Effect.as({ checker: "diagnostics", state: noServer } satisfies CheckerUpdate),
+          ),
+        );
       }
 
       const perLanguage = languages.map((language) =>
         Stream.fromEffect(
-          // Each language self-scopes so it acquires/releases its own pooled server independently.
-          Effect.scoped(
-            stateForLanguage(
-              repoRoot,
-              language,
-              changed.filter((file) => serversFor(file.path).includes(language)),
-            ).pipe(Effect.map((map) => ({ language, map }))),
-          ),
+          // The keeper owns the server's lifetime across runs; no per-run scope to close.
+          stateForLanguage(
+            repoRoot,
+            language,
+            changed.filter((file) => serversFor(file.path).includes(language)),
+          ).pipe(Effect.map((map) => ({ language, map }))),
         ),
       );
 
-      return Stream.mergeAll(perLanguage, { concurrency: "unbounded" }).pipe(
+      const merged = Stream.mergeAll(perLanguage, { concurrency: "unbounded" }).pipe(
         Stream.scan(
           { done: new Set<string>(), maps: [] as Map<string, CheckerFileState>[] },
           (accumulator, next) => ({
@@ -421,6 +558,11 @@ export const DiagnosticsLive = Layer.effect(
               ),
             }) satisfies CheckerUpdate,
         ),
+      );
+
+      // The repo sweep runs once, before any keeper for this run is acquired.
+      return Stream.fromEffect(releaseStaleKeepers(repoRoot, new Set(languages))).pipe(
+        Stream.flatMap(() => merged),
       );
     }
 

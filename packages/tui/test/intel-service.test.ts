@@ -26,6 +26,7 @@ function handle(
   whenProjectLoaded: Effect.Effect<void> = Effect.void,
 ): ServerHandle {
   const connection: LspConnection = {
+    changeDocument: () => Effect.void,
     clearPublished: () => Effect.void,
     closeDocument: (uri) =>
       Effect.sync(() => void log.push({ method: "textDocument/didClose", params: { uri } })),

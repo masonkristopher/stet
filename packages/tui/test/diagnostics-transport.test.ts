@@ -374,3 +374,66 @@ test("workspace/diagnostic/refresh is answered null and surfaces the nudge", asy
   expect(response).toMatchObject({ id: 7, result: null });
   expect(refreshes).toBe(1);
 });
+
+test("changeDocument sends the full text with a version that keeps increasing per uri", async () => {
+  const notifications = await withPeer(({ connection, sent }) =>
+    connection
+      .openDocument(doc("file:///a.ts"))
+      .pipe(
+        Effect.andThen(connection.changeDocument("file:///a.ts", "const a = 2\n")),
+        Effect.andThen(connection.changeDocument("file:///a.ts", "const a = 3\n")),
+        Effect.andThen(connection.openDocument(doc("file:///b.ts"))),
+        Effect.andThen(connection.changeDocument("file:///b.ts", "const b = 2\n")),
+        Effect.andThen(sentNotifications(sent)),
+      ),
+  );
+  expect(notifications).toMatchObject([
+    {
+      method: "textDocument/didOpen",
+      params: { textDocument: { uri: "file:///a.ts", version: 1 } },
+    },
+    {
+      method: "textDocument/didChange",
+      params: {
+        contentChanges: [{ text: "const a = 2\n" }],
+        textDocument: { uri: "file:///a.ts", version: 2 },
+      },
+    },
+    {
+      method: "textDocument/didChange",
+      params: {
+        contentChanges: [{ text: "const a = 3\n" }],
+        textDocument: { uri: "file:///a.ts", version: 3 },
+      },
+    },
+    {
+      method: "textDocument/didOpen",
+      params: { textDocument: { uri: "file:///b.ts", version: 1 } },
+    },
+    {
+      method: "textDocument/didChange",
+      params: { textDocument: { uri: "file:///b.ts", version: 2 } },
+    },
+  ]);
+});
+
+test("a reopened document's version never regresses", async () => {
+  const notifications = await withPeer(({ connection, sent }) =>
+    connection
+      .openDocument(doc("file:///a.ts"))
+      .pipe(
+        Effect.andThen(connection.changeDocument("file:///a.ts", "x")),
+        Effect.andThen(connection.closeDocument("file:///a.ts")),
+        Effect.andThen(connection.openDocument(doc("file:///a.ts"))),
+        Effect.andThen(sentNotifications(sent)),
+      ),
+  );
+  // The reopen's version continues past the closed session's (LSP only needs increase, and
+  // Monotonic-for-the-connection means no bookkeeping can ever send a regressing version).
+  expect(notifications).toMatchObject([
+    { method: "textDocument/didOpen", params: { textDocument: { version: 1 } } },
+    { method: "textDocument/didChange", params: { textDocument: { version: 2 } } },
+    { method: "textDocument/didClose" },
+    { method: "textDocument/didOpen", params: { textDocument: { version: 3 } } },
+  ]);
+});

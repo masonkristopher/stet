@@ -125,6 +125,7 @@ test("handshake parses advertised providers into the capability set", async () =
   const notified: string[] = [];
   let initializeParams: unknown;
   const connection: LspConnection = {
+    changeDocument: () => Effect.void,
     clearPublished: () => Effect.void,
     closeDocument: () => Effect.void,
     closed: Effect.sync(() => false),
@@ -181,6 +182,7 @@ test("handshake parses advertised providers into the capability set", async () =
 test("handshake yields an empty capability set when no providers are advertised", async () => {
   // An oxlint-shaped reply: it lints via push and advertises none of the code-intel providers.
   const connection: LspConnection = {
+    changeDocument: () => Effect.void,
     clearPublished: () => Effect.void,
     closeDocument: () => Effect.void,
     closed: Effect.sync(() => false),
@@ -205,6 +207,7 @@ test("handshake yields an empty capability set when no providers are advertised"
 test("handshake treats a malformed provider value as unsupported", async () => {
   // Only `true` or an options object advertises support; a non-conformant `null`/`0` must not count.
   const connection: LspConnection = {
+    changeDocument: () => Effect.void,
     clearPublished: () => Effect.void,
     closeDocument: () => Effect.void,
     closed: Effect.sync(() => false),
@@ -237,6 +240,7 @@ test("handshake advertises pull diagnostics and refresh support, and parses diag
   let initializeParams: unknown;
   // A rust-analyzer-shaped reply: it advertises diagnosticProvider, so the pull path activates.
   const connection: LspConnection = {
+    changeDocument: () => Effect.void,
     clearPublished: () => Effect.void,
     closeDocument: () => Effect.void,
     closed: Effect.sync(() => false),

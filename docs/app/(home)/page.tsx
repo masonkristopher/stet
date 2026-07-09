@@ -5,7 +5,6 @@ import Link from "next/link";
 import { siteUrl } from "@/lib/site";
 
 import { InstallCommand } from "./install-command";
-import { TerminalFrame } from "./terminal-frame";
 
 const features = [
   {
@@ -73,17 +72,15 @@ export default function Page() {
       </section>
 
       <section className="mx-auto w-full max-w-6xl px-4 pb-16">
-        <TerminalFrame label="stet">
-          <Image
-            src="/screenshots/stet.png"
-            alt="stet showing the repository tree beside a diff of a changed file"
-            width={2560}
-            height={1520}
-            priority
-            sizes="(max-width: 1152px) 100vw, 1152px"
-            className="h-auto w-full"
-          />
-        </TerminalFrame>
+        <Image
+          src="/screenshots/stet.png"
+          alt="stet showing the repository tree beside a diff of a changed file"
+          width={2560}
+          height={1520}
+          priority
+          sizes="(max-width: 1152px) 100vw, 1152px"
+          className="h-auto w-full rounded-xl border border-fd-border shadow-2xl shadow-black/20"
+        />
       </section>
 
       <section className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-px overflow-hidden rounded-xl border border-fd-border bg-fd-border px-0 sm:grid-cols-2 lg:grid-cols-3">

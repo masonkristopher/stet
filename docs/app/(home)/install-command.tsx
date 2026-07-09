@@ -22,7 +22,7 @@ export function InstallCommand({ command }: { command: string }) {
     status === "copied" ? "Copied" : status === "error" ? "Copy failed" : "Copy install command";
 
   return (
-    <div className="flex w-full max-w-md items-center gap-3 rounded-lg border border-fd-border bg-fd-card px-4 py-3 font-mono text-sm">
+    <div className="flex w-full max-w-xl items-center gap-3 rounded-lg border border-fd-border bg-fd-card px-4 py-3 text-left font-mono text-sm">
       <span className="text-fd-muted-foreground select-none">$</span>
       <code className="flex-1 overflow-x-auto whitespace-nowrap text-fd-foreground">{command}</code>
       <button

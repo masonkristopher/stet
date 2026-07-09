@@ -43,10 +43,7 @@ export default function Page() {
   return (
     <main className="flex flex-1 flex-col">
       <section className="mx-auto flex w-full max-w-5xl flex-col items-center gap-8 px-4 pt-20 pb-16 text-center sm:pt-28">
-        <p className="flex items-center justify-center gap-1.5 font-mono text-sm text-fd-primary">
-          read-only companion TUI
-          <span aria-hidden className="stet-caret inline-block h-[1.1em] w-[0.5em] bg-fd-primary" />
-        </p>
+        <p className="font-mono text-sm text-fd-primary">read-only companion TUI</p>
         <h1 className="max-w-3xl font-mono text-4xl leading-tight font-bold tracking-tight text-balance sm:text-6xl">
           Inspect an agent's changes as they happen
         </h1>
@@ -101,6 +98,10 @@ export default function Page() {
         <p className="mx-auto mt-4 max-w-xl text-fd-muted-foreground text-balance">
           No approvals, no accept/reject protocol, no generated reviews, no PR workflow, no
           database. The agent never hears from stet, only from you.
+        </p>
+        <p className="mx-auto mt-6 max-w-xl font-mono text-sm text-fd-muted-foreground text-balance">
+          Stet is the proofreader's mark for "let it stand": strike a word out, add dots beneath,
+          and it stays.
         </p>
         <div className="mt-8">
           <Link

@@ -15,26 +15,42 @@ jobs:
       contents: write
       pull-requests: write
     outputs:
-      release_created: ${{ steps.release.outputs.release_created }}
-      tag_name: ${{ steps.release.outputs.tag_name }}
-      version: ${{ steps.release.outputs.version }}
+      # `releases_created` is path-agnostic; the tag/version outputs are prefixed with the
+      # package path, since release-please only emits bare names for a root (`.`) component.
+      released: ${{ steps.release.outputs.releases_created }}
+      tag_name: ${{ steps.release.outputs['packages/tui--tag_name'] }}
+      version: ${{ steps.release.outputs['packages/tui--version'] }}
     steps:
       - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         id: release
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+      # A misnamed output resolves to the empty string, which reads as "no release" and silently
+      # skips publish on a green run. Fail loudly instead if the prefix ever drifts again.
+      - name: assert release outputs
+        if: steps.release.outputs.releases_created == 'true'
+        env:
+          TAG: ${{ steps.release.outputs['packages/tui--tag_name'] }}
+          VERSION: ${{ steps.release.outputs['packages/tui--version'] }}
+        run: |
+          if [ -z "$TAG" ] || [ -z "$VERSION" ]; then
+            echo "::error::release created but tag/version outputs are empty; the packages/tui-- output prefix has drifted"
+            exit 1
+          fi
 
   publish:
     needs: release-please
-    if: needs.release-please.outputs.release_created == 'true'
+    if: needs.release-please.outputs.released == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
       id-token: write
     steps:
+      # Build the tagged tree, so the assets can never come from a later commit.
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
+          ref: ${{ needs.release-please.outputs.tag_name }}
           persist-credentials: false
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
       - run: bun install --frozen-lockfile
@@ -69,13 +85,14 @@ jobs:
 
   homebrew:
     needs: [release-please, publish]
-    if: needs.release-please.outputs.release_created == 'true'
+    if: needs.release-please.outputs.released == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
+          ref: ${{ needs.release-please.outputs.tag_name }}
           persist-credentials: false
       - name: render formula
         env:

@@ -33,6 +33,10 @@ export interface GitModel {
   changedByPath: Map<string, ChangedFile>;
   repoFiles: RepoFile[];
   repoFilesKey: string;
+  // The current HEAD branch, undefined only on a detached HEAD. An unborn HEAD (before the first
+  // Commit) still names the branch it will create. Parsed from the `##` header of the working-tree
+  // Status, so it refreshes live on the same drain as changes.
+  branch: string | undefined;
 }
 
 interface StatusEntry {
@@ -102,7 +106,7 @@ export function assembleChanged(
   nameStatusOutput: string,
   numstatOutput: string,
   porcelainOutput: string,
-): Pick<GitModel, "changed" | "changedByPath" | "scopeKey"> {
+): Pick<GitModel, "changed" | "changedByPath" | "scopeKey" | "branch"> {
   // The committed-tree-to-committed-tree ranges (last-commit, a stepped commit)
   // Have no place for working-tree untracked files (same reasoning as staged).
   const untracked =
@@ -144,6 +148,7 @@ export function assembleChanged(
     .toSorted((a, b) => a.path.localeCompare(b.path));
 
   return {
+    branch: parseBranch(porcelainOutput),
     changed,
     changedByPath: new Map(changed.map((file) => [file.path, file])),
     scopeKey: `${scope.kind}:${scope.ref}:${scope.headRef ?? ""}`,
@@ -176,9 +181,13 @@ export function assembleModel(
 
 export function mergeChanged(
   prev: GitModel,
-  next: Pick<GitModel, "changed" | "changedByPath" | "scopeKey">,
+  next: Pick<GitModel, "changed" | "changedByPath" | "scopeKey" | "branch">,
 ): GitModel {
-  if (prev.scopeKey === next.scopeKey && sameChangedSet(prev.changed, next.changed)) {
+  if (
+    prev.scopeKey === next.scopeKey &&
+    prev.branch === next.branch &&
+    sameChangedSet(prev.changed, next.changed)
+  ) {
     return prev;
   }
 
@@ -196,6 +205,7 @@ export function mergeChanged(
   ) {
     return {
       ...prev,
+      branch: next.branch,
       changed: next.changed,
       changedByPath: next.changedByPath,
       scopeKey: next.scopeKey,
@@ -204,6 +214,7 @@ export function mergeChanged(
 
   return {
     ...prev,
+    branch: next.branch,
     changed,
     changedByPath: new Map(changed.map((file) => [file.path, file])),
     scopeKey: next.scopeKey,
@@ -264,6 +275,12 @@ export function parsePorcelainStatus(output: string): Map<string, StageState> {
       continue;
     }
 
+    // The `-b` branch header (`## <name>...`) rides along the same output; it is
+    // Read by `parseBranch`, not a file entry, so skip it here.
+    if (token.startsWith("## ")) {
+      continue;
+    }
+
     const stage = stageFromCodes(token[0] ?? " ", token[1] ?? " ");
     stageByPath.set(token.slice(3), stage);
 
@@ -279,11 +296,32 @@ export function parsePorcelainStatus(output: string): Map<string, StageState> {
   return stageByPath;
 }
 
+// The current branch from a `git status --porcelain=v1 -b -z` header (`## <name>`). Strips the
+// `name...upstream [ahead/behind]` tail and the `No commits yet on ` prefix (an unborn branch still
+// Has a name). A detached HEAD (`## HEAD (no branch)`) has no branch, so it returns undefined.
+export function parseBranch(output: string): string | undefined {
+  const header = output.split("\0")[0];
+  if (header === undefined || !header.startsWith("## ")) {
+    return undefined;
+  }
+
+  const rest = header.slice(3);
+  if (rest.includes("(no branch)")) {
+    return undefined;
+  }
+
+  const unborn = "No commits yet on ";
+  const named = rest.startsWith(unborn) ? rest.slice(unborn.length) : rest;
+  const upstream = named.indexOf("...");
+  return (upstream === -1 ? named : named.slice(0, upstream)).trim() || undefined;
+}
+
 export function mergeModel(prev: GitModel, next: GitModel): GitModel {
   if (
     prev.repoRoot === next.repoRoot &&
     prev.scopeKey === next.scopeKey &&
     prev.repoFilesKey === next.repoFilesKey &&
+    prev.branch === next.branch &&
     sameChangedSet(prev.changed, next.changed)
   ) {
     return prev;

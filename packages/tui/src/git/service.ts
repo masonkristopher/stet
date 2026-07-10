@@ -45,7 +45,10 @@ export class Git extends Context.Service<
     readonly changedFiles: (
       repoRoot: string,
       scope: DiffScope,
-    ) => Effect.Effect<Pick<GitModel, "changed" | "changedByPath" | "scopeKey">, GitError>;
+    ) => Effect.Effect<
+      Pick<GitModel, "changed" | "changedByPath" | "scopeKey" | "branch">,
+      GitError
+    >;
     readonly fileDiff: (
       repoRoot: string,
       scope: DiffScope,
@@ -111,7 +114,7 @@ export const GitLive = Layer.effect(
             process.run(["git", "ls-files", "--others", "--exclude-standard", "-z"], repoRoot),
             process.run(nameStatusArgs(scope), repoRoot),
             process.run(numstatArgs(scope), repoRoot),
-            process.run(["git", "status", "--porcelain=v1", "-z"], repoRoot),
+            process.run(["git", "status", "--porcelain=v1", "-b", "-z"], repoRoot),
           ],
           { concurrency: "unbounded" },
         ).pipe(
@@ -213,7 +216,7 @@ export const GitLive = Layer.effect(
             process.run(["git", "ls-files", "--others", "--exclude-standard", "-z"], repoRoot),
             process.run(nameStatusArgs(scope), repoRoot),
             process.run(numstatArgs(scope), repoRoot),
-            process.run(["git", "status", "--porcelain=v1", "-z"], repoRoot),
+            process.run(["git", "status", "--porcelain=v1", "-b", "-z"], repoRoot),
           ],
           { concurrency: "unbounded" },
         ).pipe(

@@ -24,8 +24,8 @@ describe("go-to-file palette", () => {
     const settleUntil = makeSettleUntil({ captureCharFrame, renderOnce });
 
     try {
-      const initial = await settleUntil("app chrome", (frame) => frame.includes("stet"), 5);
-      expect(initial).toContain("stet");
+      const initial = await settleUntil("app chrome", (frame) => frame.includes("q quit"), 5);
+      expect(initial).toContain("q quit");
 
       mockInput.pressKey("p", { ctrl: true });
       const palette = await settleUntil("go-to-file palette", (frame) =>
@@ -37,9 +37,9 @@ describe("go-to-file palette", () => {
       await mockInput.typeText("qqqq");
       const afterTyping = await settleUntil(
         "empty palette results",
-        (frame) => frame.includes("stet") && frame.includes("no matches"),
+        (frame) => frame.includes("q quit") && frame.includes("no matches"),
       );
-      expect(afterTyping).toContain("stet");
+      expect(afterTyping).toContain("q quit");
       expect(afterTyping).toContain("no matches");
 
       for (let index = 0; index < 4; index += 1) {
@@ -81,7 +81,7 @@ describe("go-to-file palette", () => {
     const settleUntil = makeSettleUntil({ captureCharFrame, renderOnce });
 
     try {
-      await settleUntil("app chrome", (frame) => frame.includes("stet"), 5);
+      await settleUntil("app chrome", (frame) => frame.includes("q quit"), 5);
       mockInput.pressKey("p", { ctrl: true });
       await settleUntil("go-to-file palette", (frame) => frame.includes("go to file"));
 

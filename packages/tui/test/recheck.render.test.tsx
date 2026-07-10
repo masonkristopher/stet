@@ -19,8 +19,8 @@ describe("re-running checks", () => {
     const settleUntil = makeSettleUntil({ captureCharFrame, renderOnce });
 
     try {
-      const initial = await settleUntil("app chrome", (frame) => frame.includes("stet"), 5);
-      expect(initial).toContain("stet");
+      const initial = await settleUntil("app chrome", (frame) => frame.includes("q quit"), 5);
+      expect(initial).toContain("q quit");
 
       mockInput.pressKey("r");
       const after = await settleUntil("re-run completion", (frame) =>

@@ -10,6 +10,7 @@ import { makeSettleUntil, seedState } from "./helpers";
 const allScope = { kind: "all", ref: "HEAD" } as const;
 
 const emptyModel: GitModel = {
+  branch: undefined,
   changed: [],
   changedByPath: new Map(),
   repoFiles: [],

@@ -28,7 +28,7 @@ describe("quit confirm", () => {
     const settleUntil = makeSettleUntil({ captureCharFrame, renderOnce });
 
     try {
-      await settleUntil("app chrome", (frame) => frame.includes("stet"), 5);
+      await settleUntil("app chrome", (frame) => frame.includes("q quit"), 5);
       const litBackground = backgroundCell(captureSpans());
 
       // Q must not quit outright: it raises the confirm prompt (y quit · esc cancel).

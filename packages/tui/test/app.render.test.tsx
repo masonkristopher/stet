@@ -19,9 +19,9 @@ describe("App rendering", () => {
     });
     const settleUntil = makeSettleUntil({ captureCharFrame, renderOnce });
 
-    const frame = await settleUntil("app chrome", (current) => current.includes("stet"));
+    const frame = await settleUntil("app chrome", (current) => current.includes("q quit"));
 
-    expect(frame).toContain("stet");
+    expect(frame).toContain("q quit");
     expect(frame).toContain("uncommitted vs HEAD");
     expect(frame).toContain("src");
     expect(frame).toContain("q quit");

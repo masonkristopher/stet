@@ -53,7 +53,7 @@ describe("runtime appearance follow (#101)", () => {
       },
     );
     const settleUntil = makeSettleUntil({ captureCharFrame, renderOnce });
-    await settleUntil("app chrome", (frame) => frame.includes("stet"));
+    await settleUntil("app chrome", (frame) => frame.includes("q quit"));
 
     expect(hasBackground(captureSpans(), DARK_BG)).toBe(true);
     expect(hasBackground(captureSpans(), LIGHT_BG)).toBe(false);

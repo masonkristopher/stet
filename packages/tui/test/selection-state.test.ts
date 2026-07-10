@@ -7,6 +7,7 @@ import { state } from "@/state";
 
 function modelWith(paths: string[]): GitModel {
   return {
+    branch: undefined,
     changed: [],
     changedByPath: new Map(),
     repoFiles: paths.map((path) => ({ path, symlink: false, tracked: true })),

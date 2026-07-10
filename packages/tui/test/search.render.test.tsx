@@ -28,7 +28,7 @@ describe("project content search", () => {
 
     try {
       // The seeded file is a.ts, so selecting lib.ts below is a cross-file jump.
-      await settleUntil("app chrome", (frame) => frame.includes("stet"), 5);
+      await settleUntil("app chrome", (frame) => frame.includes("q quit"), 5);
 
       mockInput.pressKey("f", { ctrl: true });
       await settleUntil("search pane", (frame) => frame.includes("search…"));
@@ -130,7 +130,7 @@ describe("project content search", () => {
 
     try {
       // Seeded on aaa.ts; the only needle match is line 50 of the changed zzz.ts.
-      await settleUntil("app chrome", (frame) => frame.includes("stet"), 5);
+      await settleUntil("app chrome", (frame) => frame.includes("q quit"), 5);
       mockInput.pressKey("f", { ctrl: true });
       await settleUntil("search pane", (frame) => frame.includes("search…"));
       await mockInput.typeText("needle");
@@ -166,7 +166,7 @@ describe("project content search", () => {
     const settleUntil = makeSettleUntil({ captureCharFrame, renderOnce });
 
     try {
-      await settleUntil("app chrome", (frame) => frame.includes("stet"), 5);
+      await settleUntil("app chrome", (frame) => frame.includes("q quit"), 5);
       mockInput.pressKey("f", { ctrl: true });
       await settleUntil("search pane", (frame) => frame.includes("search…"));
       await mockInput.typeText("needle");
@@ -259,7 +259,7 @@ describe("project content search", () => {
     const settleUntil = makeSettleUntil({ captureCharFrame, renderOnce });
 
     try {
-      await settleUntil("app chrome", (frame) => frame.includes("stet"), 5);
+      await settleUntil("app chrome", (frame) => frame.includes("q quit"), 5);
       mockInput.pressKey("f", { ctrl: true });
       await settleUntil("search pane", (frame) => frame.includes("search…"));
       await mockInput.typeText("needle");

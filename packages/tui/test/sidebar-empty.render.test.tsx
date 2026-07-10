@@ -50,6 +50,7 @@ test("shows the changes-only empty state when nothing changed", async () => {
 // Reads as still-loading (empty key), so seed a loaded-and-empty model: a non-empty
 // RepoFilesKey with zero files, repoRoot signal zeroed so the poll can't race it.
 const loadedEmptyModel: GitModel = {
+  branch: undefined,
   changed: [],
   changedByPath: new Map(),
   repoFiles: [],

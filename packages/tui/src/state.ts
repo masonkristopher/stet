@@ -246,6 +246,7 @@ const SEARCH_RESULT_CAP = 500;
 const SEARCH_CONTEXT_LINES = 2;
 
 const emptyModel: GitModel = {
+  branch: undefined,
   changed: [],
   changedByPath: new Map(),
   repoFiles: [],
@@ -3222,7 +3223,8 @@ function createState() {
     if (commit === undefined) {
       return "commit";
     }
-    return commit.subject.length > 40 ? `${commit.subject.slice(0, 39)}…` : commit.subject;
+    // Return the full subject; the header budgets it to the width it actually has.
+    return commit.subject;
   });
 
   // A worktree switch is a new inspection context: the session base re-pins to the

@@ -145,7 +145,7 @@ describe("list scrollbar", () => {
     const settleUntil = makeSettleUntil({ captureCharFrame, renderOnce });
 
     try {
-      await settleUntil("app chrome", (frame) => frame.includes("stet"), 5);
+      await settleUntil("app chrome", (frame) => frame.includes("q quit"), 5);
       mockInput.pressKey("f", { ctrl: true });
       await settleUntil("search pane", (frame) => frame.includes("search…"));
       await mockInput.typeText("needle");

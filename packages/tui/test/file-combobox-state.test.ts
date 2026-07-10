@@ -7,6 +7,7 @@ import { state } from "@/state";
 
 function modelWith(repoFiles: GitModel["repoFiles"], key: string): GitModel {
   return {
+    branch: undefined,
     changed: [],
     changedByPath: new Map(),
     repoFiles,

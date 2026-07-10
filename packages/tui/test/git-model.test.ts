@@ -10,6 +10,7 @@ import {
   mergeModel,
   nameStatusArgs,
   numstatArgs,
+  parseBranch,
   parseNameStatus,
   parseNumstat,
   parsePorcelainStatus,
@@ -44,6 +45,7 @@ function file(path: string, overrides: Partial<ChangedFile> = {}): ChangedFile {
 
 function model(changed: ChangedFile[], repoFilesKey = "key", scopeKey = "all:HEAD"): GitModel {
   return {
+    branch: undefined,
     changed,
     changedByPath: new Map(changed.map((entry) => [entry.path, entry])),
     repoFiles: changed.map((entry) => ({ path: entry.path, symlink: false, tracked: true })),
@@ -211,6 +213,35 @@ describe("parsePorcelainStatus", () => {
     expect(stages.get("new.ts")).toBe("staged");
     expect(stages.get("old.ts")).toBe("staged");
     expect(stages.get("after.ts")).toBe("unstaged");
+  });
+
+  test("ignores the `-b` branch header", () => {
+    const stages = parsePorcelainStatus("## main...origin/main\0 M edited.ts\0");
+    expect(stages.get("edited.ts")).toBe("unstaged");
+    expect(stages.has("main...origin/main")).toBe(false);
+  });
+});
+
+describe("parseBranch", () => {
+  test("reads the branch from the header", () => {
+    expect(parseBranch("## main\0 M edited.ts\0")).toBe("main");
+  });
+
+  test("strips the upstream and ahead/behind tail", () => {
+    expect(parseBranch("## feat/x...origin/feat/x [ahead 1, behind 2]\0")).toBe("feat/x");
+  });
+
+  test("names an unborn branch before its first commit", () => {
+    expect(parseBranch("## No commits yet on main\0")).toBe("main");
+  });
+
+  test("returns undefined on a detached HEAD", () => {
+    expect(parseBranch("## HEAD (no branch)\0")).toBeUndefined();
+  });
+
+  test("returns undefined when there is no branch header", () => {
+    expect(parseBranch(" M edited.ts\0")).toBeUndefined();
+    expect(parseBranch("")).toBeUndefined();
   });
 });
 

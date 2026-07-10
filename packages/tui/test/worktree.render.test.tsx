@@ -30,7 +30,7 @@ describe("worktree picker", () => {
     try {
       const initial = await settleUntil(
         "app chrome",
-        (frame) => frame.includes("stet") && frame.includes("main-only.ts"),
+        (frame) => frame.includes("q quit") && frame.includes("main-only.ts"),
         5,
       );
       expect(initial).toContain("main-only.ts");
@@ -56,10 +56,14 @@ describe("worktree picker", () => {
       mockInput.pressEnter();
       const switched = await settleUntil(
         "linked worktree loaded",
-        (frame) => frame.includes("side-only.ts") && frame.includes(".wt · uncommitted vs HEAD"),
+        (frame) =>
+          frame.includes("side-only.ts") &&
+          frame.includes("side-branch") &&
+          frame.includes("uncommitted vs HEAD"),
       );
       expect(switched).toContain("side-only.ts");
-      expect(switched).toContain(".wt · uncommitted vs HEAD");
+      expect(switched).toContain("side-branch");
+      expect(switched).toContain("uncommitted vs HEAD");
     } finally {
       renderer.destroy();
       rmSync(repoRoot, { force: true, recursive: true });
@@ -82,7 +86,7 @@ describe("worktree picker", () => {
     const settleUntil = makeSettleUntil({ captureCharFrame, renderOnce });
 
     try {
-      await settleUntil("app chrome", (frame) => frame.includes("stet"), 5);
+      await settleUntil("app chrome", (frame) => frame.includes("q quit"), 5);
 
       mockInput.pressKey("w");
       await settleUntil("worktree picker", (frame) => frame.includes("side-branch"));

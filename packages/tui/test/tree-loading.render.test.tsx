@@ -21,6 +21,7 @@ const sidebarOf = (frame: string) =>
     .join("\n");
 
 const emptyModel: GitModel = {
+  branch: undefined,
   changed: [],
   changedByPath: new Map(),
   repoFiles: [],

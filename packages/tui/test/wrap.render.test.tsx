@@ -19,7 +19,7 @@ describe("word wrap toggle", () => {
     const settleUntil = makeSettleUntil({ captureCharFrame, renderOnce });
 
     try {
-      await settleUntil("app chrome", (frame) => frame.includes("stet"), 5);
+      await settleUntil("app chrome", (frame) => frame.includes("q quit"), 5);
 
       mockInput.pressKey("x");
       const wrapped = await settleUntil("wrap on", (frame) => frame.includes("wrap on"));

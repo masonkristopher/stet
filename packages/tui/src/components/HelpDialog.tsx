@@ -4,6 +4,8 @@ import { KEY_HELP } from "@/help/keys";
 import { state } from "@/state";
 import { useTheme } from "@/theme/context";
 
+import packageJson from "../../package.json";
+
 // Fixed width of the combo column box; the action text wraps in whatever remains
 // Of the overlay row after it. A reserved-width box (not string padding) keeps the
 // Action column aligned even on rows whose description wraps to a second line. Must
@@ -68,8 +70,16 @@ export function HelpDialog() {
       backgroundColor={theme.colors.surface.panel}
       zIndex={100}
     >
-      <box height={1} paddingLeft={1} backgroundColor={theme.colors.surface.panel}>
+      <box
+        height={1}
+        flexDirection="row"
+        justifyContent="space-between"
+        paddingLeft={1}
+        paddingRight={1}
+        backgroundColor={theme.colors.surface.panel}
+      >
         <text fg={theme.colors.text.strong}>keyboard shortcuts</text>
+        <text fg={theme.colors.text.faint}>stet@{packageJson.version}</text>
       </box>
       <scrollbox
         width="100%"

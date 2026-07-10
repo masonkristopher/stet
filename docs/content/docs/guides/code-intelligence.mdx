@@ -62,9 +62,10 @@ structure. Unlike go-to-definition it needs no caret, only an open file.
 ## Problems
 
 Diagnostics from the repo's language servers stream into a problems panel as
-checks finish: type errors from TypeScript, lint findings from oxlint, Biome
-where it is configured, and schema-aware JSON and YAML validation. Each is
-tagged with its source and pinpointed to its `line:col`. Press `p` to open the
-panel and `enter` to jump to a finding.
+checks finish: type errors from TypeScript, Rust findings from rust-analyzer
+and cargo check, lint findings from oxlint, Biome where it is configured, and
+schema-aware JSON and YAML validation. Each is tagged with its source and
+pinpointed to its `line:col`. Press `p` to open the panel and `enter` to jump
+to a finding.
 
 ![The problems panel docked below a diff, listing diagnostics with their file locations](/screenshots/problems.png)

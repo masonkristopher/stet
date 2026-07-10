@@ -1,0 +1,122 @@
+---
+title: Languages
+description: What stet gives every language, and which get diagnostics and code intelligence.
+---
+
+import { Callout } from "fumadocs-ui/components/callout";
+
+Language support is layered. Every file in the repo gets syntax highlighting,
+a file-type icon, and structural folding, whatever the language. Language
+servers add diagnostics for the languages the table marks, TypeScript and
+Rust get full code navigation on top, and you can wire anything else up
+through [your config](/docs/reference/configuration#languages).
+
+| Language                | Highlighting | Folding    | Diagnostics   | Code intelligence |
+| ----------------------- | ------------ | ---------- | ------------- | ----------------- |
+| TypeScript & JavaScript | yes          | indent     | types + lint  | yes               |
+| Rust                    | yes          | indent     | types + cargo | yes               |
+| JSON & JSONC            | yes          | indent     | schema + lint |                   |
+| YAML                    | yes          | indent     | schema        |                   |
+| CSS                     | yes          | indent     | lint          |                   |
+| GraphQL                 | yes          | indent     | lint          |                   |
+| Markdown                | yes          | by heading |               |                   |
+| 200+ others             | yes          | indent     | via config    |                   |
+
+## Syntax highlighting
+
+Any language [Shiki](https://shiki.style/) bundles highlights out of the box,
+200 and counting. stet picks the grammar from the file's name, exact names
+like `Dockerfile` included, and loads it on demand. Every surface that shows
+code shares the same highlighter and theme: the diff,
+the full file, search results, hover cards, and reference previews. A file
+type nothing recognizes falls back to plain text.
+
+## Folding
+
+Press `z` to fold the block at the caret: code folds by indentation in every
+language, markdown folds by heading section. See
+[reading files and diffs](/docs/guides/reading-files-and-diffs#fold-code).
+
+## File icons
+
+The tree shows a Nerd Font icon per file type, resolved by exact filename
+first, then extension. Pass `--no-icons` for a plain tree if your terminal
+font lacks the glyphs.
+
+## Diagnostics
+
+Servers overlap deliberately: every server that claims a file runs, and their
+findings merge per file, each tagged with its own source label. A linter that
+competes with an always-on default activates only where the repo opted into
+it, the way an editor extension would.
+
+### TypeScript & JavaScript
+
+`.ts`, `.tsx`, `.js`, `.jsx`, and the `.mts`/`.cts`/`.mjs`/`.cjs` variants run
+through three servers: `typescript-language-server` reports type errors (label
+`typescript`), oxlint reports lint findings (label `oxc`), and Biome joins
+them (label `biome`) when the repo has a `biome.json` or `biome.jsonc`.
+
+### Rust
+
+`.rs` files get rust-analyzer's own analysis (label `rust-analyzer`) plus the
+findings cargo check produces through it (label `rustc`). stet downloads the
+server automatically the first time a Rust file needs it.
+
+### JSON & JSONC
+
+`vscode-json-language-server` validates against schemas (`package.json`,
+`tsconfig.json`, and anything [SchemaStore](https://www.schemastore.org/)
+knows) in every repo, and Biome adds its lint where configured.
+
+### YAML
+
+`yaml-language-server` provides schema-aware validation for `.yaml` and
+`.yml`.
+
+### CSS & GraphQL
+
+Biome covers both, only in repos with a biome config. Without one these files
+show as unavailable rather than falsely clean.
+
+## Code intelligence
+
+Go to definition, find references, implementations, call hierarchy, hover,
+and the symbol outline work for the TypeScript & JavaScript family and for
+Rust, through the same servers that produce their diagnostics. See
+[code intelligence](/docs/guides/code-intelligence) for the keys and flows.
+
+## How servers are found
+
+A server resolves from the repo's own `node_modules/.bin`, then your `PATH`.
+If neither has it, stet downloads one into `~/.cache/stet/lsp`, pinned to an
+exact version: npm packages for the servers npm distributes (this path needs
+`npm` on your `PATH`), or a sha256-verified GitHub release binary for
+rust-analyzer. Pass `--no-lsp-download` (or set `STET_NO_LSP_DOWNLOAD`) to
+turn downloads off.
+
+<Callout>
+  A download that cannot complete (offline, air-gapped, locked-down CI) times out, and its files
+  show as unavailable instead of waiting forever.
+</Callout>
+
+## Add your own languages
+
+The `languages` config key routes any file type to any language server on
+your machine, and can change which servers run for the built-in languages:
+
+```jsonc title="~/.config/stet/config.jsonc"
+{
+  "languages": {
+    "python": {
+      "extensions": ["py"],
+      "servers": [{ "command": ["pyright-langserver", "--stdio"] }],
+    },
+  },
+}
+```
+
+Servers you name are any executable on your machine; stet resolves them
+locally and never runs a command the inspected repository ships. See
+[configuration](/docs/reference/configuration#languages) for the full shape:
+filename routing, server options, and overriding built-ins.

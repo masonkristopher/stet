@@ -89,7 +89,9 @@ interface ServerSpec {
 }
 
 // Adding a language is one `languages` entry (its file types and server order) plus a `registry`
-// Entry per new server; the transport, pool, and handshake are language-agnostic. A language lists
+// Entry per new server; the transport, pool, and handshake are language-agnostic. When a server or
+// Language changes here, update docs/content/docs/reference/languages.mdx to match (hand-written
+// By choice; the table is small and slow-moving). A language lists
 // Every server that analyzes it (typescript type-checks the JS/TS family, oxlint lints the same
 // Files) and the per-file results merge. A server with a `detect` gate runs only where its
 // Predicate accepts the repo (Biome needs a biome config).

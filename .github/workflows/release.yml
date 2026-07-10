@@ -3,6 +3,16 @@ name: release
 on:
   push:
     branches: [main]
+  # Redrive lever: republish an existing tag when a release run was lost or partial.
+  # release-please runs as GITHUB_TOKEN, which GitHub blocks from creating a release
+  # that targets a commit whose workflow files differ from the run's own commit, so a
+  # stranded release can never be re-driven through the push path; this can.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "existing release tag to republish (e.g. stet-v0.7.2)"
+        required: true
+        type: string
 
 concurrency:
   group: release
@@ -10,16 +20,16 @@ concurrency:
 
 jobs:
   release-please:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: write
       pull-requests: write
     outputs:
-      # `releases_created` is path-agnostic; the tag/version outputs are prefixed with the
+      # `releases_created` is path-agnostic; the tag output is prefixed with the
       # package path, since release-please only emits bare names for a root (`.`) component.
       released: ${{ steps.release.outputs.releases_created }}
       tag_name: ${{ steps.release.outputs['packages/tui--tag_name'] }}
-      version: ${{ steps.release.outputs['packages/tui--version'] }}
     steps:
       - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0
         id: release
@@ -32,25 +42,28 @@ jobs:
         if: steps.release.outputs.releases_created == 'true'
         env:
           TAG: ${{ steps.release.outputs['packages/tui--tag_name'] }}
-          VERSION: ${{ steps.release.outputs['packages/tui--version'] }}
         run: |
-          if [ -z "$TAG" ] || [ -z "$VERSION" ]; then
-            echo "::error::release created but tag/version outputs are empty; the packages/tui-- output prefix has drifted"
+          if [ -z "$TAG" ]; then
+            echo "::error::release created but the tag output is empty; the packages/tui-- output prefix has drifted"
             exit 1
           fi
 
   publish:
     needs: release-please
-    if: needs.release-please.outputs.released == 'true'
+    # `!cancelled()` lets this run when release-please is skipped (dispatch); a push
+    # release still requires its gate, and `released` is only ever 'true' on success.
+    if: ${{ !cancelled() && (github.event_name == 'workflow_dispatch' || needs.release-please.outputs.released == 'true') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
       id-token: write
+    env:
+      TAG: ${{ inputs.tag || needs.release-please.outputs.tag_name }}
     steps:
       # Build the tagged tree, so the assets can never come from a later commit.
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
-          ref: ${{ needs.release-please.outputs.tag_name }}
+          ref: ${{ env.TAG }}
           persist-credentials: false
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
       - run: bun install --frozen-lockfile
@@ -60,7 +73,13 @@ jobs:
       - name: upload release assets
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload ${{ needs.release-please.outputs.tag_name }} dist/*.tar.gz dist/SHA256SUMS --clobber
+        run: gh release upload "$TAG" dist/*.tar.gz dist/SHA256SUMS --clobber
+      # A redriven draft goes public only after its assets exist, so `latest` never
+      # points at an asset-less release; on an already-published release this is a no-op.
+      - name: publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release edit "$TAG" --draft=false
       # npm >= 11.5 (node 24) is required for OIDC trusted publishing
       - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
@@ -85,21 +104,23 @@ jobs:
 
   homebrew:
     needs: [release-please, publish]
-    if: needs.release-please.outputs.released == 'true'
+    # `!cancelled()` would otherwise let this run past a failed publish, so require it explicitly.
+    if: ${{ !cancelled() && needs.publish.result == 'success' && (github.event_name == 'workflow_dispatch' || needs.release-please.outputs.released == 'true') }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    env:
+      TAG: ${{ inputs.tag || needs.release-please.outputs.tag_name }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
-          ref: ${{ needs.release-please.outputs.tag_name }}
+          ref: ${{ env.TAG }}
           persist-credentials: false
       - name: render formula
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ needs.release-please.outputs.version }}
-          TAG: ${{ needs.release-please.outputs.tag_name }}
         run: |
+          VERSION="${TAG#stet-v}"
           mkdir -p assets
           for target in darwin-arm64 darwin-x64 linux-x64 linux-arm64; do
             gh release download "$TAG" --pattern "stet-$target.tar.gz" --dir assets
@@ -114,8 +135,8 @@ jobs:
       - name: push to tap
         env:
           GH_TOKEN: ${{ secrets.TAP_GITHUB_TOKEN }}
-          VERSION: ${{ needs.release-please.outputs.version }}
         run: |
+          VERSION="${TAG#stet-v}"
           git clone "https://x-access-token:${GH_TOKEN}@github.com/jimmy-guzman/homebrew-tap.git" tap
           mkdir -p tap/Formula
           cp stet.rb tap/Formula/stet.rb

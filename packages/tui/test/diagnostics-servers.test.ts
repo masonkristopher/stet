@@ -2,11 +2,13 @@ import { expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 
 import { Effect } from "effect";
 
 import {
   activeServersForPath,
+  handshakeConfigFor,
   intelLanguage,
   lspLanguageId,
   performHandshake,
@@ -273,5 +275,70 @@ test("handshake advertises pull diagnostics and refresh support, and parses diag
       textDocument: { diagnostic: { relatedDocumentSupport: true } },
       workspace: { diagnostics: { refreshSupport: true } },
     },
+  });
+});
+
+test("handshakeConfigFor derives the handshake from data, substituting repo placeholders", async () => {
+  const config = handshakeConfigFor(
+    {
+      initializationOptions: [
+        { options: { configPath: null, run: "onType" }, workspaceUri: "{repoUri}" },
+      ],
+      settings: { configPath: null, root: "{repoRoot}", run: "onType" },
+    },
+    "/some/repo",
+  );
+
+  expect(config?.initializationOptions).toEqual([
+    {
+      options: { configPath: null, run: "onType" },
+      workspaceUri: pathToFileURL("/some/repo").href,
+    },
+  ]);
+  // Settings presence advertises the caps that invite the configuration pull.
+  expect(config?.workspaceCapabilities).toEqual({ configuration: true, workspaceFolders: true });
+  // Every requested configuration item gets one substituted copy of the settings.
+  const answer = await Effect.runPromise(
+    config?.onRequest?.("workspace/configuration", { items: [{}, {}] }) ?? Effect.succeed(null),
+  );
+  expect(answer).toEqual([
+    { configPath: null, root: "/some/repo", run: "onType" },
+    { configPath: null, root: "/some/repo", run: "onType" },
+  ]);
+  // Other server-to-client requests fall through to the transport's null default.
+  const other = await Effect.runPromise(
+    config?.onRequest?.("window/workDoneProgress/create", {}) ?? Effect.succeed("missing"),
+  );
+  expect(other).toBeNull();
+});
+
+test("handshakeConfigFor yields nothing for a server with no handshake needs", () => {
+  expect(handshakeConfigFor({}, "/some/repo")).toBeUndefined();
+});
+
+test("a handshake closure replaces the data-derived handshake entirely", () => {
+  const config = handshakeConfigFor(
+    {
+      handshake: () => ({ initializationOptions: { fromClosure: true } }),
+      initializationOptions: { fromData: true },
+      settings: { fromData: true },
+    },
+    "/some/repo",
+  );
+  expect(config?.initializationOptions).toEqual({ fromClosure: true });
+  expect(config?.workspaceCapabilities).toBeUndefined();
+});
+
+test("substitution never rescans text a placeholder inserted", () => {
+  // A repo path containing a literal placeholder token is legal on disk; the substitution must
+  // Insert it verbatim, not substitute inside its own output.
+  const repoRoot = "/tmp/{repoUri}/repo";
+  const config = handshakeConfigFor(
+    { initializationOptions: { root: "{repoRoot}", uri: "{repoUri}" } },
+    repoRoot,
+  );
+  expect(config?.initializationOptions).toEqual({
+    root: repoRoot,
+    uri: pathToFileURL(repoRoot).href,
   });
 });

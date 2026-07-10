@@ -62,7 +62,22 @@ interface ServerSpec {
   readonly provides: readonly Capability[];
   /** How stet installs the server into its cache when it is found neither in repo nor on PATH. */
   readonly provision?: ProvisionChannel;
-  /** Per-server handshake extras (caps, initializationOptions, server-request answers). */
+  /**
+   * Plain JSON for `initialize`'s `initializationOptions`; `{repoRoot}`/`{repoUri}` in any string
+   * leaf substitute per repo. Data, not code, so a config layer can express it verbatim.
+   */
+  readonly initializationOptions?: unknown;
+  /**
+   * The `workspace/configuration` answer, one copy per requested item, same substitution. Its
+   * presence advertises the `workspace.configuration`/`workspaceFolders` client caps, which is what
+   * makes a settings-pulling server (oxlint) publish at all.
+   */
+  readonly settings?: unknown;
+  /**
+   * Escape hatch for handshake shapes the `initializationOptions`/`settings` data can't express (a
+   * server whose `workspace/configuration` answer depends on the request's items). When set it
+   * replaces the data-derived handshake entirely. No built-in uses it today.
+   */
   readonly handshake?: (repoRoot: string) => HandshakeConfig;
   /**
    * When set, the server runs only in repos this predicate accepts. oxlint/typescript run in every
@@ -110,25 +125,15 @@ export const registry: Record<string, ServerSpec> = {
   "oxlint": {
     args: ["--lsp"],
     binary: "oxlint",
-    handshake: (repoRoot) => {
-      // Oxlint validates only once it has workspace options; passing them inline (and answering
-      // Its `workspace/configuration` pull defensively) makes it publish on didOpen. `run: onType`
-      // Lints the open buffer; `configPath: null` finds `.oxlintrc.json` or uses defaults.
-      const workspaceUri = pathToFileURL(repoRoot).href;
-      const options = { configPath: null, run: "onType" };
-      return {
-        initializationOptions: [{ options, workspaceUri }],
-        onRequest: (method, params) =>
-          Effect.succeed(
-            method === "workspace/configuration"
-              ? configurationItems(params).map(() => options)
-              : null,
-          ),
-        workspaceCapabilities: { configuration: true, workspaceFolders: true },
-      };
-    },
+    // Oxlint validates only once it has workspace options; passing them inline (and answering its
+    // `workspace/configuration` pull defensively, via `settings`) makes it publish on didOpen.
+    // `run: onType` lints the open buffer; `configPath: null` finds `.oxlintrc.json` or defaults.
+    initializationOptions: [
+      { options: { configPath: null, run: "onType" }, workspaceUri: "{repoUri}" },
+    ],
     provides: [],
     provision: { kind: "npm", packages: ["oxlint@1.72.0"] },
+    settings: { configPath: null, run: "onType" },
   },
   // The first binary-channel server: rust-analyzer ships as gzipped per-platform GitHub release
   // Assets (it is not an npm package), pinned by tag and per-asset sha256 from the release API's
@@ -200,6 +205,62 @@ export const registry: Record<string, ServerSpec> = {
 
 function configurationItems(params: unknown): unknown[] {
   return isObject(params) && Array.isArray(params.items) ? params.items : [];
+}
+
+// Deep-substitute the repo placeholders in every string leaf of a JSON value, so registry (and
+// Eventually user-config) server options express per-repo values as data. One pass over the
+// Original string, so a repo path that itself contains a placeholder token is never rescanned.
+function substitutePlaceholders(value: unknown, repoRoot: string): unknown {
+  if (typeof value === "string") {
+    return value.replaceAll(/\{repo(?:Root|Uri)\}/g, (token) =>
+      token === "{repoRoot}" ? repoRoot : pathToFileURL(repoRoot).href,
+    );
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => substitutePlaceholders(item, repoRoot));
+  }
+  if (isObject(value)) {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, substitutePlaceholders(item, repoRoot)]),
+    );
+  }
+  return value;
+}
+
+/**
+ * The handshake extras for a server: the `handshake` closure verbatim when present (the escape
+ * hatch), otherwise derived from the `initializationOptions`/`settings` data. `settings` answers
+ * every `workspace/configuration` item with one substituted copy and advertises the workspace caps
+ * that invite the pull; other server-to-client requests keep the transport's null default.
+ */
+export function handshakeConfigFor(
+  spec: Pick<ServerSpec, "handshake" | "initializationOptions" | "settings">,
+  repoRoot: string,
+): HandshakeConfig | undefined {
+  if (spec.handshake !== undefined) {
+    return spec.handshake(repoRoot);
+  }
+  if (spec.initializationOptions === undefined && spec.settings === undefined) {
+    return undefined;
+  }
+  const settings =
+    spec.settings === undefined ? undefined : substitutePlaceholders(spec.settings, repoRoot);
+  return {
+    ...(spec.initializationOptions === undefined
+      ? {}
+      : { initializationOptions: substitutePlaceholders(spec.initializationOptions, repoRoot) }),
+    ...(settings === undefined
+      ? {}
+      : {
+          onRequest: (method: string, params: unknown) =>
+            Effect.succeed(
+              method === "workspace/configuration"
+                ? configurationItems(params).map(() => settings)
+                : null,
+            ),
+          workspaceCapabilities: { configuration: true, workspaceFolders: true },
+        }),
+  };
 }
 
 /**
@@ -515,7 +576,12 @@ function lookupServer(
       new ServerUnavailable({ language, message: `no language server for ${language}` }),
     );
   }
-  return connectServer(command, repoRoot, registry[language]?.handshake?.(repoRoot));
+  const spec = registry[language];
+  return connectServer(
+    command,
+    repoRoot,
+    spec === undefined ? undefined : handshakeConfigFor(spec, repoRoot),
+  );
 }
 
 export class LanguageServers extends Context.Service<

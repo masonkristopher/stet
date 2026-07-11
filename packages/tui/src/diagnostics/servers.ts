@@ -104,6 +104,26 @@ interface ServerSpec {
 // So a bump re-provisions. The oxlint/typescript pins deliberately track this repo's own devDeps but
 // Are independent (stet's build toolchain vs. the LSP server it downloads into arbitrary repos).
 export const registry: Record<string, ServerSpec> = {
+  // The basedpyright fork reinstates the read-only providers pyright gates behind its VS Code
+  // Extension; the npm package ships `basedpyright-langserver`. It type-checks Python and answers
+  // The code-intel pulls, the typescript-language-server analog. Zero-config: it reads
+  // Pyrightconfig/pyproject on its own and pulls `python.*` settings the transport's null default
+  // Answers, so it needs no handshake extras.
+  "basedpyright": {
+    args: ["--stdio"],
+    binary: "basedpyright-langserver",
+    // Verified against its `initialize` result: it advertises every intel provider stet uses,
+    // Implementation included.
+    provides: [
+      "definition",
+      "references",
+      "hover",
+      "documentSymbol",
+      "callHierarchy",
+      "implementation",
+    ],
+    provision: { kind: "npm", packages: ["basedpyright@1.39.9"] },
+  },
   "biome": {
     args: ["lsp-proxy"],
     binary: "biome",
@@ -137,10 +157,50 @@ export const registry: Record<string, ServerSpec> = {
     provision: { kind: "npm", packages: ["oxlint@1.72.0"] },
     settings: { configPath: null, run: "onType" },
   },
-  // The first binary-channel server: rust-analyzer ships as gzipped per-platform GitHub release
-  // Assets (it is not an npm package), pinned by tag and per-asset sha256 from the release API's
-  // Digests. It answers pull diagnostics and pushes its cargo-check findings, the hybrid shape the
-  // Retrieval path is built for.
+  // Ruff is the always-on Python linter (the oxlint analog), run over its LSP (`ruff server`). It is
+  // Not on npm, so it comes through the binary channel as a `tar.gz` cargo-dist archive (the binary
+  // Nested one directory in), sha256-verified per platform against the release's `.sha256` companion
+  // Before the extractor pulls it out. Lint only, no code intel, so `provides` is empty.
+  "ruff": {
+    args: ["server"],
+    binary: "ruff",
+    provides: [],
+    provision: {
+      archive: "tar.gz",
+      assets: [
+        {
+          arch: "arm64",
+          asset: "ruff-aarch64-apple-darwin.tar.gz",
+          os: "darwin",
+          sha256: "0452f9d5da6e8051d332cf21ae82a608d8e2cfeec5a71a46ffa9e50adbb2381d",
+        },
+        {
+          arch: "x64",
+          asset: "ruff-x86_64-apple-darwin.tar.gz",
+          os: "darwin",
+          sha256: "7e6ff3bd585b5b7c47634c957ac84fb5806d3c7ab4ef0e5ec1c53ce272f489da",
+        },
+        {
+          arch: "arm64",
+          asset: "ruff-aarch64-unknown-linux-gnu.tar.gz",
+          os: "linux",
+          sha256: "9846136be7fe5b70351d5bde22fd21d4b3ab55b07c9793fdf190040b296ee9a3",
+        },
+        {
+          arch: "x64",
+          asset: "ruff-x86_64-unknown-linux-gnu.tar.gz",
+          os: "linux",
+          sha256: "7ddba1886f39ba918587f9ca37de9651008726834811c19ee83991705bd3e56b",
+        },
+      ],
+      kind: "binary",
+      repo: "astral-sh/ruff",
+      tag: "0.15.21",
+    },
+  },
+  // A single gzipped per-platform GitHub release asset (rust-analyzer is not an npm package), pinned
+  // By tag and per-asset sha256 from the release API's digests. It answers pull diagnostics and
+  // Pushes its cargo-check findings, the hybrid shape the retrieval path is built for.
   "rust-analyzer": {
     args: [],
     binary: "rust-analyzer",
@@ -286,6 +346,9 @@ const builtinLanguages: Record<string, Language> = {
   css: { extensions: { css: "css" }, servers: ["biome"] },
   graphql: { extensions: { graphql: "graphql" }, servers: ["biome"] },
   json: { extensions: { json: "json", jsonc: "jsonc" }, servers: ["json", "biome"] },
+  // The basedpyright server type-checks and answers intel; ruff lints (always-on, the default
+  // Python linter, not a competitor to one, so no `detect` gate). `.pyi` stubs open as python too.
+  python: { extensions: { py: "python", pyi: "python" }, servers: ["basedpyright", "ruff"] },
   rust: { extensions: { rs: "rust" }, servers: ["rust-analyzer"] },
   typescript: {
     extensions: {

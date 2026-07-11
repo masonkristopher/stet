@@ -25,6 +25,7 @@ import { join } from "node:path";
 import { Context, Data, Duration, Effect, Layer, Queue } from "effect";
 
 import { Process } from "@/process";
+import { extractTarEntry } from "@/utils/untar";
 
 class ProvisionError extends Data.TaggedError("ProvisionError")<{ readonly message: string }> {}
 
@@ -38,7 +39,9 @@ interface BinaryAsset {
 
 /**
  * How a server gets into the cache. `npm` covers servers published as packages; `binary` covers
- * native servers shipped as GitHub release assets (rust-analyzer), which npm can never serve.
+ * native servers shipped as GitHub release assets (rust-analyzer, ruff), which npm can never serve.
+ * A binary asset is a single gzipped executable (`archive` absent, rust-analyzer) or a `tar.gz`
+ * cargo-dist archive the extractor pulls the executable out of (`archive: "tar.gz"`, ruff).
  */
 export type ProvisionChannel =
   | { readonly kind: "npm"; readonly packages: readonly string[] }
@@ -47,6 +50,7 @@ export type ProvisionChannel =
       readonly repo: string;
       readonly tag: string;
       readonly assets: readonly BinaryAsset[];
+      readonly archive?: "tar.gz";
     };
 
 export interface ProvisionSpec {
@@ -76,9 +80,14 @@ export function provisionKey(channel: ProvisionChannel): string {
   const material =
     channel.kind === "npm"
       ? channel.packages.join("\n")
-      : [channel.repo, channel.tag, ...channel.assets.map((a) => `${a.asset} ${a.sha256}`)].join(
-          "\n",
-        );
+      : [
+          channel.repo,
+          channel.tag,
+          ...channel.assets.map((a) => `${a.asset} ${a.sha256}`),
+          // Appended only when set so rust-analyzer's single-gzip key (and its cached binary) stays
+          // Valid; a tar.gz channel keys distinctly and re-provisions on any change.
+          ...(channel.archive === undefined ? [] : [channel.archive]),
+        ].join("\n");
   return createHash("sha256").update(material).digest("hex").slice(0, 12);
 }
 
@@ -177,8 +186,10 @@ export function makeProvisioner(
       }).pipe(Effect.andThen(proc.run(command, dir)));
     }
 
-    // Verify against the registry's pinned sha256 before anything lands on disk, then gunzip the
-    // Single-binary asset and mark it executable. A platform with no pinned asset fails cleanly.
+    // Verify against the registry's pinned sha256 before anything lands on disk, then unpack the
+    // Asset and mark it executable: a `gzip` asset gunzips straight to the binary (rust-analyzer),
+    // A `tar.gz` gunzips to a tar the extractor pulls the named binary out of (ruff). A platform
+    // With no pinned asset fails cleanly.
     function installBinary(
       dir: string,
       spec: ProvisionSpec,
@@ -211,7 +222,12 @@ export function makeProvisioner(
                 message: cause instanceof Error ? cause.message : String(cause),
               }),
             try: () => {
-              const binary = Bun.gunzipSync(bytes);
+              const unpacked = Bun.gunzipSync(bytes);
+              const binary =
+                channel.archive === "tar.gz" ? extractTarEntry(unpacked, spec.binary) : unpacked;
+              if (binary === undefined) {
+                throw new Error(`${spec.binary} not found in ${asset.asset}`);
+              }
               mkdirSync(dir, { recursive: true });
               writeFileSync(join(dir, spec.binary), binary);
               chmodSync(join(dir, spec.binary), 0o755);

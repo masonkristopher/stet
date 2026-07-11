@@ -88,17 +88,17 @@ navigation then work for those files exactly as they do for the built-ins.
 A language entry declares the file types it owns (`extensions`, and `filenames`
 for exact names like `Dockerfile`) and the `servers` that analyze them. A
 server is either the name of a built-in (`typescript`, `oxlint`, `biome`,
-`json`, `yaml`, `rust-analyzer`) or an inline command, optionally with
-`initializationOptions` and `settings` passed to the server as-is
-(`{repoRoot}` and `{repoUri}` in string values are replaced per repository).
+`json`, `yaml`, `rust-analyzer`, `basedpyright`, `ruff`) or an inline command,
+optionally with `initializationOptions` and `settings` passed to the server
+as-is (`{repoRoot}` and `{repoUri}` in string values are replaced per repository).
 
 ```jsonc title="~/.config/stet/config.jsonc"
 {
   "languages": {
     // add a language: file types + at least one server
-    "python": {
-      "extensions": ["py"],
-      "servers": [{ "command": ["pyright-langserver", "--stdio"] }],
+    "lua": {
+      "extensions": ["lua"],
+      "servers": [{ "command": ["lua-language-server"] }],
     },
     // route exact filenames
     "docker": {
@@ -114,8 +114,8 @@ server is either the name of a built-in (`typescript`, `oxlint`, `biome`,
 
 Servers you name here are programs stet runs, and any executable on your
 machine works: a command resolves from the repo's own `node_modules/.bin`,
-then your `PATH` (a rustup-installed rust-analyzer, a `go install`ed gopls, a
-brew-installed ruff), and an absolute path is used as-is. They are never
+then your `PATH` (a `go install`ed gopls, a brew-installed lua-language-server,
+a gem-installed solargraph), and an absolute path is used as-is. They are never
 auto-downloaded. The config is yours alone: stet never reads language servers
 from the repository being inspected, so cloning a repo can never make stet
 execute a command it ships.

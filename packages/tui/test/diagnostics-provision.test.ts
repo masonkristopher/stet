@@ -1,4 +1,5 @@
 import { afterEach, expect, test } from "bun:test";
+import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import {
   existsSync,
@@ -435,6 +436,104 @@ test("a platform with no pinned asset degrades to failed, not a hang", async () 
     expect(state.kind).toBe("failed");
     if (state.kind === "failed") {
       expect(state.message).toContain("no rust-analyzer build for");
+    }
+  } finally {
+    rmSync(root, { force: true, recursive: true });
+  }
+});
+
+// A real cargo-dist tarball (ruff's shape): the binary nested one directory in, gzipped. Built with
+// The system tar so the extractor is exercised against the real archive format, not a hand encoder.
+function ruffTarGz(binaryContents: string) {
+  const dir = mkdtempSync(join(tmpdir(), "stet-ruff-"));
+  mkdirSync(join(dir, "ruff-pkg"), { recursive: true });
+  writeFileSync(join(dir, "ruff-pkg", "ruff"), binaryContents);
+  writeFileSync(join(dir, "ruff-pkg", "README.md"), "docs");
+  const archive = join(dir, "ruff.tar.gz");
+  execFileSync("tar", ["-czf", archive, "-C", dir, "ruff-pkg"]);
+  const bytes = new Uint8Array(readFileSync(archive));
+  rmSync(dir, { force: true, recursive: true });
+  return bytes;
+}
+
+const ruffArchive = ruffTarGz("#!/bin/sh\necho ruff\n");
+const ruffSha = createHash("sha256").update(ruffArchive).digest("hex");
+
+function ruffSpec(sha256: string): ProvisionSpec {
+  return {
+    args: ["server"],
+    binary: "ruff",
+    channel: {
+      archive: "tar.gz",
+      assets: [
+        { arch: "arm64", asset: "ruff-aarch64-apple-darwin.tar.gz", os: "darwin", sha256 },
+        { arch: "x64", asset: "ruff-x86_64-apple-darwin.tar.gz", os: "darwin", sha256 },
+        { arch: "arm64", asset: "ruff-aarch64-unknown-linux-gnu.tar.gz", os: "linux", sha256 },
+        { arch: "x64", asset: "ruff-x86_64-unknown-linux-gnu.tar.gz", os: "linux", sha256 },
+      ],
+      kind: "binary",
+      repo: "astral-sh/ruff",
+      tag: "0.15.21",
+    },
+  };
+}
+
+test("the tar.gz binary channel extracts the nested binary and marks it executable", async () => {
+  process.env.STET_NO_LSP_DOWNLOAD = "";
+  const root = tempRoot();
+  try {
+    const state = await withBinaryProvisioner(
+      root,
+      () => Effect.sync(() => ruffArchive),
+      Effect.gen(function* scenario() {
+        const provisioner = yield* Provisioner;
+        yield* provisioner.ensure("ruff", ruffSpec(ruffSha));
+        yield* Queue.take(provisioner.completions);
+        return yield* provisioner.ensure("ruff", ruffSpec(ruffSha));
+      }),
+    );
+
+    expect(state.kind).toBe("ready");
+    if (state.kind === "ready") {
+      const [bin] = state.command;
+      expect(readFileSync(bin ?? "", "utf8")).toBe("#!/bin/sh\necho ruff\n");
+      expect(statSync(bin ?? "").mode & 0o111).not.toBe(0);
+      expect(state.command).toEqual([bin, "server"]);
+    }
+  } finally {
+    rmSync(root, { force: true, recursive: true });
+  }
+});
+
+test("a tar.gz that lacks the named binary fails the install rather than writing garbage", async () => {
+  process.env.STET_NO_LSP_DOWNLOAD = "";
+  const root = tempRoot();
+  const withoutRuff = (() => {
+    const dir = mkdtempSync(join(tmpdir(), "stet-ruff-"));
+    mkdirSync(join(dir, "pkg"), { recursive: true });
+    writeFileSync(join(dir, "pkg", "other"), "not the binary");
+    const archive = join(dir, "pkg.tar.gz");
+    execFileSync("tar", ["-czf", archive, "-C", dir, "pkg"]);
+    const bytes = new Uint8Array(readFileSync(archive));
+    rmSync(dir, { force: true, recursive: true });
+    return bytes;
+  })();
+  const sha = createHash("sha256").update(withoutRuff).digest("hex");
+  try {
+    const state = await withBinaryProvisioner(
+      root,
+      () => Effect.sync(() => withoutRuff),
+      Effect.gen(function* scenario() {
+        const provisioner = yield* Provisioner;
+        yield* provisioner.ensure("ruff", ruffSpec(sha));
+        yield* Queue.take(provisioner.completions);
+        return yield* provisioner.ensure("ruff", ruffSpec(sha));
+      }),
+    );
+
+    expect(state.kind).toBe("failed");
+    if (state.kind === "failed") {
+      expect(state.message).toContain("ruff not found");
     }
   } finally {
     rmSync(root, { force: true, recursive: true });

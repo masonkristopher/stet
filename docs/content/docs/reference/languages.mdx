@@ -15,6 +15,7 @@ through [your config](/docs/reference/configuration#languages).
 | ----------------------- | ------------ | ---------- | ------------- | ----------------- |
 | TypeScript & JavaScript | yes          | indent     | types + lint  | yes               |
 | Rust                    | yes          | indent     | types + cargo | yes               |
+| Python                  | yes          | indent     | types + lint  | yes               |
 | JSON & JSONC            | yes          | indent     | schema + lint |                   |
 | YAML                    | yes          | indent     | schema        |                   |
 | CSS                     | yes          | indent     | lint          |                   |
@@ -63,6 +64,13 @@ them (label `biome`) when the repo has a `biome.json` or `biome.jsonc`.
 findings cargo check produces through it (label `rustc`). stet downloads the
 server automatically the first time a Rust file needs it.
 
+### Python
+
+`.py` and `.pyi` files run through two servers: basedpyright reports type
+errors (label `basedpyright`) and ruff reports lint findings (label `Ruff`).
+Both download automatically the first time a Python file needs them, basedpyright
+from npm and ruff as a sha256-verified GitHub release binary.
+
 ### JSON & JSONC
 
 `vscode-json-language-server` validates against schemas (`package.json`,
@@ -82,8 +90,8 @@ show as unavailable rather than falsely clean.
 ## Code intelligence
 
 Go to definition, find references, implementations, call hierarchy, hover,
-and the symbol outline work for the TypeScript & JavaScript family and for
-Rust, through the same servers that produce their diagnostics. See
+and the symbol outline work for the TypeScript & JavaScript family, for Rust,
+and for Python, through the same servers that produce their diagnostics. See
 [code intelligence](/docs/guides/code-intelligence) for the keys and flows.
 
 ## How servers are found
@@ -91,9 +99,9 @@ Rust, through the same servers that produce their diagnostics. See
 A server resolves from the repo's own `node_modules/.bin`, then your `PATH`.
 If neither has it, stet downloads one into `~/.cache/stet/lsp`, pinned to an
 exact version: npm packages for the servers npm distributes (this path needs
-`npm` on your `PATH`), or a sha256-verified GitHub release binary for
-rust-analyzer. Pass `--no-lsp-download` (or set `STET_NO_LSP_DOWNLOAD`) to
-turn downloads off.
+`npm` on your `PATH`), or a sha256-verified GitHub release binary for the
+servers it doesn't (rust-analyzer, ruff). Pass `--no-lsp-download` (or set
+`STET_NO_LSP_DOWNLOAD`) to turn downloads off.
 
 <Callout>
   A download that cannot complete (offline, air-gapped, locked-down CI) times out, and its files
@@ -108,9 +116,9 @@ your machine, and can change which servers run for the built-in languages:
 ```jsonc title="~/.config/stet/config.jsonc"
 {
   "languages": {
-    "python": {
-      "extensions": ["py"],
-      "servers": [{ "command": ["pyright-langserver", "--stdio"] }],
+    "lua": {
+      "extensions": ["lua"],
+      "servers": [{ "command": ["lua-language-server"] }],
     },
   },
 }

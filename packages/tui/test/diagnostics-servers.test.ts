@@ -40,6 +40,24 @@ test("resolves a source file to its language's servers in declared order", () =>
   expect(serversForPath("Makefile")).toEqual([]);
 });
 
+test("routes Python files to basedpyright then ruff, with intel on basedpyright only", () => {
+  const repo = mkdtempSync(join(tmpdir(), "stet-python-"));
+  try {
+    // Both `.py` and `.pyi` stubs open as python and run both always-on servers, primary first.
+    expect(serversForPath("src/main.py")).toEqual(["basedpyright", "ruff"]);
+    expect(serversForPath("stubs/typed.pyi")).toEqual(["basedpyright", "ruff"]);
+    expect(lspLanguageId("src/main.py")).toBe("python");
+    expect(lspLanguageId("stubs/typed.pyi")).toBe("python");
+    // Code-intel is basedpyright's; ruff lints only, so it never surfaces for a pull or warm.
+    expect(serversProviding("src/main.py", "hover")).toEqual(["basedpyright"]);
+    expect(serversProviding("src/main.py", "references")).toEqual(["basedpyright"]);
+    expect(serversProviding("src/main.py", "implementation")).toEqual(["basedpyright"]);
+    expect(intelLanguage("src/main.py", repo)).toBe("basedpyright");
+  } finally {
+    rmSync(repo, { force: true, recursive: true });
+  }
+});
+
 test("routes an exact filename ahead of its extension", () => {
   const snapshot = snapshotLanguages();
   try {
@@ -349,12 +367,12 @@ test("substitution never rescans text a placeholder inserted", () => {
 
 test("resolveLanguages turns a new language into routable file types and synthesized servers", () => {
   const { issues, languages, servers } = resolveLanguages({
-    python: {
-      extensions: ["py", ".pyi"],
+    elixir: {
+      extensions: ["ex", ".exs"],
       servers: [
         {
-          command: ["pyright-langserver", "--stdio"],
-          settings: { python: { analysis: {} } },
+          command: ["elixir-ls", "--stdio"],
+          settings: { elixirLS: { dialyzerEnabled: false } },
         },
       ],
     },
@@ -362,15 +380,15 @@ test("resolveLanguages turns a new language into routable file types and synthes
 
   expect(issues).toEqual([]);
   // File types map to the language key as their LSP languageId; a leading dot is tolerated.
-  expect(languages.python).toMatchObject({
-    extensions: { py: "python", pyi: "python" },
-    servers: ["python/pyright-langserver"],
+  expect(languages.elixir).toMatchObject({
+    extensions: { ex: "elixir", exs: "elixir" },
+    servers: ["elixir/elixir-ls"],
   });
-  const spec = servers["python/pyright-langserver"];
+  const spec = servers["elixir/elixir-ls"];
   expect(spec).toMatchObject({
     args: ["--stdio"],
-    binary: "pyright-langserver",
-    settings: { python: { analysis: {} } },
+    binary: "elixir-ls",
+    settings: { elixirLS: { dialyzerEnabled: false } },
   });
   // Optimistic intel: the handshake-advertised set stays the authoritative gate.
   expect(spec?.provides).toContain("definition");
@@ -444,13 +462,13 @@ test("resolveLanguages rejects a new language with no file types or no servers",
 test("resolveLanguages flags unknown fields so typos never silently no-op", () => {
   const { issues } = resolveLanguages({
     // A typo'd extensions key leaves a new language with no file types at all.
-    python: { extentions: ["py"], servers: [{ command: ["pyright"] }] },
+    elixir: { extentions: ["ex"], servers: [{ command: ["elixir-ls"] }] },
     // A typo'd command key leaves an inline server unusable.
     ruby: { extensions: ["rb"], servers: [{ comand: ["ruby-lsp"] }] },
   });
 
-  expect(issues).toContain('language "python": unknown field "extentions"');
-  expect(issues).toContain('language "python": declares no file types');
+  expect(issues).toContain('language "elixir": unknown field "extentions"');
+  expect(issues).toContain('language "elixir": declares no file types');
   expect(issues).toContain(
     'language "ruby": a server must be a built-in name or { command: [...] }',
   );

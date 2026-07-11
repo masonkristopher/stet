@@ -185,8 +185,8 @@ describe("fileIcon", () => {
 
 describe("folderIcon", () => {
   test("reflects expanded state", () => {
-    expect(folderIcon(true)).toBe("\u{f07c}");
-    expect(folderIcon(false)).toBe("\u{f07b}");
+    expect(folderIcon(true)).toBe("\u{f0dcf}");
+    expect(folderIcon(false)).toBe("\u{f0256}");
     expect(folderIcon(true)).not.toBe(folderIcon(false));
   });
 });

@@ -8,33 +8,33 @@
  * (suffix); an unmatched leading-dot file falls back to the config glyph, and anything else to the
  * generic file glyph.
  *
- * The glyph name behind each code (for future edits): file = cod-file, folder(_open) =
- * fa-folder(_open), and per entry below: ts dev-typescript, tsx/jsx dev-react, js dev-javascript,
- * json cod-json, md dev-markdown, css dev-css3, html dev-html5, rs dev-rust, py dev-python, go
- * dev-go, rb dev-ruby (also the .rb.tmpl Homebrew formula template), sh cod-terminal_bash, toml
- * custom-toml, yaml dev-yaml, lock fa-lock, image fa-file_image_o, java/jar/class dev-java, kt/kts
- * seti-kotlin, groovy/gvy dev-groovy, scala/sc dev-scala, gradle dev-gradle (also
- * build/settings.gradle(.kts), gradlew(.bat), gradle.properties, gradle-wrapper.properties), maven
- * seti-maven (pom.xml), node dev-nodejs_small, tsconfig seti-tsconfig, bun dev-bun (also
- * bunfig.toml), docker dev-docker, make seti-makefile, license seti-license (also NOTICE and
- * license-style filenames), git dev-git, config/env/conf seti-config (also the dotfile fallback),
- * book fa-book, csv seti-csv, http fa-paper_plane, sql dev-database, txt md-file_document, procfile
- * seti-heroku (the Heroku/Foreman process file), astro custom-astro, pdf fa-file_pdf_o, video
- * fa-file_video_o, symlink oct-file_symlink_file, test cod-beaker (any test/spec/cy file, one glyph
- * across every language so "test-ness" reads the same everywhere rather than mixing a symbol with
- * per-framework brand logos), storybook dev-storybook (.stories./.story. files), xls/xlsx seti-xls
- * (the same Excel workbook artifact across both container versions, paired with csv's seti-csv from
- * the same Seti family but kept distinct since a CSV is plain text, not a workbook), cpuprofile
- * cod-flame (a CPU profile is conventionally visualized as a flame graph), codeowners
- * oct-shield_check (an octicon, GitHub's own icon set, for a GitHub-specific file; the
- * shield-with-check reads as the ownership/protection a CODEOWNERS file enforces, matching
- * vscode-icons' shield).
+ * The glyph name behind each code (for future edits): file = cod-file, folder = md-folder_outline,
+ * folder_open = md-folder_open_outline, and per entry below: ts dev-typescript, tsx/jsx dev-react,
+ * js dev-javascript, json cod-json, md dev-markdown, css dev-css3, html dev-html5, rs dev-rust, py
+ * dev-python, go dev-go, rb dev-ruby (also the .rb.tmpl Homebrew formula template), sh
+ * cod-terminal_bash, toml custom-toml, yaml dev-yaml, lock fa-lock, image fa-file_image_o,
+ * java/jar/class dev-java, kt/kts seti-kotlin, groovy/gvy dev-groovy, scala/sc dev-scala, gradle
+ * dev-gradle (also build/settings.gradle(.kts), gradlew(.bat), gradle.properties,
+ * gradle-wrapper.properties), maven seti-maven (pom.xml), node dev-nodejs_small, tsconfig
+ * seti-tsconfig, bun dev-bun (also bunfig.toml), docker dev-docker, make seti-makefile, license
+ * seti-license (also NOTICE and license-style filenames), git dev-git, config/env/conf seti-config
+ * (also the dotfile fallback), book fa-book, csv seti-csv, http fa-paper_plane, sql dev-database,
+ * txt md-file_document, procfile seti-heroku (the Heroku/Foreman process file), astro custom-astro,
+ * pdf fa-file_pdf_o, video fa-file_video_o, symlink oct-file_symlink_file, test cod-beaker (any
+ * test/spec/cy file, one glyph across every language so "test-ness" reads the same everywhere
+ * rather than mixing a symbol with per-framework brand logos), storybook dev-storybook
+ * (.stories./.story. files), xls/xlsx seti-xls (the same Excel workbook artifact across both
+ * container versions, paired with csv's seti-csv from the same Seti family but kept distinct since
+ * a CSV is plain text, not a workbook), cpuprofile cod-flame (a CPU profile is conventionally
+ * visualized as a flame graph), codeowners oct-shield_check (an octicon, GitHub's own icon set, for
+ * a GitHub-specific file; the shield-with-check reads as the ownership/protection a CODEOWNERS file
+ * enforces, matching vscode-icons' shield).
  */
 
 const DEFAULT_FILE = "\u{ea7b}";
 const CONFIG = "\u{e615}";
-const FOLDER = "\u{f07b}";
-const FOLDER_OPEN = "\u{f07c}";
+const FOLDER = "\u{f0256}";
+const FOLDER_OPEN = "\u{f0dcf}";
 const SYMLINK = "\u{f481}";
 const JAVA = "\u{e738}";
 const GRADLE = "\u{e7f2}";

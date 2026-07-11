@@ -18,7 +18,8 @@
  * seti-maven (pom.xml), node dev-nodejs_small, tsconfig seti-tsconfig, bun dev-bun (also
  * bunfig.toml), docker dev-docker, make seti-makefile, license seti-license (also NOTICE and
  * license-style filenames), git dev-git, config/env/conf seti-config (also the dotfile fallback),
- * book fa-book, csv seti-csv, http fa-paper_plane, astro custom-astro, pdf fa-file_pdf_o, video
+ * book fa-book, csv seti-csv, http fa-paper_plane, sql dev-database, txt md-file_document, procfile
+ * seti-heroku (the Heroku/Foreman process file), astro custom-astro, pdf fa-file_pdf_o, video
  * fa-file_video_o, symlink oct-file_symlink_file, test cod-beaker (any test/spec/cy file, one glyph
  * across every language so "test-ness" reads the same everywhere rather than mixing a symbol with
  * per-framework brand logos), storybook dev-storybook (.stories./.story. files), xls/xlsx seti-xls
@@ -54,6 +55,7 @@ const BY_STEM = new Map([
   [".env", CONFIG],
   ["readme.md", "\u{f02d}"],
   ["codeowners", "\u{f510}"],
+  ["procfile", "\u{e607}"],
   // JVM build files: the Gradle/Maven glyph beats the kotlin/groovy extension glyph,
   // The way an IDE marks a build script over an ordinary source file.
   ["build.gradle", GRADLE],
@@ -85,6 +87,8 @@ const BY_SUFFIX = new Map([
   ["xls", "\u{e6a6}"],
   ["xlsx", "\u{e6a6}"],
   ["cpuprofile", "\u{eaf2}"],
+  ["sql", "\u{e706}"],
+  ["txt", "\u{f0219}"],
   ["html", "\u{e736}"],
   ["http", "\u{f1d8}"],
   ["astro", "\u{e6b3}"],

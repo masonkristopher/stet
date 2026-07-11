@@ -31,6 +31,20 @@ describe("fileIcon", () => {
     expect(fileIcon("CPU-20250101.cpuprofile")).not.toBe("\u{ea7b}");
   });
 
+  test("marks .sql with the database glyph and .txt with the document glyph", () => {
+    expect(fileIcon("schema.sql")).toBe("\u{e706}");
+    expect(fileIcon("schema.sql")).not.toBe("\u{ea7b}");
+    expect(fileIcon("notes.txt")).toBe("\u{f0219}");
+    // A license .txt keeps the license glyph: the license check beats the extension.
+    expect(fileIcon("notes.txt")).not.toBe(fileIcon("LICENSE.txt"));
+  });
+
+  test("marks Procfile with the Heroku glyph by exact filename", () => {
+    expect(fileIcon("Procfile")).toBe("\u{e607}");
+    expect(fileIcon("procfile")).toBe(fileIcon("Procfile"));
+    expect(fileIcon("Procfile")).not.toBe("\u{ea7b}");
+  });
+
   test("marks CODEOWNERS with the shield glyph by exact filename", () => {
     expect(fileIcon("CODEOWNERS")).toBe("\u{f510}");
     expect(fileIcon("codeowners")).toBe("\u{f510}");

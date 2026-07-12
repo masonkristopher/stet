@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.7.3](https://github.com/jimmy-guzman/stet/compare/stet-v0.7.2...stet-v0.7.3) (2026-07-12)
+
+
+### Features
+
+* **config:** ✨ add languages to the user config ([#266](https://github.com/jimmy-guzman/stet/issues/266)) ([6543b16](https://github.com/jimmy-guzman/stet/commit/6543b16093387a6ec51cc056ba8131750eb3ceaa))
+* **icons:** ✨ add icons for .sql, Procfile, & .txt ([#274](https://github.com/jimmy-guzman/stet/issues/274)) ([0fc79d4](https://github.com/jimmy-guzman/stet/commit/0fc79d4044068f3cfea5d4234e59a6beb3fe4714))
+* **python:** ✨ add diagnostics, intel & lsp support ([#273](https://github.com/jimmy-guzman/stet/issues/273)) ([a47c599](https://github.com/jimmy-guzman/stet/commit/a47c599a92fa6cbc5abdc04c1eb5abfafd13f6f8))
+* **status:** ✨ recent changed file by kind color & recency dot ([#271](https://github.com/jimmy-guzman/stet/issues/271)) ([351d778](https://github.com/jimmy-guzman/stet/commit/351d778fd4872afd215a9b4c322c271c1169a738))
+* **tree:** ✨ use minimal Material outline folder glyphs ([#275](https://github.com/jimmy-guzman/stet/issues/275)) ([41f954b](https://github.com/jimmy-guzman/stet/commit/41f954b8bb97df819ffafb1d52911e97a71babfd))
+* **viewer:** ✨ add a per-line provenance rail ([#276](https://github.com/jimmy-guzman/stet/issues/276)) ([ab6368e](https://github.com/jimmy-guzman/stet/commit/ab6368e6a0f2d5b9c907e2361372cfd7ff73e73a))
+* **viewer:** ✨ show image & binary metadata ([#270](https://github.com/jimmy-guzman/stet/issues/270)) ([b2d6ccb](https://github.com/jimmy-guzman/stet/commit/b2d6ccb726b8578f865a4dde4a5b024f38b6e850))
+
 ## [0.7.2](https://github.com/jimmy-guzman/stet/compare/stet-v0.7.1...stet-v0.7.2) (2026-07-10)
 
 

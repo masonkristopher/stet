@@ -392,52 +392,90 @@ function isSubsequence(query: string, target: string) {
 }
 
 function createState() {
+  // Every signal below is created through `tracked`, which records how to restore that signal's
+  // Initial value. `resetState` replays the lot, so the reset can never drift from the signals it
+  // Resets. A hand-maintained reset list is what let one test leak `blameEnabled` into every file
+  // After it: the rail stayed on, the blame inspector took over the status bar, and unit tests that
+  // Never touch blame failed on a signal they had never heard of. Tests are the only caller (the app
+  // Owns one state for its whole life), so this is the seam that makes the singleton safe to share.
+  // A signal is not the only thing that outlives a test. The async guards further down (an in-flight
+  // Controller, a pending timer, a staleness token, a "what we last loaded for" marker) each pass
+  // Their own teardown to `onReset` where they are declared, so an abandoned request can never
+  // Resolve into the next test. Register at the declaration, never as one list here: a central list
+  // Is exactly the drift this seam exists to remove.
+  const resets: (() => void)[] = [];
+  const onReset = (teardown: () => void) => resets.push(teardown);
+  // A promise already in flight when a reset lands must not write its result into the next test. Most
+  // Flows hold a controller the reset aborts, or a Solid owner that disposes them; the two that have
+  // Neither (`checkForUpdate`, `refreshWorktreeSummaries`) capture this epoch before their await and
+  // Drop the write if a reset moved it. Guarding only the reset boundary, rather than giving them a
+  // Per-call token, leaves their concurrency exactly as it was: two summary refreshes racing is not a
+  // Bug there, it is the design (the merge is monotonic, so both are meant to land).
+  let resetEpoch = 0;
+  onReset(() => {
+    resetEpoch += 1;
+  });
+  const tracked = <T>(initial: T) => {
+    const [read, write] = createSignal(initial);
+    onReset(() => write(() => initial));
+    return [read, write] as const;
+  };
+  const resetState = () => {
+    batch(() => {
+      for (const reset of resets) {
+        reset();
+      }
+    });
+  };
+
   // --- writable primitives ---
-  const [scope, setScope] = createSignal<DiffScope>({ kind: "all", ref: "HEAD" });
+  const [scope, setScope] = tracked<DiffScope>({ kind: "all", ref: "HEAD" });
   // The CLI ref (default HEAD), the base for the all/staged scopes.
-  const [cliBaseRef, setCliBaseRef] = createSignal("HEAD");
+  const [cliBaseRef, setCliBaseRef] = tracked("HEAD");
   // The SHA HEAD pointed at when stet launched, pinned for the session scope.
-  const [sessionBase, setSessionBase] = createSignal("HEAD");
-  const [scopeMenuOpen, setScopeMenuOpen] = createSignal(false);
-  const [scopeMenuIndex, setScopeMenuIndex] = createSignal(0);
+  const [sessionBase, setSessionBase] = tracked("HEAD");
+  const [scopeMenuOpen, setScopeMenuOpen] = tracked(false);
+  const [scopeMenuIndex, setScopeMenuIndex] = tracked(0);
   // The scope picker is two levels: the kinds list, and a drill-down into recent
   // Commits (each viewable as its own diff). `scopeMenuIndex` is reused per level.
-  const [scopeMenuView, setScopeMenuView] = createSignal<"kinds" | "commits">("kinds");
-  const [commits, setCommits] = createSignal<Commit[]>([]);
-  const [commitsStatus, setCommitsStatus] = createSignal<"loading" | "ready" | "empty" | "error">(
+  const [scopeMenuView, setScopeMenuView] = tracked<"kinds" | "commits">("kinds");
+  const [commits, setCommits] = tracked<Commit[]>([]);
+  const [commitsStatus, setCommitsStatus] = tracked<"loading" | "ready" | "empty" | "error">(
     "loading",
   );
   // The commit pinned by the active `commit` scope (its subject drives the header
   // Label, so it survives even after the commit ages out of the reloaded list).
-  const [selectedCommit, setSelectedCommit] = createSignal<Commit | undefined>(undefined);
+  const [selectedCommit, setSelectedCommit] = tracked<Commit | undefined>(undefined);
   // Wall-clock captured when the commits drill-down opens, for the rows' relative
   // Dates. Not `now` (the recency clock), which freezes while the repo is idle.
-  const [commitsNow, setCommitsNow] = createSignal(0);
+  const [commitsNow, setCommitsNow] = tracked(0);
   // The context menu: shared open/index state across the tree and viewer instances
   // (only one is ever open, gated by `commandMenuContext`). The anchor is the global
   // Terminal cell the tree menu opens at; the viewer instance derives its own from
   // The caret, so it stays undefined there.
-  const [commandMenuOpen, setCommandMenuOpen] = createSignal(false);
-  const [commandMenuIndex, setCommandMenuIndex] = createSignal(0);
-  const [commandMenuContext, setCommandMenuContext] = createSignal<"tree" | "viewer">("tree");
-  const [commandMenuAnchor, setCommandMenuAnchor] = createSignal<{ x: number; y: number }>();
-  const [commandMenuGuard, setCommandMenuGuard] = createSignal<CommandMenuGuard>();
-  const [iconsEnabled, setIconsEnabled] = createSignal(true);
+  const [commandMenuOpen, setCommandMenuOpen] = tracked(false);
+  const [commandMenuIndex, setCommandMenuIndex] = tracked(0);
+  const [commandMenuContext, setCommandMenuContext] = tracked<"tree" | "viewer">("tree");
+  const [commandMenuAnchor, setCommandMenuAnchor] = tracked<{ x: number; y: number } | undefined>(
+    undefined,
+  );
+  const [commandMenuGuard, setCommandMenuGuard] = tracked<CommandMenuGuard | undefined>(undefined);
+  const [iconsEnabled, setIconsEnabled] = tracked(true);
   // The per-line provenance rail (blame reframed): off by default, toggled by `a`. The three
   // Timeline anchors: `sessionCommits` = SHAs in `sessionBase..HEAD` (since launch),
   // `branchCommits` = SHAs in `branchBase..HEAD` (this branch, a superset of the session set),
   // And `fileFirstSha` = the open file's introducing commit. `blameByLine` maps a working-tree
   // Line number to its blame; `openFileWhollyNew` marks an untracked/added file whose every
   // Line is uncommitted (git can't blame it).
-  const [blameEnabled, setBlameEnabled] = createSignal(false);
-  const [blameByLine, setBlameByLine] = createSignal<ReadonlyMap<number, BlameLine>>(new Map());
-  const [sessionCommits, setSessionCommits] = createSignal<ReadonlySet<string>>(new Set());
-  const [branchCommits, setBranchCommits] = createSignal<ReadonlySet<string>>(new Set());
+  const [blameEnabled, setBlameEnabled] = tracked(false);
+  const [blameByLine, setBlameByLine] = tracked<ReadonlyMap<number, BlameLine>>(new Map());
+  const [sessionCommits, setSessionCommits] = tracked<ReadonlySet<string>>(new Set());
+  const [branchCommits, setBranchCommits] = tracked<ReadonlySet<string>>(new Set());
   // The branch base is session-stable, so it is resolved on its own (per repo), separate from the
   // Commit set that refreshes on the model drain.
-  const [branchBaseSha, setBranchBaseSha] = createSignal<string | undefined>(undefined);
-  const [fileFirstSha, setFileFirstSha] = createSignal<string | undefined>(undefined);
-  const [openFileWhollyNew, setOpenFileWhollyNew] = createSignal(false);
+  const [branchBaseSha, setBranchBaseSha] = tracked<string | undefined>(undefined);
+  const [fileFirstSha, setFileFirstSha] = tracked<string | undefined>(undefined);
+  const [openFileWhollyNew, setOpenFileWhollyNew] = tracked(false);
   const toggleBlame = () => setBlameEnabled((enabled) => !enabled);
   // The provenance band + blame for a viewer row, O(1) off the precomputed map. A pure
   // Removal (no working-tree line) has no blame; a wholly-new file's every line is
@@ -461,180 +499,173 @@ function createState() {
           blame,
         };
   };
-  const [overflow, setOverflow] = createSignal<"scroll" | "wrap">("scroll");
-  const [changesOnly, setChangesOnly] = createSignal(false);
-  const [selectedPath, setSelectedPath] = createSignal<string | undefined>(undefined);
-  const [expandedDirectories, setExpandedDirectories] = createSignal(new Set<string>());
-  const [fileView, setFileView] = createSignal(false);
-  const [fullContentPaths, setFullContentPaths] = createSignal(new Set<string>());
+  const [overflow, setOverflow] = tracked<"scroll" | "wrap">("scroll");
+  const [changesOnly, setChangesOnly] = tracked(false);
+  const [selectedPath, setSelectedPath] = tracked<string | undefined>(undefined);
+  const [expandedDirectories, setExpandedDirectories] = tracked(new Set<string>());
+  const [fileView, setFileView] = tracked(false);
+  const [fullContentPaths, setFullContentPaths] = tracked(new Set<string>());
   // Viewer folds/gaps for the current file (reset on file switch): a `Set` of folded
   // Fold-region keys and a `Set` of expanded gap keys, both feeding `collapsedRender`.
   // Their opposite defaults (a fold starts open, a gap starts collapsed) are why they
   // Are two sets, not one; the transform that consumes them is shared.
-  const [foldedRegions, setFoldedRegions] = createSignal(new Set<string>());
-  const [expandedGaps, setExpandedGaps] = createSignal(new Set<string>());
+  const [foldedRegions, setFoldedRegions] = tracked(new Set<string>());
+  const [expandedGaps, setExpandedGaps] = tracked(new Set<string>());
   // The current file's revealed-gap source, loaded lazily on the first gap expansion.
-  const [gapSource, setGapSource] = createSignal<
+  const [gapSource, setGapSource] = tracked<
     | { path: string; status: "loading" | "error" }
     | { path: string; status: "loaded"; lines: string[] }
     | undefined
   >(undefined);
-  const [focusedNodeId, setFocusedNodeId] = createSignal("");
-  const [focusedPane, setFocusedPane] = createSignal<"tree" | "diff" | "problems" | "search">(
-    "tree",
-  );
-  const [sidebarOpen, setSidebarOpen] = createSignal(true);
-  const [sidebarWidthOverride, setSidebarWidthOverride] = createSignal<number | null>(null);
-  const [sidebarScrollTop, setSidebarScrollTop] = createSignal(0);
-  const [problemsOpen, setProblemsOpen] = createSignal(false);
-  const [problemIndex, setProblemIndex] = createSignal(0);
-  const [problemsScrollTop, setProblemsScrollTop] = createSignal(0);
-  const [fileComboboxOpen, setFileComboboxOpen] = createSignal(false);
-  const [fileComboboxQuery, setFileComboboxQuery] = createSignal("");
-  const [fileComboboxIndex, setFileComboboxIndex] = createSignal(0);
+  const [focusedNodeId, setFocusedNodeId] = tracked("");
+  const [focusedPane, setFocusedPane] = tracked<"tree" | "diff" | "problems" | "search">("tree");
+  const [sidebarOpen, setSidebarOpen] = tracked(true);
+  const [sidebarWidthOverride, setSidebarWidthOverride] = tracked<number | null>(null);
+  const [sidebarScrollTop, setSidebarScrollTop] = tracked(0);
+  const [problemsOpen, setProblemsOpen] = tracked(false);
+  const [problemIndex, setProblemIndex] = tracked(0);
+  const [problemsScrollTop, setProblemsScrollTop] = tracked(0);
+  const [fileComboboxOpen, setFileComboboxOpen] = tracked(false);
+  const [fileComboboxQuery, setFileComboboxQuery] = tracked("");
+  const [fileComboboxIndex, setFileComboboxIndex] = tracked(0);
   // Which view occupies the main area. A union (not per-view booleans) so exactly
   // One view is ever active; future panes extend it.
-  const [mainView, setMainView] = createSignal<"file" | "search">("file");
-  const [searchQuery, setSearchQuery] = createSignal("");
-  const [searchGlob, setSearchGlob] = createSignal("");
-  const [searchRegex, setSearchRegex] = createSignal(false);
-  const [searchCaseSensitive, setSearchCaseSensitive] = createSignal(false);
-  const [searchScope, setSearchScope] = createSignal<"changed" | "repo">("changed");
-  const [searchFocus, setSearchFocus] = createSignal<"query" | "glob" | "results">("query");
-  const [searchIndex, setSearchIndex] = createSignal(0);
-  const [searchScrollTop, setSearchScrollTop] = createSignal(0);
-  const [searchCollapsed, setSearchCollapsed] = createSignal(new Set<string>());
-  const [searchResults, setSearchResults] = createSignal<SearchMatch[]>([]);
-  const [searchFileLines, setSearchFileLines] = createSignal(new Map<string, string[]>());
-  const [searchTruncated, setSearchTruncated] = createSignal(false);
-  const [searchStatus, setSearchStatus] = createSignal<"idle" | "searching" | "ready" | "error">(
-    "idle",
+  const [mainView, setMainView] = tracked<"file" | "search">("file");
+  const [searchQuery, setSearchQuery] = tracked("");
+  const [searchGlob, setSearchGlob] = tracked("");
+  const [searchRegex, setSearchRegex] = tracked(false);
+  const [searchCaseSensitive, setSearchCaseSensitive] = tracked(false);
+  const [searchScope, setSearchScope] = tracked<"changed" | "repo">("changed");
+  const [searchFocus, setSearchFocus] = tracked<"query" | "glob" | "results">("query");
+  const [searchIndex, setSearchIndex] = tracked(0);
+  const [searchScrollTop, setSearchScrollTop] = tracked(0);
+  const [searchCollapsed, setSearchCollapsed] = tracked(new Set<string>());
+  const [searchResults, setSearchResults] = tracked<SearchMatch[]>([]);
+  const [searchFileLines, setSearchFileLines] = tracked(new Map<string, string[]>());
+  const [searchTruncated, setSearchTruncated] = tracked(false);
+  const [searchStatus, setSearchStatus] = tracked<"idle" | "searching" | "ready" | "error">("idle");
+  const [referencesOpen, setReferencesOpen] = tracked(false);
+  const [referencesStatus, setReferencesStatus] = tracked<"loading" | "ready" | "empty" | "error">(
+    "loading",
   );
-  const [referencesOpen, setReferencesOpen] = createSignal(false);
-  const [referencesStatus, setReferencesStatus] = createSignal<
-    "loading" | "ready" | "empty" | "error"
-  >("loading");
-  const [referencesResults, setReferencesResults] = createSignal<ReferenceResult[]>([]);
-  const [referencesIndex, setReferencesIndex] = createSignal(0);
-  const [referencesScrollTop, setReferencesScrollTop] = createSignal(0);
-  const [referencesLabel, setReferencesLabel] = createSignal<
+  const [referencesResults, setReferencesResults] = tracked<ReferenceResult[]>([]);
+  const [referencesIndex, setReferencesIndex] = tracked(0);
+  const [referencesScrollTop, setReferencesScrollTop] = tracked(0);
+  const [referencesLabel, setReferencesLabel] = tracked<
     "references" | "definitions" | "implementations" | "incoming calls" | "outgoing calls"
   >("references");
-  const [symbolsOpen, setSymbolsOpen] = createSignal(false);
-  const [symbolsStatus, setSymbolsStatus] = createSignal<
+  const [symbolsOpen, setSymbolsOpen] = tracked(false);
+  const [symbolsStatus, setSymbolsStatus] = tracked<
     "loading" | "ready" | "empty" | "error" | "unsupported"
   >("loading");
-  const [symbolsResults, setSymbolsResults] = createSignal<NormalizedSymbol[]>([]);
-  const [symbolsIndex, setSymbolsIndex] = createSignal(0);
-  const [symbolsScrollTop, setSymbolsScrollTop] = createSignal(0);
-  const [findOpen, setFindOpen] = createSignal(false);
-  const [findActive, setFindActive] = createSignal(false);
-  const [findQuery, setFindQuery] = createSignal("");
-  const [findMatchPos, setFindMatchPos] = createSignal(0);
-  const [worktreeComboboxOpen, setWorktreeComboboxOpen] = createSignal(false);
-  const [worktreeComboboxIndex, setWorktreeComboboxIndex] = createSignal(0);
-  const [worktreeComboboxQuery, setWorktreeComboboxQuery] = createSignal("");
-  const [worktrees, setWorktrees] = createSignal<Worktree[] | undefined>(undefined);
+  const [symbolsResults, setSymbolsResults] = tracked<NormalizedSymbol[]>([]);
+  const [symbolsIndex, setSymbolsIndex] = tracked(0);
+  const [symbolsScrollTop, setSymbolsScrollTop] = tracked(0);
+  const [findOpen, setFindOpen] = tracked(false);
+  const [findActive, setFindActive] = tracked(false);
+  const [findQuery, setFindQuery] = tracked("");
+  const [findMatchPos, setFindMatchPos] = tracked(0);
+  const [worktreeComboboxOpen, setWorktreeComboboxOpen] = tracked(false);
+  const [worktreeComboboxIndex, setWorktreeComboboxIndex] = tracked(0);
+  const [worktreeComboboxQuery, setWorktreeComboboxQuery] = tracked("");
+  const [worktrees, setWorktrees] = tracked<Worktree[] | undefined>(undefined);
   // How much work sits in each worktree and when it last moved, keyed by worktree
   // Path. Repository-wide (not scoped to the active worktree), so a worktree switch
   // Leaves it valid. Written only by `refreshWorktreeSummaries`.
-  const [worktreeSummaries, setWorktreeSummaries] = createSignal<Map<string, WorktreeSummary>>(
+  const [worktreeSummaries, setWorktreeSummaries] = tracked<Map<string, WorktreeSummary>>(
     new Map(),
   );
-  const [helpDialogOpen, setHelpDialogOpen] = createSignal(false);
-  const [quitConfirmOpen, setQuitConfirmOpen] = createSignal(false);
-  const [themeComboboxOpen, setThemeComboboxOpen] = createSignal(false);
-  const [themeComboboxIndex, setThemeComboboxIndex] = createSignal(0);
-  const [themeComboboxQuery, setThemeComboboxQuery] = createSignal("");
+  const [helpDialogOpen, setHelpDialogOpen] = tracked(false);
+  const [quitConfirmOpen, setQuitConfirmOpen] = tracked(false);
+  const [themeComboboxOpen, setThemeComboboxOpen] = tracked(false);
+  const [themeComboboxIndex, setThemeComboboxIndex] = tracked(0);
+  const [themeComboboxQuery, setThemeComboboxQuery] = tracked("");
   // The selection active when the picker opened, restored if the user cancels.
-  const [themeComboboxOrigin, setThemeComboboxOrigin] = createSignal<ThemeSelection>(undefined);
-  const [gitModel, setGitModel] = createSignal<GitModel>(emptyModel);
-  const [repoRoot, setRepoRoot] = createSignal("");
+  const [themeComboboxOrigin, setThemeComboboxOrigin] = tracked<ThemeSelection>(undefined);
+  const [gitModel, setGitModel] = tracked<GitModel>(emptyModel);
+  const [repoRoot, setRepoRoot] = tracked("");
   // The repository's main worktree, resolved once at startup (repository-wide
   // Constant). It outlives a deleted linked worktree, so it is the recovery
   // Target; if it too is gone, the repository is gone and there is no survivor.
-  const [mainWorktreePath, setMainWorktreePath] = createSignal("");
+  const [mainWorktreePath, setMainWorktreePath] = tracked("");
   // Flips when the heartbeat finds the worktree deleted (its root or the main
   // Worktree gone); App reacts by switching to the main worktree or exiting.
-  const [currentWorktreeDeleted, setCurrentWorktreeDeleted] = createSignal(false);
+  const [currentWorktreeDeleted, setCurrentWorktreeDeleted] = tracked(false);
   // Two timestamps that drive the adaptive safety-poll cadence: when git state
   // Last changed, and when the fs watcher last ticked (0 = never, i.e. unproven).
-  const [lastChange, setLastChange] = createSignal(0);
-  const [lastWatcherTick, setLastWatcherTick] = createSignal(0);
-  const [cursorIndex, setCursorIndex] = createSignal(0);
+  const [lastChange, setLastChange] = tracked(0);
+  const [lastWatcherTick, setLastWatcherTick] = tracked(0);
+  const [cursorIndex, setCursorIndex] = tracked(0);
   // The in-line caret: a UTF-16 offset (a word start) on the cursor line. Motion
   // Hops word to word; a precise offset is still stored so a diagnostic jump lands
   // On its exact column and copy-reference can emit `:line:col`. Normalized to the
   // Line's first word whenever the cursor line or content changes (the Viewer
   // Effect), unless a restore/jump placed it on a valid word.
-  const [cursorColumn, setCursorColumn] = createSignal(0);
+  const [cursorColumn, setCursorColumn] = tracked(0);
   // True when the caret selects a whole line, not a symbol on it (a click on the
   // Gutter): no word is highlighted and `y` copies `path:line`, not `path:line:col`.
   // Transient — any vertical move, word hop, jump, or content click re-selects a
   // Symbol, so it is never captured into navigation history.
-  const [caretLineLevel, setCaretLineLevel] = createSignal(false);
+  const [caretLineLevel, setCaretLineLevel] = tracked(false);
   // The fixed end of a line-range selection: a navIndex, or undefined when there
   // Is only a caret (today's behavior). The selection spans anchor..cursorIndex,
   // Whole-line. Transient like `caretLineLevel`: any plain caret move or navigation
   // Clears it (see `setCursorRow`/`goToLocation`), and it is never captured into
   // Navigation history. `C` copies the spanned lines' source text.
-  const [selectionAnchor, setSelectionAnchor] = createSignal<number | undefined>(undefined);
+  const [selectionAnchor, setSelectionAnchor] = tracked<number | undefined>(undefined);
   // The viewer's scroll offsets, lifted out of DiffView so a navigation can
   // Capture and restore them; the renderer mirrors `viewerScrollTop` onto the
   // Scrollbox every frame (it stays the single source of truth for the window).
-  const [viewerScrollTop, setViewerScrollTop] = createSignal(0);
-  const [viewerScrollX, setViewerScrollX] = createSignal(0);
+  const [viewerScrollTop, setViewerScrollTop] = tracked(0);
+  const [viewerScrollX, setViewerScrollX] = tracked(0);
   // The active caret-anchored decoration and the anchor it opened against. The
   // Content is the rendering source; the anchor is an orthogonal watcher that
   // Closes the card on any caret/scroll/file drift (see the clear effect below).
-  const [viewerDecoration, setViewerDecorationContent] = createSignal<ViewerDecoration | undefined>(
+  const [viewerDecoration, setViewerDecorationContent] = tracked<ViewerDecoration | undefined>(
     undefined,
   );
-  const [decorationAnchor, setDecorationAnchor] = createSignal<DecorationAnchor | undefined>(
-    undefined,
-  );
+  const [decorationAnchor, setDecorationAnchor] = tracked<DecorationAnchor | undefined>(undefined);
   // The viewer's navigation history: tabs of visited Locations plus a per-path
   // MRU viewport. `selectedPath`/`fileView`/the scroll signals stay the live
   // Source of truth the viewer renders; navState records them on leave and
   // Restores them on back/forward or a revisit (capture-on-leave, like a browser).
-  const [navState, setNavState] = createSignal<NavState>(initialNav(undefined));
-  const [pendingRestore, setPendingRestore] = createSignal<PendingRestore | undefined>(undefined);
+  const [navState, setNavState] = tracked<NavState>(initialNav(undefined));
+  const [pendingRestore, setPendingRestore] = tracked<PendingRestore | undefined>(undefined);
   // Monotonic tab id source (the seed tab is "0"); never reset, so ids stay unique
   // Across a seedNav that re-collapses to one tab.
   let nextTabId = 1;
-  const [jumpTarget, setJumpTarget] = createSignal<JumpTarget | undefined>(undefined);
-  const [checkerState, setCheckerState] = createSignal<CheckerState>(initialCheckerState([]));
-  const [status, setStatus] = createSignal("");
-  const [statusLevel, setStatusLevel] = createSignal<LogLevel>("info");
+  onReset(() => {
+    nextTabId = 1;
+  });
+  const [jumpTarget, setJumpTarget] = tracked<JumpTarget | undefined>(undefined);
+  const [checkerState, setCheckerState] = tracked<CheckerState>(initialCheckerState([]));
+  const [status, setStatus] = tracked("");
+  const [statusLevel, setStatusLevel] = tracked<LogLevel>("info");
   // A live in-flight indicator for a code-intel pull (F12), distinct from the
   // Auto-clearing `notice` acknowledgment: it is set on the keystroke and cleared
   // When the pull settles, so the status bar shows the action is underway.
-  const [intelStatus, setIntelStatus] = createSignal<string | undefined>(undefined);
+  const [intelStatus, setIntelStatus] = tracked<string | undefined>(undefined);
   const report = (text: string, level: LogLevel = "info") => {
     setStatus(text);
     setStatusLevel(level);
   };
   // An ephemeral acknowledgment of a user action (copied, scope changed, …),
   // Held for a fixed dwell so it outlives the keystroke that triggered it.
-  const [notice, setNotice] = createSignal<{ text: string; level: LogLevel } | undefined>(
-    undefined,
-  );
+  const [notice, setNotice] = tracked<{ text: string; level: LogLevel } | undefined>(undefined);
   // Set by the background release check; read once on quit to print the post-exit notice.
-  const [availableUpdate, setAvailableUpdate] = createSignal<
+  const [availableUpdate, setAvailableUpdate] = tracked<
     { current: string; latest: string } | undefined
   >(undefined);
-  const [activityLog, setActivityLog] = createSignal<ActivityLog>(emptyActivityLog);
-  const [checksRunning, setChecksRunning] = createSignal(false);
+  const [activityLog, setActivityLog] = tracked<ActivityLog>(emptyActivityLog);
+  const [checksRunning, setChecksRunning] = tracked(false);
   // Languages whose server is downloading right now, sourced live from the provisioner (not the
   // Check run), so the status bar shows it promptly and drops it the moment the download resolves.
-  const [provisioningLanguages, setProvisioningLanguages] = createSignal<ReadonlySet<string>>(
-    new Set(),
-  );
-  const [now, setNow] = createSignal(Date.now());
-  const [terminalWidth, setTerminalWidth] = createSignal(80);
-  const [terminalHeight, setTerminalHeight] = createSignal(24);
-  const [editorTemplate, setEditorTemplate] = createSignal<string>("vim +{line} {file}");
-  const [ideTemplate, setIdeTemplate] = createSignal<string | undefined>(undefined);
+  const [provisioningLanguages, setProvisioningLanguages] = tracked<ReadonlySet<string>>(new Set());
+  const [now, setNow] = tracked(Date.now());
+  const [terminalWidth, setTerminalWidth] = tracked(80);
+  const [terminalHeight, setTerminalHeight] = tracked(24);
+  const [editorTemplate, setEditorTemplate] = tracked<string>("vim +{line} {file}");
+  const [ideTemplate, setIdeTemplate] = tracked<string | undefined>(undefined);
 
   // --- synchronous derived ---
   const selectedFile = createMemo(() => {
@@ -830,7 +861,7 @@ function createState() {
   // It is open; the universe above stays live, so a file created mid-open still
   // Appears. Per-row decorations (recency dot, changed tint) keep reading live
   // State.
-  const [fileComboboxRankContext, setFileComboboxRankContext] = createSignal({
+  const [fileComboboxRankContext, setFileComboboxRankContext] = tracked({
     changed: new Set<string>(),
     lastChangedAt: new Map<string, number>(),
   });
@@ -905,7 +936,7 @@ function createState() {
       showFile: showFileContent(),
     };
   });
-  const [diffView, setDiffView] = createSignal<DiffView | undefined>(undefined);
+  const [diffView, setDiffView] = tracked<DiffView | undefined>(undefined);
   createEffect(() => {
     // Re-run on a theme change too (a runtime appearance flip), so the diff
     // Re-renders with the new palette; the engine keys its cache by the theme.
@@ -2402,6 +2433,7 @@ function createState() {
   }
 
   let checksController: AbortController | undefined;
+  onReset(() => checksController?.abort());
   async function runChecks(model: GitModel) {
     checksController?.abort();
     const controller = new AbortController();
@@ -2495,6 +2527,8 @@ function createState() {
   // Hold a user-action acknowledgment for a fixed dwell (~1.5s) so an ambient
   // Status event or the next keystroke can't overwrite it before it's read.
   let noticeTimer: ReturnType<typeof setTimeout> | undefined;
+  // Left pending, it clears a notice 1.5s later, inside whichever test is running by then.
+  onReset(() => clearTimeout(noticeTimer));
   function notify(text: string, level: LogLevel = "info") {
     setNotice({ level, text });
     clearTimeout(noticeTimer);
@@ -2504,7 +2538,11 @@ function createState() {
   // Background, non-blocking: a newer release surfaces in the post-exit quit notice. Bounded by a
   // Timeout and error-swallowing in fetchLatestVersion, so it never blocks or breaks startup.
   async function checkForUpdate(current: string) {
+    const epoch = resetEpoch;
     const latest = await fetchLatestVersion();
+    if (epoch !== resetEpoch) {
+      return;
+    }
     if (latest !== undefined && isNewer(latest, current)) {
       setAvailableUpdate({ current, latest });
     }
@@ -2514,6 +2552,7 @@ function createState() {
   // Single overlay, so a fresh request of either kind supersedes the other's in-flight pull,
   // Rather than two uncoordinated controllers clobbering each other's results.
   let intelController: AbortController | undefined;
+  onReset(() => intelController?.abort());
 
   // Keep the intel-capable server for the viewed repo warm across the whole session so the first
   // Intel action never pays a cold spawn plus project load (the stall). The seed latches to the most
@@ -2767,6 +2806,9 @@ function createState() {
   // The repoRoot the open overlay's results belong to, captured on open so the drift
   // Effect below can close it when a worktree switch moves off that repo.
   let referencesRoot: string | undefined;
+  onReset(() => {
+    referencesRoot = undefined;
+  });
 
   // What produced the open overlay when it is a call hierarchy: the caret it was pulled from plus
   // The current direction, so `Tab` can re-resolve the other direction against the same symbol.
@@ -2778,6 +2820,9 @@ function createState() {
     direction: "incoming" | "outgoing";
   }
   let hierarchyAnchor: HierarchyAnchor | undefined;
+  onReset(() => {
+    hierarchyAnchor = undefined;
+  });
 
   function openReferences(
     label: ReturnType<typeof referencesLabel>,
@@ -2951,6 +2996,12 @@ function createState() {
   let symbolsController: AbortController | undefined;
   let symbolsPath: string | undefined;
   let symbolsRoot: string | undefined;
+  onReset(() => {
+    symbolsController?.abort();
+    symbolsPath = undefined;
+    symbolsRoot = undefined;
+    symbolsFile = undefined;
+  });
   // The open file's ChangedFile identity when the outline was requested. A same-path content
   // Reload mints a new reference, so drifting off it closes the outline before its captured
   // Line:col positions go stale (the outline shows no source preview to reveal the mismatch).
@@ -3126,6 +3177,7 @@ function createState() {
   }
 
   let hoverController: AbortController | undefined;
+  onReset(() => hoverController?.abort());
   // Show type + docs for the symbol under the caret in a caret-anchored card. Same
   // Read-only pull and guards as `goToDefinition`, but the reply is text into the
   // Decoration seam instead of a jump; degrades to an empty/error card, never throws.
@@ -3435,9 +3487,13 @@ function createState() {
   // Open (so a single-worktree repo, which the background poll skips, still fills
   // Its row) and the peer poll below.
   function refreshWorktreeSummaries(list: readonly Worktree[], root: string) {
+    const epoch = resetEpoch;
     return runtime
       .runPromise(Git.use((git) => git.worktreeSummaries(list, root)))
       .then((summaries) => {
+        if (epoch !== resetEpoch) {
+          return;
+        }
         setWorktreeSummaries((previous) => mergeWorktreeSummaries(previous, summaries));
       })
       .catch(() => {});
@@ -3454,9 +3510,16 @@ function createState() {
   }
 
   function loadWorktrees(root: string) {
+    const epoch = resetEpoch;
     runtime
       .runPromise(Git.use((git) => git.worktrees(root)))
       .then((list) => {
+        // The picker's rows, its highlight, and the summaries refresh it kicks all happen after this
+        // Await, so a reset that lands mid-list has to stop the lot: without this the refresh would
+        // Merely start late, capture the *new* epoch, and be waved through by its own guard.
+        if (epoch !== resetEpoch) {
+          return;
+        }
         const selectable = list.filter((worktree) => !worktree.bare);
         // Ordered once, here: the rows read their ages live from the summary map,
         // But the order is fixed at open, so a summary landing while the picker is
@@ -3479,6 +3542,9 @@ function createState() {
         void refreshWorktreeSummaries(ordered, root);
       })
       .catch((error: unknown) => {
+        if (epoch !== resetEpoch) {
+          return;
+        }
         batch(() => {
           setWorktreeComboboxOpen(false);
           report(
@@ -3526,6 +3592,12 @@ function createState() {
   // A monotonic token guards the async last-commit resolution: a newer pick (of
   // Any kind) bumps it, so a late parentRef result can't overwrite the newer scope.
   let scopeSelection = 0;
+  // Bumped, never zeroed: these tokens are only compared for equality, so restoring 0 would let an
+  // In-flight reply that captured 1 match the next 1 and be accepted as current. Incrementing is what
+  // Invalidates the outstanding one.
+  onReset(() => {
+    scopeSelection += 1;
+  });
 
   // Resolve a picked scope kind to a fully-formed DiffScope. last-commit needs its
   // Parent ref resolved (async), so it sets the scope once that lands, guarded
@@ -3565,6 +3637,9 @@ function createState() {
   // The recent commits are a snapshot loaded when the drill-down opens, guarded so
   // A stale load (or one from a superseded open) can't overwrite a newer list.
   let commitsLoad = 0;
+  onReset(() => {
+    commitsLoad += 1;
+  });
   function loadCommits(root: string) {
     const token = (commitsLoad += 1);
     // Clear the prior snapshot so nothing can select a stale row while the reload
@@ -3652,6 +3727,9 @@ function createState() {
   // Directly. It only writes state and reloads the model (no `renderer`), so it
   // Belongs here next to `runChecks`; `reason` overrides the status.
   let switchRequest = 0;
+  onReset(() => {
+    switchRequest += 1;
+  });
   async function switchWorktree(worktree: Worktree, reason?: string) {
     setWorktreeComboboxOpen(false);
     if (worktree.path === gitModel().repoRoot) {
@@ -3971,6 +4049,11 @@ function createState() {
   let previousChanged: ChangedFile[] = [];
   let previousScopeKey = "";
   let previousRepoRoot = "";
+  onReset(() => {
+    previousChanged = [];
+    previousScopeKey = "";
+    previousRepoRoot = "";
+  });
   createEffect(() => {
     const model = gitModel();
     const previousByPath = new Map(previousChanged.map((file) => [file.path, file]));
@@ -4147,6 +4230,7 @@ function createState() {
     repoRoot,
     resetFind,
     resetSidebarWidth,
+    resetState,
     resolveViewerDecoration,
     revealLineForJump,
     runChecks,

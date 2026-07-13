@@ -31,6 +31,7 @@ a checkout, a rebase. Uncommitted changes alone would not be enough, because a
 worktree would go quiet the moment an agent committed its work, which is exactly
 when it had been busiest.
 
-While you inspect one worktree, the header says when the others are active
-(`● 2 worktrees active`), and fades the cue out as they go quiet. Click it to
-open the picker.
+The age ranks how recently each worktree saw activity: it glows on one touched
+moments ago and cools as the work there gets older. It is a recency ranking, not
+a live presence check, so a warm age means work landed there recently, not that
+something is still running.

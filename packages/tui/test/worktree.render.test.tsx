@@ -209,35 +209,6 @@ describe("worktree picker", () => {
     }
   }, 20_000);
 
-  test("the header says another worktree is active while you inspect this one", async () => {
-    const repoRoot = createFixtureRepo("stet-worktree-cue-", { "README.md": "# Fixture\n" });
-    const linkedRoot = `${repoRoot}-linked`;
-    runGit(repoRoot, ["worktree", "add", "-b", "other-branch", linkedRoot]);
-    writeFileSync(join(linkedRoot, "agent-work.ts"), "export const work = 1\n");
-
-    const model = await loadModel(repoRoot, { kind: "all", ref: "HEAD" });
-    seedState(model, { kind: "all", ref: "HEAD" });
-    const { renderer, renderOnce, captureCharFrame } = await testRender(() => <App />, {
-      height: 34,
-      width: 120,
-    });
-    const settleUntil = makeSettleUntil({ captureCharFrame, renderOnce });
-
-    try {
-      // No keypress: the background poll finds the churn in the other worktree on its own.
-      const frame = await settleUntil(
-        "header cue",
-        (candidate) => candidate.includes("1 worktree active"),
-        40,
-      );
-      expect(frame).toContain("1 worktree active");
-    } finally {
-      renderer.destroy();
-      rmSync(repoRoot, { force: true, recursive: true });
-      rmSync(linkedRoot, { force: true, recursive: true });
-    }
-  }, 20_000);
-
   test("typing filters the worktree list", async () => {
     const repoRoot = createFixtureRepo("stet-worktree-filter-", {
       "README.md": "# Fixture\n",

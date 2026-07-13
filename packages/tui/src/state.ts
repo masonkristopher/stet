@@ -890,32 +890,6 @@ function createState() {
     );
   });
 
-  // The worktrees an agent is working in right now, excluding the one being inspected. The window is
-  // WORKTREE_ACTIVE_MS, not the 30s a changed file stays fresh for: an agent pauses for minutes at a
-  // Time and is still working there, so the shorter window would blink the cue off underneath it.
-  // `latestAt` feeds the header cue's dot, so the whole group fades out together as the others go
-  // Quiet.
-  const activeWorktrees = createMemo(() => {
-    const root = repoRoot();
-    const at = now();
-    const peers = [...worktreeSummaries().values()].filter(
-      (summary) =>
-        summary.path !== root &&
-        summary.lastActivityAt !== undefined &&
-        at - summary.lastActivityAt < WORKTREE_ACTIVE_MS,
-    );
-    return {
-      count: peers.length,
-      latestAt: peers.reduce<number | undefined>(
-        (latest, summary) =>
-          latest === undefined || (summary.lastActivityAt ?? 0) > latest
-            ? summary.lastActivityAt
-            : latest,
-        undefined,
-      ),
-    };
-  });
-
   // --- coherent diff-pane snapshot (the freeze fix) ---
   const diffSource = createMemo(() => {
     const path = selectedPath();
@@ -3951,15 +3925,15 @@ function createState() {
   });
 
   // Tick the recency clock once a second while anything is still fading, then stop. Drives the
-  // Tree's fading recency dots, the status bar's fading activity path, the header's other-worktree
-  // Cue, and every age in the worktree picker (all read now()). The two sources decay over different
-  // Windows, so each keeps the clock awake for its own: a changed file for RECENT_MS, a worktree
-  // Being worked in for the much longer WORKTREE_ACTIVE_MS.
+  // Tree's fading recency dots, the status bar's fading activity path, and every age in the worktree
+  // Picker (all read now()). The two sources decay over different windows, so each keeps the clock
+  // Awake for its own: a changed file for RECENT_MS, a worktree being worked in for the much longer
+  // WORKTREE_ACTIVE_MS.
   //
-  // `worktreeAt` spans **every** worktree, unlike `activeWorktrees`, which filters to peers because
-  // The header cue is about elsewhere. The picker fades an age for the worktree you are *in* too, so
-  // Excluding it would freeze that row 30s after its last edit (once the file log ages out of
-  // RECENT_MS), leaving it reading `now` in fresh pink minutes after the agent stopped.
+  // `worktreeAt` spans **every** worktree, including the one being inspected: the picker fades an
+  // Age for the worktree you are *in* too, so excluding it would freeze that row 30s after its last
+  // Edit (once the file log ages out of RECENT_MS), leaving it reading `now` in fresh pink minutes
+  // After the agent stopped.
   createEffect(() => {
     const fileAt = latestActivity(activityLog())?.at ?? 0;
     const worktreeAt = Math.max(
@@ -4046,7 +4020,6 @@ function createState() {
 
   return {
     activateTab,
-    activeWorktrees,
     activityLog,
     allProblemItems,
     availableUpdate,
